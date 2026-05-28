@@ -104,6 +104,50 @@ Em uma nova conversa, ler nesta ordem:
   - exemplo de elemento modular.
 - O `README.md` foi atualizado para apontar para a arquitetura modular e para o schema YAML.
 
+#### POC modular da aba Impacto com dados reais do Zoho
+
+- Foi criada uma prova de conceito funcional para testar a arquitetura modular antes de expandir para as 15 abas.
+- A aba escolhida foi `Impacto`, por concentrar uma cadeia clara entre fonte real, metrica de negocio, KPI, graficos, tabela e layout editavel.
+- Foi criado o arquivo `zoho/config/bi_suprimentos_impacto_poc.yml`.
+- O YAML define:
+  - fonte real `NFE` do workspace `SUPRIMENTOS`;
+  - consulta SQL de extracao com campos de impacto de cotacao;
+  - dataset `impacto_cotacao_por_id`;
+  - metricas `impacto_cotacao_total`, `impacto_cotacao_liquido`, `percentual_acima_menor` e `ids_com_impacto`;
+  - oito elementos modulares: quatro KPIs, dois graficos, uma tabela e uma nota tecnica;
+  - layout em grid de 16 colunas para a aba `Impacto`.
+- Foi criado o script `zoho/scripts/build_modular_impacto_poc.py`.
+- O script gera uma pagina HTML standalone a partir do YAML e do CSV real exportado do Zoho.
+- O script tambem pode atualizar a fonte diretamente no Zoho com `--refresh-zoho`, usando `zoho/zoho.env`, sem expor credenciais no repositorio.
+- A leitura da fonte foi implementada com `csv` da biblioteca padrao, evitando dependencia de `pandas` nesta POC por causa de conflito local entre `NumPy 2.x` e extensoes compiladas para `NumPy 1.x`.
+- Foi adicionada a dependencia `PyYAML>=6,<7` em `requirements.txt`.
+- Artefatos gerados localmente, ignorados pelo Git:
+  - `zoho/output/modular_test/data/impacto_nfe_limit5000.csv`;
+  - `zoho/output/modular_test/data/impacto_modular_poc_data.json`;
+  - `zoho/output/modular_test/bi_impacto_modular_poc.html`.
+- A execucao local usou `10.000` linhas reais presentes no CSV de impacto.
+- Resultado do recorte total:
+  - impacto positivo: `R$ 2.745.438`;
+  - linhas acima do menor preco: `4.474`;
+  - IDs unicos: `1.932`;
+  - IDs com impacto positivo: `995`;
+  - UF lider: `PE`;
+  - categoria lider: `I1 - ESTOCAVEIS`.
+- A pagina gerada possui:
+  - filtros vivos por `UF`, `Categoria`, `Curva ID` e `Leitura`;
+  - recalcule automatico de KPIs, graficos, ranking e nota tecnica no navegador;
+  - modo edicao para arrastar modulos pelo cabecalho;
+  - persistencia de posicao em `localStorage`;
+  - botao de reset de layout;
+  - grid responsivo de 16 colunas no desktop e empilhamento em telas menores.
+- Validacoes executadas:
+  - `python -m py_compile zoho\scripts\build_modular_impacto_poc.py`;
+  - `python zoho\scripts\build_modular_impacto_poc.py`;
+  - `node --check` sobre o JavaScript extraido do HTML gerado;
+  - Microsoft Edge headless com `--dump-dom`, confirmando renderizacao, populacao de filtro real `PE` e textos recalculados no DOM;
+  - `python -m unittest discover -s zoho\tests`, com `13` testes aprovados.
+- Esta POC confirma que a cadeia `YAML -> dados reais -> elementos -> layout -> HTML interativo` funciona e pode ser expandida para outras abas.
+
 ### 2026-05-21
 
 #### Ajustes pontuais do painel de auditoria

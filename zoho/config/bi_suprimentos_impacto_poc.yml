@@ -1,0 +1,308 @@
+schema_version: 0.1.0
+prototype: impacto_modular_poc
+title: Prova de Conceito Modular - Impacto
+tab: Impacto
+
+source:
+  id: zoho_nfe_impacto_limit5000
+  name: NFE
+  provider: zoho_analytics
+  workspace: SUPRIMENTOS
+  source_type: zoho_query_table
+  refresh_policy: manual_snapshot
+  local_path: zoho/output/modular_test/data/impacto_nfe_limit5000.csv
+  sql_query: >
+    select "ID","NMPRODUTO_OFICIAL","CAT2","UF","NMEMP","MESANO","TOTAL",
+    "QTDE_EST","VLRUNITPOND_EST","PMP_ID_1","PRE_MIN_COT","FORN_MIN_COT",
+    "IMP_COT","CURVA_ID"
+    from "NFE"
+    where "IMP_COT" is not null
+    limit 5000
+  expected_fields:
+    - ID
+    - NMPRODUTO_OFICIAL
+    - CAT2
+    - UF
+    - NMEMP
+    - MESANO
+    - TOTAL
+    - QTDE_EST
+    - VLRUNITPOND_EST
+    - PMP_ID_1
+    - PRE_MIN_COT
+    - FORN_MIN_COT
+    - IMP_COT
+    - CURVA_ID
+
+dataset:
+  id: impacto_cotacao_por_id
+  label: Impacto de cotacao por ID
+  source: zoho_nfe_impacto_limit5000
+  grain:
+    - ID
+    - UF
+    - MESANO
+  fields:
+    - ID
+    - NMPRODUTO_OFICIAL
+    - CAT2
+    - UF
+    - NMEMP
+    - MESANO
+    - TOTAL
+    - QTDE_EST
+    - VLRUNITPOND_EST
+    - PRE_MIN_COT
+    - FORN_MIN_COT
+    - IMP_COT
+    - CURVA_ID
+
+metrics:
+  - id: impacto_cotacao_total
+    label: Impacto positivo R$
+    dataset: impacto_cotacao_por_id
+    formula: sum(max(IMP_COT, 0))
+    format: currency
+    business_definition: Soma de IMP_COT positivo, representando compras acima da menor cotacao.
+  - id: impacto_cotacao_liquido
+    label: Impacto liquido R$
+    dataset: impacto_cotacao_por_id
+    formula: sum(IMP_COT)
+    format: currency
+    business_definition: Soma liquida de IMP_COT, preservando itens abaixo da menor cotacao quando existirem.
+  - id: percentual_acima_menor
+    label: "% acima do menor"
+    dataset: impacto_cotacao_por_id
+    formula: count_where(IMP_COT > 0) / count_rows
+    format: percent
+    business_definition: Percentual de linhas com compra acima da menor cotacao.
+  - id: ids_com_impacto
+    label: IDs com impacto
+    dataset: impacto_cotacao_por_id
+    formula: count_distinct(ID where IMP_COT > 0)
+    format: number
+    business_definition: IDs com pelo menos uma linha de IMP_COT positivo.
+
+elements:
+  - id: impacto.kpi.impacto_total
+    tab: Impacto
+    type: kpi
+    title: Impacto positivo R$
+    data_bindings:
+      primary_metric: impacto_cotacao_total
+    sub_elements:
+      - id: title
+        type: text.title
+        value: Impacto positivo R$
+      - id: value
+        type: metric.primary
+        metric_id: impacto_cotacao_total
+      - id: subtitle
+        type: text.subtitle
+        value: Soma de IMP_COT positivo
+      - id: origin
+        type: text.origin
+        value: "Origem Zoho: NFE"
+
+  - id: impacto.kpi.percentual_acima_menor
+    tab: Impacto
+    type: kpi
+    title: "% acima do menor"
+    data_bindings:
+      primary_metric: percentual_acima_menor
+    sub_elements:
+      - id: title
+        type: text.title
+        value: "% acima do menor"
+      - id: value
+        type: metric.primary
+        metric_id: percentual_acima_menor
+      - id: subtitle
+        type: text.subtitle
+        value: Linhas com IMP_COT > 0
+
+  - id: impacto.kpi.ids_com_impacto
+    tab: Impacto
+    type: kpi
+    title: IDs com impacto
+    data_bindings:
+      primary_metric: ids_com_impacto
+    sub_elements:
+      - id: title
+        type: text.title
+        value: IDs com impacto
+      - id: value
+        type: metric.primary
+        metric_id: ids_com_impacto
+      - id: subtitle
+        type: text.subtitle
+        value: Distintos com IMP_COT positivo
+
+  - id: impacto.kpi.uf_lider
+    tab: Impacto
+    type: kpi
+    title: UF lider
+    data_bindings:
+      primary_metric: uf_lider_impacto
+    sub_elements:
+      - id: title
+        type: text.title
+        value: UF lider
+      - id: value
+        type: metric.primary
+        metric_id: uf_lider_impacto
+      - id: subtitle
+        type: text.subtitle
+        value: Maior impacto positivo
+
+  - id: impacto.chart.impacto_por_uf
+    tab: Impacto
+    type: chart
+    title: Impacto por UF
+    data_bindings:
+      series: impacto_por_uf
+    sub_elements:
+      - id: title
+        type: text.title
+        value: Impacto por UF
+      - id: subtitle
+        type: text.subtitle
+        value: IMP_COT positivo consolidado
+      - id: origin
+        type: text.origin
+        value: "Origem Zoho: NFE"
+
+  - id: impacto.chart.impacto_por_categoria
+    tab: Impacto
+    type: chart
+    title: Impacto por categoria
+    data_bindings:
+      series: impacto_por_categoria
+    sub_elements:
+      - id: title
+        type: text.title
+        value: Impacto por categoria
+      - id: subtitle
+        type: text.subtitle
+        value: Top CAT2 por IMP_COT positivo
+
+  - id: impacto.table.top_ids_imp_cot
+    tab: Impacto
+    type: table
+    title: Top IDs por IMP_COT
+    data_bindings:
+      rows: top_ids_imp_cot
+      sort:
+        field: IMP_COT_POS
+        direction: desc
+      limit: 50
+    sub_elements:
+      - id: title
+        type: text.title
+        value: Top IDs por IMP_COT
+      - id: subtitle
+        type: text.subtitle
+        value: Produtos com maior impacto de cotacao
+      - id: origin
+        type: text.origin
+        value: "Origem Zoho: NFE"
+      - id: columns
+        type: table.column
+        columns:
+          - field: ID
+            label: ID
+            format: text
+          - field: NMPRODUTO_OFICIAL
+            label: Produto oficial
+            format: text
+          - field: CAT2
+            label: Categoria
+            format: text
+          - field: UF
+            label: UF
+            format: badge
+          - field: PMP_COMPRADO
+            label: PMP comprado
+            format: currency
+          - field: PRE_MIN_COT
+            label: Menor cot.
+            format: currency
+          - field: QTDE_EST
+            label: Qtde
+            format: number
+          - field: IMP_COT_POS
+            label: IMP_COT
+            format: currency
+          - field: CURVA_ID
+            label: Curva ID
+            format: badge
+
+  - id: impacto.note.configuracao
+    tab: Impacto
+    type: text_note
+    title: Configuracao modular
+    data_bindings:
+      rows: source_status
+    sub_elements:
+      - id: title
+        type: text.title
+        value: Configuracao modular
+      - id: subtitle
+        type: text.subtitle
+        value: Fonte, dataset, metricas, elementos e layout lidos do YAML
+
+layout:
+  tab: Impacto
+  mode: published
+  grid:
+    columns: 16
+    row_height_px: 24
+  items:
+    - element: impacto.kpi.impacto_total
+      col_start: 1
+      col_span: 4
+      row_start: 1
+      row_span: 4
+      locked: false
+    - element: impacto.kpi.percentual_acima_menor
+      col_start: 5
+      col_span: 4
+      row_start: 1
+      row_span: 4
+      locked: false
+    - element: impacto.kpi.ids_com_impacto
+      col_start: 9
+      col_span: 4
+      row_start: 1
+      row_span: 4
+      locked: false
+    - element: impacto.kpi.uf_lider
+      col_start: 13
+      col_span: 4
+      row_start: 1
+      row_span: 4
+      locked: false
+    - element: impacto.chart.impacto_por_uf
+      col_start: 1
+      col_span: 8
+      row_start: 5
+      row_span: 12
+      locked: false
+    - element: impacto.chart.impacto_por_categoria
+      col_start: 9
+      col_span: 8
+      row_start: 5
+      row_span: 12
+      locked: false
+    - element: impacto.table.top_ids_imp_cot
+      col_start: 1
+      col_span: 12
+      row_start: 17
+      row_span: 16
+      locked: false
+    - element: impacto.note.configuracao
+      col_start: 13
+      col_span: 4
+      row_start: 17
+      row_span: 16
+      locked: false

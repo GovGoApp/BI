@@ -83,8 +83,17 @@ Referencias canonicas de design:
 - `zoho/docs/MAPA_ABAS_ELEMENTOS_BI_SUPRIMENTOS_V4.md`: mapa funcional das 15 abas do BI v4, com KPIs, graficos, relatorios e tabelas por guia.
 - `zoho/docs/ARQUITETURA_MODULAR_BI_SUPRIMENTOS.md`: arquitetura modular do BI, cobrindo fontes, datasets, metricas, elementos, sub-elementos, layout em 16 colunas e modo edicao.
 - `zoho/config/bi_suprimentos_modular_schema.yml`: primeiro contrato conceitual em YAML para padronizar elementos, sub-elementos e posicionamento.
+- `zoho/config/bi_suprimentos_impacto_poc.yml`: primeira configuracao funcional de POC modular, usando dados reais do Zoho para a aba `Impacto`.
+- `zoho/scripts/build_modular_impacto_poc.py`: gerador HTML standalone da POC modular de impacto, com filtros vivos, KPIs, graficos, tabela, grid de 16 colunas e modo edicao.
 
-Todo novo design de BI deve partir dessas duas referencias, salvo decisao explicita registrada no diario.
+Todo novo design de BI deve partir dessas referencias canonicas, salvo decisao explicita registrada no diario.
+
+Primeira POC funcional:
+
+- A POC modular da aba `Impacto` gera `zoho/output/modular_test/bi_impacto_modular_poc.html` a partir de dados reais exportados do Zoho.
+- Os artefatos em `zoho/output/` sao locais e ignorados pelo Git; para regerar, usar `python zoho/scripts/build_modular_impacto_poc.py`.
+- Para atualizar a fonte diretamente no Zoho antes de gerar a pagina, usar `python zoho/scripts/build_modular_impacto_poc.py --refresh-zoho`, com `zoho/zoho.env` configurado localmente.
+- Esta POC serve como referencia tecnica para expandir a arquitetura modular para as demais abas do BI v4.
 
 ## 6. Scripts iniciais
 
