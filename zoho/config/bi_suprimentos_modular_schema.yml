@@ -1,0 +1,337 @@
+schema_version: 0.1.0
+purpose: >
+  Contrato conceitual para modularizar o BI Suprimentos desde fontes Zoho
+  ate elementos, sub-elementos e posicionamento visual.
+
+canonical_tabs:
+  - Resumo
+  - Oportunidades
+  - Categorias
+  - Filiais
+  - Estoque
+  - Fornecedor
+  - Produtos
+  - Cotações
+  - Impacto
+  - Inflação
+  - Fiscal
+  - Financeiro
+  - Adiantamentos
+  - Serviços
+  - Dados
+
+grid:
+  columns: 16
+  row_height_px: 24
+  gap_px: 10
+  coordinate_system: one_based
+  rules:
+    - col_start must be between 1 and 16.
+    - col_span must be greater than 0.
+    - col_start + col_span - 1 must be less than or equal to 16.
+    - row_start and row_span must be positive integers.
+
+layers:
+  sources:
+    description: Fontes fisicas, como views do Zoho, CSVs ou APIs.
+    required_fields:
+      - id
+      - name
+      - provider
+      - workspace
+      - view_id
+      - source_type
+      - refresh_policy
+      - privacy
+  datasets:
+    description: Tabelas logicas preparadas para analise.
+    required_fields:
+      - id
+      - label
+      - sources
+      - grain
+      - fields
+      - refresh_policy
+  metrics:
+    description: Formulas e indicadores de negocio.
+    required_fields:
+      - id
+      - label
+      - dataset
+      - formula
+      - format
+      - business_definition
+  elements:
+    description: Blocos visuais maiores exibidos nas abas.
+    required_fields:
+      - id
+      - tab
+      - type
+      - title
+      - data_bindings
+      - sub_elements
+  layouts:
+    description: Posicionamento dos elementos em grade de 16 colunas.
+    required_fields:
+      - tab
+      - mode
+      - items
+
+source_types:
+  - zoho_table
+  - zoho_query_table
+  - zoho_pivot
+  - zoho_analysis_view
+  - csv_snapshot
+  - derived_dataset
+  - manual_reference
+
+refresh_policies:
+  direct:
+    description: Busca no Zoho sob demanda pelo backend.
+  cached_daily:
+    description: Atualiza no maximo uma vez por dia e serve cache.
+  cached_hourly:
+    description: Atualiza no maximo uma vez por hora e serve cache.
+  manual_snapshot:
+    description: Atualizacao manual por arquivo.
+
+element_types:
+  kpi:
+    description: Card com um indicador principal.
+    common_sub_elements:
+      - text.title
+      - metric.primary
+      - metric.delta
+      - text.subtitle
+      - text.origin
+      - tooltip
+  chart:
+    description: Grafico visual com serie, barras, linhas ou areas.
+    common_sub_elements:
+      - text.title
+      - text.subtitle
+      - text.origin
+      - legend
+      - tooltip
+      - loading_state
+      - empty_state
+  table:
+    description: Tabela analitica.
+    common_sub_elements:
+      - text.title
+      - text.subtitle
+      - text.origin
+      - action.toolbar
+      - table.column
+      - table.cell_badge
+      - table.cell_bar
+      - pagination
+  matrix:
+    description: Matriz com linhas, colunas dinamicas e medidas.
+    common_sub_elements:
+      - text.title
+      - text.subtitle
+      - text.origin
+      - matrix.row_header
+      - matrix.column_header
+      - matrix.cell
+  alert_list:
+    description: Lista de alertas acionaveis.
+    common_sub_elements:
+      - text.title
+      - text.subtitle
+      - alert.item
+      - tag.status
+      - action.button
+  detail_panel:
+    description: Painel de detalhe ou drilldown.
+    common_sub_elements:
+      - text.title
+      - breadcrumb
+      - metric_pair
+      - tag.status
+      - action.button
+
+sub_element_types:
+  text.title:
+    data_shape:
+      value: string
+    design_token: typography.card_title
+  text.subtitle:
+    data_shape:
+      value: string
+    design_token: typography.card_subtitle
+  text.origin:
+    data_shape:
+      value: string
+    design_token: typography.origin
+  metric.primary:
+    data_shape:
+      metric_id: string
+      value: number|string
+      format: currency|number|percent|text
+    design_token: metric.primary
+  metric.secondary:
+    data_shape:
+      metric_id: string
+      value: number|string
+      format: currency|number|percent|text
+    design_token: metric.secondary
+  metric.delta:
+    data_shape:
+      value: number|string
+      direction: up|down|neutral
+      format: percent|currency|number|text
+    design_token: metric.delta
+  tag.status:
+    data_shape:
+      label: string
+      severity: info|success|warning|danger|neutral
+    design_token: badge.status
+  tag.filter:
+    data_shape:
+      label: string
+      active: boolean
+    design_token: badge.filter
+  counter:
+    data_shape:
+      value: number
+      label: string
+    design_token: counter.default
+  icon:
+    data_shape:
+      name: string
+      label: string
+    design_token: icon.default
+  sparkline:
+    data_shape:
+      series: array<number>
+      color_token: string
+    design_token: chart.sparkline
+  legend:
+    data_shape:
+      items: array<object>
+    design_token: chart.legend
+  table.column:
+    data_shape:
+      field: string
+      label: string
+      format: currency|number|percent|date|text|badge|bar
+      align: left|center|right
+    design_token: table.column
+  table.cell_badge:
+    data_shape:
+      field: string
+      severity_rule: string
+    design_token: table.badge_cell
+  table.cell_bar:
+    data_shape:
+      field: string
+      max_value: number|string
+    design_token: table.bar_cell
+  action.button:
+    data_shape:
+      label: string
+      action_id: string
+      variant: primary|secondary|ghost|danger
+    design_token: button.default
+  action.toolbar:
+    data_shape:
+      actions: array<object>
+    design_token: toolbar.default
+  tooltip:
+    data_shape:
+      value: string
+    design_token: tooltip.default
+  empty_state:
+    data_shape:
+      title: string
+      message: string
+    design_token: state.empty
+  loading_state:
+    data_shape:
+      message: string
+    design_token: state.loading
+  error_state:
+    data_shape:
+      message: string
+      action_id: string
+    design_token: state.error
+
+edit_mode:
+  enabled: planned
+  permissions:
+    - bi_admin
+    - bi_designer
+  features:
+    - drag_element
+    - resize_element
+    - snap_to_16_column_grid
+    - lock_element
+    - hide_element
+    - duplicate_element
+    - edit_element_properties
+    - undo_redo
+    - save_draft
+    - publish_layout
+    - revert_to_published
+  persistence:
+    draft_layout_path: zoho/config/layouts/draft/
+    published_layout_path: zoho/config/layouts/published/
+  validation_before_publish:
+    - unique_element_ids
+    - known_tabs_only
+    - grid_bounds
+    - known_design_tokens
+    - known_datasets
+    - no_frontend_secrets
+
+example_element:
+  id: impacto.table.top_ids_imp_cot
+  tab: Impacto
+  type: table
+  title: Top IDs por IMP_COT
+  dataset: impacto_cotacao_por_id
+  data_bindings:
+    rows: impacto_cotacao_por_id
+  sub_elements:
+    - id: title
+      type: text.title
+      value: Top IDs por IMP_COT
+    - id: subtitle
+      type: text.subtitle
+      value: Produtos com maior impacto de cotacao
+    - id: origin
+      type: text.origin
+      value: "Origem Zoho: IMP_COT_ID"
+    - id: status_tag
+      type: tag.status
+      label: Acima do menor
+      severity: danger
+    - id: columns
+      type: table.column
+      columns:
+        - field: ID
+          label: ID
+          format: text
+          align: left
+        - field: IMP_COT
+          label: IMP_COT
+          format: currency
+          align: right
+  layout:
+    col_start: 1
+    col_span: 16
+    row_start: 4
+    row_span: 8
+    min_height_px: 280
+    locked: false
+    visibility: visible
+    breakpoints:
+      tablet:
+        col_start: 1
+        col_span: 16
+      mobile:
+        col_start: 1
+        col_span: 16

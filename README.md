@@ -81,6 +81,8 @@ Referencias canonicas de design:
 - `zoho/design/BI Suprimentos v4.html`: modelo padrao de pagina para o BI de Suprimentos.
 - `zoho/design/BI Design System.html`: sistema de design padrao para novas geracoes de telas, mockups e componentes de BI.
 - `zoho/docs/MAPA_ABAS_ELEMENTOS_BI_SUPRIMENTOS_V4.md`: mapa funcional das 15 abas do BI v4, com KPIs, graficos, relatorios e tabelas por guia.
+- `zoho/docs/ARQUITETURA_MODULAR_BI_SUPRIMENTOS.md`: arquitetura modular do BI, cobrindo fontes, datasets, metricas, elementos, sub-elementos, layout em 16 colunas e modo edicao.
+- `zoho/config/bi_suprimentos_modular_schema.yml`: primeiro contrato conceitual em YAML para padronizar elementos, sub-elementos e posicionamento.
 
 Todo novo design de BI deve partir dessas duas referencias, salvo decisao explicita registrada no diario.
 

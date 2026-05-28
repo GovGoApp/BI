@@ -66,6 +66,44 @@ Em uma nova conversa, ler nesta ordem:
 - Para cada aba, foram listados os KPIs, graficos, cards, relatorios, tabelas, controles internos e, quando aplicavel, as origens Zoho explicitadas no design.
 - O `README.md` foi atualizado para apontar para esse mapa funcional como referencia de composicao do BI v4.
 
+#### Arquitetura modular, sub-elementos e layout editavel
+
+- Foi criado o documento `zoho/docs/ARQUITETURA_MODULAR_BI_SUPRIMENTOS.md`.
+- A arquitetura formaliza a cadeia `Fonte de dado -> Dataset -> Metrica -> Elemento -> Sub-elementos -> Layout -> Aba`.
+- Foi adotado grid de `16` colunas para posicionamento de elementos, substituindo a ideia inicial de grid de `12` colunas.
+- A decisao pelo grid de 16 colunas foi registrada por facilitar divisoes pares, quartos, oitavos e telas densas de BI.
+- Foi previsto um `modo edicao` para reposicionar elementos com arrastar de mouse, resize, snap to grid, rascunho, publicacao, undo/redo e validacao antes de publicar.
+- O conceito de `sub-elementos` foi formalizado para permitir modularidade interna dos blocos visuais.
+- Exemplos de sub-elementos padronizados:
+  - `text.title`
+  - `text.subtitle`
+  - `text.origin`
+  - `metric.primary`
+  - `metric.delta`
+  - `tag.status`
+  - `counter`
+  - `sparkline`
+  - `legend`
+  - `table.column`
+  - `table.cell_badge`
+  - `table.cell_bar`
+  - `action.button`
+  - `tooltip`
+  - `empty_state`
+  - `loading_state`
+  - `error_state`
+- Foi criado o arquivo `zoho/config/bi_suprimentos_modular_schema.yml` como primeiro contrato conceitual em YAML.
+- O schema registra:
+  - abas canonicas do BI v4;
+  - configuracao de grid de 16 colunas;
+  - camadas de fontes, datasets, metricas, elementos e layouts;
+  - tipos de fontes;
+  - tipos de elementos;
+  - tipos de sub-elementos;
+  - regras planejadas de modo edicao;
+  - exemplo de elemento modular.
+- O `README.md` foi atualizado para apontar para a arquitetura modular e para o schema YAML.
+
 ### 2026-05-21
 
 #### Ajustes pontuais do painel de auditoria
