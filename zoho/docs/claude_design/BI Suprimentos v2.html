@@ -1,0 +1,2437 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<title>BI de Suprimentos · v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --bg:#f3f6fa;
+    --ink:#0f172a;
+    --muted:#64748b;
+    --line:#d8e0ea;
+    --line-soft:#e6ecf3;
+    --card:#ffffff;
+    --blue:#2563eb;
+    --blue-soft:#eff6ff;
+    --green:#16a34a;
+    --green-soft:#ecfdf5;
+    --yellow:#a16207;
+    --yellow-soft:#fef9c3;
+    --red:#b91c1c;
+    --red-soft:#fee2e2;
+    --gray:#475569;
+    --gray-soft:#eef2f7;
+    --head:#e9eff7;
+    --hover:#f6f9fd;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font:13px/1.4 "Segoe UI", Arial, sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit;cursor:pointer}
+
+  /* ===== Shell ===== */
+  .app{padding:14px 16px 24px;max-width:1680px;margin:0 auto}
+
+  .topbar{
+    display:grid;grid-template-columns:1fr 360px auto auto auto;gap:10px;align-items:center;
+    margin-bottom:10px;
+  }
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .mark{
+    width:28px;height:28px;border-radius:7px;background:#0f172a;
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:12px;letter-spacing:-.5px;
+  }
+  .brand h1{font-size:20px;font-weight:700;letter-spacing:-.2px;margin:0}
+  .brand .sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+  .search{
+    height:38px;background:var(--card);border:1px solid var(--line);border-radius:8px;
+    display:flex;align-items:center;padding:0 12px;gap:8px;
+  }
+  .search input{
+    flex:1;border:0;outline:0;background:transparent;font:13px "Segoe UI",Arial,sans-serif;color:var(--ink);
+  }
+  .search input::placeholder{color:#94a3b8}
+  .search kbd{
+    border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:10px;color:var(--muted);background:var(--bg);
+    font-family:inherit;
+  }
+
+  .btn{
+    height:38px;padding:0 12px;border:1px solid var(--line);background:var(--card);border-radius:8px;
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);
+  }
+  .btn:hover{background:var(--hover)}
+  .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn .ico{width:14px;height:14px;display:inline-block}
+  .stamp{font-size:11px;color:var(--muted);padding:0 6px;white-space:nowrap}
+  .stamp b{color:var(--ink);font-weight:600}
+
+  /* ===== Filters ===== */
+  .filters{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;margin-bottom:10px;
+  }
+  .filters .row{
+    display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:8px;
+  }
+  .filters .row + .row{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line-soft)}
+  .filters .row.cat{grid-template-columns:auto repeat(5,minmax(0,1fr)) auto repeat(2,minmax(0,1fr))}
+  .filters .row.cat .arrow{display:flex;align-items:flex-end;justify-content:center;height:31px;padding-bottom:8px;color:#94a3b8;font-size:14px}
+  .filters .lead{
+    display:flex;align-items:flex-end;justify-content:flex-start;height:31px;padding-bottom:7px;
+    font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;
+  }
+  .f label{display:block;font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+  .f .pick{
+    height:31px;border:1px solid #c9d5e3;border-radius:7px;background:var(--card);
+    display:flex;align-items:center;justify-content:space-between;padding:0 9px;font-size:12px;color:var(--ink);width:100%;
+    cursor:pointer;text-align:left;gap:6px;
+  }
+  .f .pick:hover{background:var(--hover)}
+  .f .pick.active{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:600}
+  .f .pick .caret{color:#94a3b8;font-size:10px;flex-shrink:0}
+  .f .pick .v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .filters-toggle{
+    display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--blue);background:transparent;border:0;padding:0;font-weight:600;cursor:pointer;
+  }
+  .filters-toggle .chev{transition:transform .15s;display:inline-block}
+  .filters-toggle.open .chev{transform:rotate(180deg)}
+  .filters-clear{font-size:11.5px;color:var(--muted);background:transparent;border:0;cursor:pointer;font-weight:600}
+  .filters-clear:hover{color:var(--red)}
+  .filter-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line-soft);font-size:11.5px;color:var(--muted)}
+  .filter-foot .applied{display:flex;flex-wrap:wrap;gap:6px}
+  .filter-foot .applied .pill{height:20px;padding:0 7px;font-size:10.5px;background:var(--blue-soft);color:var(--blue);font-weight:700;cursor:pointer}
+  .filter-foot .applied .pill .x{margin-left:4px;opacity:.7}
+
+  /* ===== Tabs ===== */
+  .tabs{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:6px;display:flex;gap:2px;margin-bottom:10px;overflow-x:auto;scrollbar-width:thin;
+  }
+  .tabs::-webkit-scrollbar{height:6px}
+  .tabs::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+  .tab{
+    padding:8px 11px;border-radius:7px;font-size:12px;font-weight:600;color:var(--gray);
+    border:0;background:transparent;white-space:nowrap;cursor:pointer;
+  }
+  .tab:hover{background:var(--hover);color:var(--ink)}
+  .tab.active{background:#0f172a;color:#fff}
+  .tab .count{
+    font-size:10px;font-weight:700;background:rgba(255,255,255,.18);color:inherit;
+    border-radius:999px;padding:1px 6px;margin-left:6px;
+  }
+  .tab:not(.active) .count{background:var(--gray-soft);color:var(--muted)}
+
+  /* ===== Cards / Sections ===== */
+  .grid{display:grid;gap:10px}
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+  }
+  .card-h{
+    display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line-soft);
+  }
+  .card-h h3{margin:0;font-size:13px;font-weight:700}
+  .card-h .sub{font-size:11px;color:var(--muted)}
+  .card-h .meta{display:flex;align-items:center;gap:8px}
+  .card-b{padding:10px 12px}
+
+  /* ===== KPI grid ===== */
+  .kpis{display:grid;grid-template-columns:repeat(8,1fr);gap:10px}
+  .kpi{
+    background:var(--card);border:1px solid #dbe2eb;border-radius:8px;padding:10px 12px;
+    display:flex;flex-direction:column;gap:4px;position:relative;
+  }
+  .kpi .lab{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .kpi .val{font-size:20px;font-weight:700;letter-spacing:-.3px}
+  .kpi .delta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .kpi .delta b{font-weight:700}
+  .kpi .delta.up b{color:var(--green)}
+  .kpi .delta.down b{color:var(--red)}
+  .kpi .delta.warn b{color:var(--yellow)}
+  .kpi.alert::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--red)}
+  .kpi.warn::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--yellow)}
+  .kpi.ok::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--green)}
+
+  /* ===== Table ===== */
+  .table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+  .table thead th{
+    background:var(--head);color:#334155;font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+    padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);position:sticky;top:0;
+  }
+  .table tbody td{padding:9px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  .table tbody tr:hover{background:var(--hover)}
+  .table tbody tr.expanded{background:var(--blue-soft)}
+  .table tbody tr.expanded:hover{background:var(--blue-soft)}
+  .table tbody tr.detail{background:#fbfdff}
+  .table tbody tr.detail:hover{background:#fbfdff}
+  .table .num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .table .id{font-family:"Consolas","Menlo",monospace;font-size:11.5px;color:#334155}
+  .table .nm{font-weight:600}
+  .table .sm{color:var(--muted);font-size:11px}
+  .table .row-hd{cursor:pointer}
+  .table .ck{width:24px;color:#94a3b8;text-align:center}
+  .table .chev{display:inline-block;transition:transform .15s;color:#94a3b8;width:10px}
+  .row-hd.open .chev{transform:rotate(90deg);color:var(--blue)}
+
+  /* ===== Chips / Pills / Badges ===== */
+  .pill{
+    display:inline-flex;align-items:center;justify-content:center;height:22px;border-radius:999px;
+    padding:0 8px;font-weight:800;font-size:11px;white-space:nowrap;line-height:1;
+  }
+  .pill.b{background:var(--blue-soft);color:var(--blue)}
+  .pill.g{background:var(--green-soft);color:var(--green)}
+  .pill.y{background:var(--yellow-soft);color:var(--yellow)}
+  .pill.r{background:var(--red-soft);color:var(--red)}
+  .pill.k{background:var(--gray-soft);color:var(--gray)}
+  .pill.ghost{background:transparent;border:1px solid var(--line);color:var(--gray)}
+
+  .badge{
+    display:inline-flex;align-items:center;justify-content:center;height:18px;border-radius:4px;
+    padding:0 6px;font-weight:800;font-size:10px;letter-spacing:.4px;background:#0f172a;color:#fff;
+  }
+  .badge.rc{background:#0f172a}
+  .badge.me{background:#1e3a8a}
+  .badge.su{background:#155e75}
+  .badge-row{display:inline-flex;gap:3px}
+
+  .curva{
+    display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:20px;border-radius:5px;
+    padding:0 6px;font-weight:800;font-size:11px;letter-spacing:.4px;font-family:"Consolas","Menlo",monospace;
+  }
+  .curva.AAA,.curva.AA,.curva.A{background:#0f172a;color:#fff}
+  .curva.B,.curva.BB{background:#334155;color:#fff}
+  .curva.C,.curva.CC,.curva.CCC{background:#cbd5e1;color:#334155}
+
+  /* ===== Mini charts ===== */
+  .spark{width:100%;height:36px;display:block}
+  .barbox{display:flex;align-items:center;gap:8px}
+  .bar{
+    flex:1;height:8px;background:#eef2f7;border-radius:999px;overflow:hidden;position:relative;
+  }
+  .bar > span{display:block;height:100%;background:var(--blue);border-radius:999px}
+  .bar.g > span{background:var(--green)}
+  .bar.y > span{background:var(--yellow)}
+  .bar.r > span{background:var(--red)}
+  .bar.k > span{background:var(--gray)}
+
+  /* Detail grid inside expanded row */
+  .det-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px;
+  }
+  .det{
+    background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 11px;
+  }
+  .det h4{margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12px}
+  .kv dt{color:var(--muted)}
+  .kv dd{margin:0;font-weight:600;text-align:right}
+  .det .row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line-soft)}
+  .det .row:last-child{border-bottom:0}
+
+  .det-block{padding:0 12px 12px}
+  .det-block .card-h{padding:6px 0 8px;border-bottom:1px solid var(--line-soft);margin-bottom:8px}
+  .det-block .card-h h3{font-size:12px}
+
+  /* Alerts list */
+  .alerts{display:flex;flex-direction:column}
+  .alert-row{
+    display:grid;grid-template-columns:18px 1fr auto auto auto;gap:10px;align-items:center;
+    padding:9px 12px;border-bottom:1px solid var(--line-soft);font-size:12.5px;
+  }
+  .alert-row:last-child{border-bottom:0}
+  .alert-row .dot{width:8px;height:8px;border-radius:999px;background:var(--gray);justify-self:center}
+  .alert-row.r .dot{background:var(--red)}
+  .alert-row.y .dot{background:var(--yellow)}
+  .alert-row.b .dot{background:var(--blue)}
+  .alert-row.g .dot{background:var(--green)}
+  .alert-row .who{color:var(--muted);font-size:11px}
+  .alert-row .act{
+    height:24px;padding:0 8px;border-radius:6px;border:1px solid var(--line);background:var(--card);font-size:11px;font-weight:600;
+  }
+  .alert-row .act:hover{background:var(--blue-soft);border-color:var(--blue);color:var(--blue)}
+
+  /* Matrix / heatmap */
+  .matrix{display:grid;gap:6px}
+  .matrix .cell{
+    height:42px;border-radius:6px;background:#eef2f7;display:flex;flex-direction:column;justify-content:center;align-items:center;
+    font-size:11px;color:var(--ink);font-weight:600;
+  }
+  .matrix .cell.s1{background:#eef2f7}
+  .matrix .cell.s2{background:#dbeafe}
+  .matrix .cell.s3{background:#93c5fd;color:#0f172a}
+  .matrix .cell.s4{background:#3b82f6;color:#fff}
+  .matrix .cell.s5{background:#1d4ed8;color:#fff}
+  .matrix .cell.alert{background:#fee2e2;color:var(--red)}
+  .matrix .cell.warn{background:#fef9c3;color:#854d0e}
+  .matrix .head{background:transparent;color:var(--muted);font-size:10px;text-transform:uppercase;font-weight:700;height:20px}
+
+  /* Timeline / funnel / bars */
+  .hbar-list{display:flex;flex-direction:column}
+  .hbar-list.compact .hbar{padding:5px 0}
+  .hbar-list.compact .hbar .lab{font-size:11.5px}
+  .hbar{
+    display:grid;grid-template-columns:140px 1fr 90px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line-soft);
+    font-size:12px;
+  }
+  .hbar:last-child{border-bottom:0}
+  .hbar .lab{color:var(--ink)}
+  .hbar .lab .sub{color:var(--muted);font-size:10.5px;margin-top:2px}
+  .hbar .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .hbar-clk{cursor:pointer;padding-left:6px;padding-right:6px;border-radius:6px;margin-left:-6px;margin-right:-6px}
+  .hbar-clk:hover{background:var(--hover)}
+  .hbar-clk.sel{background:var(--blue-soft)}
+  .hbar-clk.sel .lab{color:var(--blue)}
+  .lvl-h{margin:0 0 8px;font-size:11px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.6px}
+  .lvl-h .muted{font-weight:600;text-transform:none;letter-spacing:0;font-size:10.5px}
+
+  /* Pagination */
+  .pager{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--line-soft)}
+  .pager .info{font-size:11px;color:var(--muted)}
+  .pager .ctrl{display:flex;gap:4px}
+  .pager .ctrl button{
+    height:26px;min-width:26px;padding:0 8px;border:1px solid var(--line);background:var(--card);border-radius:6px;
+    font-size:11px;color:var(--ink);
+  }
+  .pager .ctrl button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  /* Modal */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(15,23,42,.4);display:none;align-items:center;justify-content:center;z-index:50;
+  }
+  .modal-bg.open{display:flex}
+  .modal{
+    width:640px;max-width:92vw;max-height:80vh;overflow:auto;
+    background:var(--card);border-radius:12px;border:1px solid var(--line);box-shadow:0 12px 40px rgba(15,23,42,.18);
+  }
+  .modal .card-h{padding:12px 16px}
+  .modal .card-b{padding:14px 16px 18px}
+  .modal h4{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .modal p{margin:0 0 8px;font-size:13px;color:#334155}
+  .modal code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:12px}
+  .modal .x{
+    height:28px;width:28px;border-radius:7px;border:1px solid var(--line);background:var(--card);
+  }
+
+  /* Sections row util */
+  .row-2{display:grid;grid-template-columns:1.4fr 1fr;gap:10px}
+  .row-2b{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+
+  /* Page header bits */
+  .page-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .page-h h2{margin:0;font-size:14px;font-weight:700}
+  .page-h .crumb{font-size:11px;color:var(--muted)}
+  .page-h .tools{display:flex;gap:6px}
+
+  /* Tag bar (above tables for quick filter) */
+  .tagbar{
+    display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line-soft);
+  }
+  .tagbar .tg{
+    height:24px;padding:0 9px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:11.5px;color:var(--gray);
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .tagbar .tg.active{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+  .tagbar .tg .n{font-weight:700;color:inherit;opacity:.8}
+
+  /* Section sub-tab inside a card */
+  .subtabs{
+    display:flex;gap:2px;padding:4px;background:#eef2f7;border-radius:8px;width:fit-content;font-size:11.5px;
+  }
+  .subtabs .st{padding:5px 10px;border-radius:6px;font-weight:600;color:var(--gray);border:0;background:transparent}
+  .subtabs .st.active{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+
+  /* Status dot small */
+  .sdot{display:inline-block;width:8px;height:8px;border-radius:999px;background:var(--gray);margin-right:6px;vertical-align:1px}
+  .sdot.g{background:var(--green)}
+  .sdot.y{background:var(--yellow)}
+  .sdot.r{background:var(--red)}
+  .sdot.b{background:var(--blue)}
+
+  /* small utilities */
+  .nowrap{white-space:nowrap}
+  .muted{color:var(--muted)}
+  .right{text-align:right}
+  .mono{font-family:"Consolas","Menlo",monospace;font-size:11.5px}
+  .hr{height:1px;background:var(--line-soft);margin:8px 0}
+
+  /* table horizontal scroll wrapper */
+  .tscroll{overflow-x:auto;scrollbar-width:thin}
+  .tscroll::-webkit-scrollbar{height:8px}
+  .tscroll::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+
+  /* Responsive */
+  @media (max-width:1500px){
+    .kpis{grid-template-columns:repeat(4,1fr)}
+    .filters .row{grid-template-columns:repeat(5,minmax(0,1fr))}
+    .filters .row.cat{grid-template-columns:auto repeat(3,minmax(0,1fr)) auto repeat(2,minmax(0,1fr))}
+    .filters .row.cat .arrow.a4,.filters .row.cat .arrow.a5,.filters .row.cat .cat4,.filters .row.cat .cat5{display:none}
+    .det-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:1100px){
+    .topbar{grid-template-columns:1fr 1fr;gap:8px}
+    .topbar .brand{grid-column:1/-1}
+    .topbar .search{grid-column:1/-1}
+    .stamp{display:none}
+    .kpis{grid-template-columns:repeat(3,1fr)}
+    .filters .row{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .filters .row.cat{display:none}
+    .row-2,.row-2b{grid-template-columns:1fr}
+  }
+  @media (max-width:720px){
+    .app{padding:10px 10px 24px}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .filters .row{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .det-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== Top bar ===== -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark">BI</div>
+      <div>
+        <h1>BI de Suprimentos <span style="font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-soft);border:1px solid #bfdbfe;border-radius:5px;padding:2px 6px;letter-spacing:.4px;vertical-align:3px;margin-left:6px">v2</span></h1>
+        <div class="sub">Compras · Fornecedores · Categorias · Cotações · Fiscal 2027 · Financeiro</div>
+      </div>
+    </div>
+    <div class="search" role="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="search" placeholder="Buscar fornecedor, CNPJ, ID, produto, nota fiscal..." />
+      <kbd>⌘K</kbd>
+    </div>
+    <button class="btn" id="btnMethod">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 1 1 5.8 1c0 2-3 2-3 4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>
+      Metodologia
+    </button>
+    <button class="btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v12"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
+      Exportar CSV
+    </button>
+    <div class="stamp">Atualizado em <b>27/05/2026 08:14</b> · fonte Zoho · <span class="sdot g"></span>OK</div>
+  </div>
+
+  <!-- ===== Filters ===== -->
+  <div class="filters" id="filters">
+    <div class="row">
+      <div class="f"><label>Empresa</label><button class="pick active" data-name="Empresa"><span class="v">RC · ME · SU</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Negócio</label><button class="pick" data-name="Negócio"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Região</label><button class="pick active" data-name="Região"><span class="v">N · NE · SE</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>UF</label><button class="pick" data-name="UF"><span class="v">Todas (11)</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Filial</label><button class="pick" data-name="Filial"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Período</label><button class="pick active" data-name="Período"><span class="v">Últimos 12 meses</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Regime fiscal</label><button class="pick" data-name="Regime"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Crédito 2027</label><button class="pick" data-name="Crédito 2027"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Tipo de alerta</label><button class="pick" data-name="Alerta"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+    </div>
+    <div class="row cat" id="filterRowCat">
+      <div class="lead">Cascata categorias</div>
+      <div class="f cat1"><label>CAT1</label><button class="pick active" data-name="CAT1"><span class="v">I · Insumos</span><span class="caret">▾</span></button></div>
+      <div class="arrow a2">›</div>
+      <div class="f cat2"><label>CAT2</label><button class="pick active" data-name="CAT2"><span class="v">I2 · Perecíveis</span><span class="caret">▾</span></button></div>
+      <div class="arrow a3">›</div>
+      <div class="f cat3"><label>CAT3</label><button class="pick" data-name="CAT3"><span class="v">Todas (12)</span><span class="caret">▾</span></button></div>
+      <div class="arrow a4">›</div>
+      <div class="f cat4"><label>CAT4</label><button class="pick" data-name="CAT4"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="arrow a5">›</div>
+      <div class="f cat5"><label>CAT5</label><button class="pick" data-name="CAT5"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+    </div>
+    <div class="row" id="filterRowAdv">
+      <div class="f"><label>Curva fornecedor</label><button class="pick active" data-name="Curva forn."><span class="v">AAA · AA · A</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Curva produto</label><button class="pick" data-name="Curva prod."><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Curva ID</label><button class="pick" data-name="Curva ID"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Fornecedor</label><button class="pick" data-name="Fornecedor"><span class="v">Todos (1.284)</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Produto / ID</label><button class="pick" data-name="Produto/ID"><span class="v">Todos (8.412)</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Status cotação</label><button class="pick" data-name="Status cot."><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Status CP</label><button class="pick" data-name="Status CP"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Status AD</label><button class="pick" data-name="Status AD"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Tipo de gasto</label><button class="pick" data-name="Tipo gasto"><span class="v">Insumos · Serviços · Despesas</span><span class="caret">▾</span></button></div>
+    </div>
+    <div class="filter-foot">
+      <div>
+        <button class="filters-toggle open" id="advToggle"><span>Filtros avançados</span><span class="chev">▾</span></button>
+      </div>
+      <div class="applied" id="appliedTags"></div>
+      <button class="filters-clear" id="filtersClear">Limpar filtros</button>
+    </div>
+  </div>
+
+  <!-- ===== Tabs ===== -->
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-page="resumo">Resumo executivo</button>
+    <button class="tab" data-page="oportunidades">Oportunidades <span class="count">312</span></button>
+    <button class="tab" data-page="categorias">Categorias</button>
+    <button class="tab" data-page="forn360">Fornecedor 360 <span class="count">1.284</span></button>
+    <button class="tab" data-page="produtos">Produtos e preços</button>
+    <button class="tab" data-page="cotacoes">Cotações</button>
+    <button class="tab" data-page="inflacao">Inflação e impacto</button>
+    <button class="tab" data-page="fiscal">Fiscal 2027 <span class="count">87</span></button>
+    <button class="tab" data-page="financeiro">Financeiro / CP</button>
+    <button class="tab" data-page="adiantamentos">Adiantamentos</button>
+    <button class="tab" data-page="servicos">Serviços</button>
+    <button class="tab" data-page="qualidade">Qualidade dos dados</button>
+  </nav>
+
+  <!-- ===== Page content ===== -->
+  <main id="page"></main>
+</div>
+
+<!-- Methodology modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="card-h">
+      <div>
+        <h3>Metodologia</h3>
+        <div class="sub">Como o BI calcula curvas, impacto, cotação mínima e risco fiscal</div>
+      </div>
+      <button class="x" id="modalX">✕</button>
+    </div>
+    <div class="card-b">
+      <div style="background:var(--blue-soft);border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Novidades da v2</div>
+        <ul style="margin:0;padding-left:18px;font-size:12.5px;color:#1e3a8a;line-height:1.55">
+          <li><b>Nova aba Categorias</b> com drilldown <code>CAT1 → CAT5</code>, matriz Categoria × UF, séries Categoria × Mês e rankings forn./prod.</li>
+          <li><b>Nova aba Serviços</b> baseada em <code>DESPESAS por UF</code>, <code>DESPESAS por UF e CAT</code>, <code>SERVIÇOS</code> e <code>SERVIÇOS por MES</code> do Zoho.</li>
+          <li><b>Filtros funcionais</b> em duas linhas: principal + cascata <code>CAT1→CAT5</code> com reset em cascata + chips de filtros aplicados + busca global filtrando tabelas.</li>
+          <li><b>Original vs. oficial</b> exibido no detalhe de fornecedor e produto (Razão/Produto original × versão padronizada).</li>
+          <li><b>Regras fiscais coerentes:</b> Lucro Real / Presumido → Alto · Simples → Condicionado · MEI → Baixo · Indeterminado → Pendente.</li>
+          <li><b>Detalhe do fornecedor</b> separa impacto por cotação × impacto por inflação, e mostra <code>CP_STATUS</code> + <code>AD status</code> em blocos distintos.</li>
+          <li><b>Resumo executivo</b> ganhou bloco Região/UF + Ranking por filial (aproxima de <code>SUP por GEO</code>, <code>RESUMO_FILIAL</code>).</li>
+          <li><b>Responsividade</b>: <code>viewport=device-width</code> + breakpoints para 1500 / 1100 / 720 px, tabs com scroll horizontal, tabelas largas com <code>.tscroll</code>.</li>
+        </ul>
+      </div>
+      <h4>Curva ABC</h4>
+      <p>Ordenação por valor decrescente; faixas <code>AAA</code> ≤ 50%, <code>AA</code> 50–60%, <code>A</code> 60–70%, <code>B</code> 70–80%, <code>BB</code> 80–90%, <code>C</code> 90–95%, <code>CC</code> 95–98%, <code>CCC</code> ≥ 98% acumulado.</p>
+      <h4>ID</h4>
+      <p>Chave analítica combinando empresa + UF + código padronizado. Permite comparar preço, cotação, inflação e impacto no contexto operacional. Ex.: <code>RCSPI105201000</code>.</p>
+      <h4>Impacto R$</h4>
+      <p><code>IMP_COT</code> = (Preço comprado − Menor cotação) × Quantidade. <code>IMP_ID</code> agrega o efeito ao nível do ID.</p>
+      <h4>PMP_ID_INF_12</h4>
+      <p>Série de Preço Médio Ponderado por ID nos últimos 12 meses (<code>PMP_0</code> … <code>PMP_12</code>). Base de variação percentual e tendência.</p>
+      <h4>Regime fiscal · Crédito 2027</h4>
+      <p>Cruza fornecedor (CNPJ) com regime e crédito 2027: <b>alto</b>, <b>condicionado</b>, <b>pendente</b>, <b>indeterminado</b>. Combina com valor comprado para classificar valor em risco.</p>
+      <h4>Adiantamento (AD)</h4>
+      <p>Conciliação <code>AD_v3</code> ↔ <code>NF</code> via <code>NRONOTA_AD</code> / <code>NRONOTA_NF</code>; status: conciliado, parcial, pendente, sem nota.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   Dados fictícios — realistas, baseados nos documentos
+   ========================================================= */
+const FMT = {
+  brl: n => 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 0}),
+  brl2: n => 'R$ ' + n.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}),
+  mi: n => 'R$ ' + (n/1e6).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1}) + ' mi',
+  mil: n => (n/1e3).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) + ' mil',
+  pct: n => (n>0?'+':'') + n.toFixed(1).replace('.',',') + '%',
+  num: n => n.toLocaleString('pt-BR')
+};
+
+/* Regra fiscal: Lucro Real → Alto · Presumido → Alto · Simples → Condicionado · MEI → Baixo · Indeterminado → Pendente */
+const FORN = [
+  {n:'FONTE VIVA ALIMENTOS LTDA', oficial:'FONTE VIVA ALIMENTOS S/A', cnpj:'12.345.678/0001-90', emps:['RC','ME'], regiao:'SE', curva:'AAA', valor:18420000, regime:'Lucro Real', cred:'Alto', cat:'I2 · Perecíveis', alerts:['Acima da menor cot','Inflação curva A']},
+  {n:'SELECT NUTRI ALIMENTOS E LOGISTICA LTDA', oficial:'SELECT NUTRI ALIMENTOS LTDA', cnpj:'98.765.432/0001-15', emps:['RC','ME','SU'], regiao:'NE', curva:'AAA', valor:14210000, regime:'Lucro Real', cred:'Alto', cat:'I1 · Estocáveis', alerts:['CP vencido']},
+  {n:'J. J. FOODS LTDA', oficial:'JJ FOODS COMERCIO E IND LTDA', cnpj:'45.234.876/0001-22', emps:['ME'], regiao:'SE', curva:'AA', valor:9870000, regime:'Lucro Presumido', cred:'Alto', cat:'I2 · Perecíveis', alerts:['Acima da menor cot']},
+  {n:'ALIBER FOODS LTDA', oficial:'ALIBER FOODS LTDA', cnpj:'77.812.330/0001-04', emps:['RC'], regiao:'NE', curva:'AA', valor:8120000, regime:'Simples', cred:'Condicionado', cat:'I1 · Estocáveis', alerts:['1 cotação','Crédito condicionado']},
+  {n:'FF IND. E COM. DE POLPAS LTDA', oficial:'FF INDUSTRIA DE POLPAS LTDA', cnpj:'31.555.214/0001-77', emps:['SU'], regiao:'N', curva:'A', valor:6240000, regime:'Lucro Presumido', cred:'Alto', cat:'I3 · Hortifruti', alerts:['AD pendente']},
+  {n:'BOA TERRA HORTIFRUTI EIRELI', oficial:'(sem cadastro oficial)', cnpj:'02.998.471/0001-08', emps:['RC','SU'], regiao:'NE', curva:'A', valor:5410000, regime:'Indeterminado', cred:'Pendente', cat:'I3 · Hortifruti', alerts:['Sem CNPJ oficial']},
+  {n:'LATICÍNIOS PRIMAVERA S/A', oficial:'LATICINIOS PRIMAVERA S/A', cnpj:'18.776.300/0001-12', emps:['ME'], regiao:'SE', curva:'B', valor:4180000, regime:'Lucro Real', cred:'Alto', cat:'I1 · Estocáveis · Lácteos', alerts:['Acima da menor cot']},
+  {n:'COMERCIAL DOM PEDRO LTDA', oficial:'COM DOM PEDRO LTDA ME', cnpj:'59.014.222/0001-91', emps:['RC','ME'], regiao:'S', curva:'B', valor:3920000, regime:'Lucro Presumido', cred:'Alto', cat:'D · Despesas', alerts:['Inflação alta']},
+  {n:'GRÃOS DO CERRADO LTDA', oficial:'GRAOS DO CERRADO S/A', cnpj:'21.117.880/0001-30', emps:['SU'], regiao:'CO', curva:'BB', valor:2880000, regime:'Lucro Presumido', cred:'Alto', cat:'I1 · Estocáveis', alerts:['CP vencido']},
+  {n:'NORDESTE PROTEÍNAS S/A', oficial:'NORDESTE PROTEINAS S/A', cnpj:'09.482.115/0001-66', emps:['ME','SU'], regiao:'NE', curva:'BB', valor:2410000, regime:'Lucro Real', cred:'Alto', cat:'I2 · Perecíveis', alerts:['—']},
+  {n:'DISTRIBUIDORA MARQUES OLIVEIRA', oficial:'MARQUES OLIVEIRA COM. LTDA', cnpj:'67.310.090/0001-44', emps:['RC'], regiao:'NE', curva:'C', valor:1820000, regime:'Simples', cred:'Condicionado', cat:'I4 · Descartáveis', alerts:['Crédito condicionado']},
+  {n:'PANIFICADORA SOL NASCENTE LTDA', oficial:'(MEI – sem razão oficial)', cnpj:'14.778.005/0001-08', emps:['RC'], regiao:'NE', curva:'C', valor:1310000, regime:'MEI', cred:'Baixo', cat:'I1 · Panificação', alerts:['1 cotação','MEI']}
+];
+
+const PRODS = [
+  {p:'Arroz tipo 1 5kg', id:'RCSPI105201000', cat:'Alimentos secos', cId:'AAA', cP:'AAA', pmp:24.80, var12:8.4, imp:412300, serie:[22.9,23.1,23.0,23.3,23.5,23.6,23.4,23.8,24.0,24.2,24.5,24.7,24.8]},
+  {p:'Feijão carioca 1kg', id:'RCBAI206301045', cat:'Alimentos secos', cId:'AAA', cP:'AA', pmp:9.42, var12:14.2, imp:298700, serie:[8.2,8.3,8.4,8.4,8.5,8.7,8.9,9.0,9.1,9.2,9.3,9.4,9.42]},
+  {p:'Leite UHT integral 1L', id:'MEPEL310452201', cat:'Laticínios', cId:'AAA', cP:'AAA', pmp:6.18, var12:-3.4, imp:184600, serie:[6.40,6.42,6.41,6.36,6.30,6.28,6.22,6.20,6.17,6.18,6.16,6.18,6.18]},
+  {p:'Frango congelado kg', id:'SUMAP420118035', cat:'Proteínas', cId:'AA', cP:'AAA', pmp:14.20, var12:22.1, imp:621400, serie:[11.6,11.8,11.9,12.0,12.4,12.7,13.1,13.4,13.6,13.8,14.0,14.1,14.2]},
+  {p:'Carne bovina dianteira kg', id:'RCRJI455771008', cat:'Proteínas', cId:'AA', cP:'AA', pmp:38.40, var12:9.8, imp:512200, serie:[35.0,35.3,35.5,35.8,36.2,36.6,37.1,37.4,37.8,38.0,38.2,38.3,38.4]},
+  {p:'Polpa de fruta 1kg', id:'SUMAP602231009', cat:'Hortifruti', cId:'A', cP:'A', pmp:11.80, var12:5.6, imp:142800, serie:[11.2,11.2,11.3,11.4,11.4,11.5,11.5,11.6,11.6,11.7,11.7,11.8,11.8]},
+  {p:'Óleo de soja 900ml', id:'MESPI708045221', cat:'Alimentos secos', cId:'A', cP:'A', pmp:7.34, var12:-2.1, imp:88400, serie:[7.49,7.50,7.48,7.45,7.42,7.41,7.39,7.36,7.35,7.34,7.33,7.34,7.34]},
+  {p:'Macarrão espaguete 500g', id:'MEPEI811090147', cat:'Alimentos secos', cId:'B', cP:'B', pmp:4.62, var12:11.4, imp:67500, serie:[4.15,4.18,4.22,4.28,4.30,4.34,4.40,4.46,4.50,4.55,4.58,4.60,4.62]},
+  {p:'Açúcar refinado 1kg', id:'RCPBI912332016', cat:'Alimentos secos', cId:'B', cP:'B', pmp:5.15, var12:18.7, imp:121200, serie:[4.34,4.40,4.45,4.52,4.61,4.70,4.78,4.85,4.95,5.02,5.08,5.12,5.15]},
+  {p:'Café torrado moído 500g', id:'SUESI013220078', cat:'Bebidas', cId:'B', cP:'BB', pmp:18.90, var12:31.4, imp:298800, serie:[14.4,14.8,15.2,15.7,16.1,16.6,17.1,17.5,17.9,18.2,18.5,18.7,18.9]}
+];
+
+const OPP = [
+  {tipo:'Acima da menor cot.', prio:'Alta', id:'SUMAP420118035', prod:'Frango congelado kg', fAtual:'FONTE VIVA', menor:13.10, imp:184500, ev:'Compra a R$ 14,20 em PE/SU', acao:'Renegociar com FONTE VIVA', stat:'Aberto'},
+  {tipo:'Item curva A com inflação', prio:'Alta', id:'SUESI013220078', prod:'Café torrado moído 500g', fAtual:'COMERCIAL DOM PEDRO', menor:17.40, imp:142100, ev:'PMP +31,4% em 12m', acao:'Cotar com 3+ fornecedores', stat:'Aberto'},
+  {tipo:'1 cotação', prio:'Alta', id:'RCPBI912332016', prod:'Açúcar refinado 1kg', fAtual:'ALIBER FOODS', menor:'—', imp:121200, ev:'QTD_COT = 1 em 12m', acao:'Abrir cotação ampla', stat:'Em andamento'},
+  {tipo:'Não é menor preço', prio:'Média', id:'RCBAI206301045', prod:'Feijão carioca 1kg', fAtual:'FONTE VIVA', menor:8.92, imp:84800, ev:'GRÃOS DO CERRADO com menor', acao:'Trocar fornecedor ativo', stat:'Aberto'},
+  {tipo:'Risco fiscal × alto valor', prio:'Alta', id:'—', prod:'Fornecedor SELECT NUTRI', fAtual:'SELECT NUTRI', menor:'—', imp:78400, ev:'Crédito 2027 condicionado', acao:'Validar regime e nota', stat:'Aberto'},
+  {tipo:'Acima da menor cot.', prio:'Média', id:'MEPEL310452201', prod:'Leite UHT integral 1L', fAtual:'LATICÍNIOS PRIMAVERA', menor:5.92, imp:62100, ev:'Diferença R$ 0,26/un', acao:'Renegociar tabela', stat:'Aberto'},
+  {tipo:'Item curva A com inflação', prio:'Média', id:'RCRJI455771008', prod:'Carne bovina dianteira kg', fAtual:'NORDESTE PROTEÍNAS', menor:36.80, imp:51200, ev:'PMP +9,8% em 12m', acao:'Cotar concorrência', stat:'Aberto'},
+  {tipo:'1 cotação', prio:'Média', id:'MEPEI811090147', prod:'Macarrão espaguete 500g', fAtual:'COMERCIAL DOM PEDRO', menor:'—', imp:33200, ev:'QTD_COT = 1', acao:'Abrir cotação', stat:'Aberto'},
+  {tipo:'Acima da menor cot.', prio:'Baixa', id:'SUMAP602231009', prod:'Polpa de fruta 1kg', fAtual:'FF INDÚSTRIA POLPAS', menor:11.40, imp:12800, ev:'Diferença R$ 0,40/un', acao:'Manter monitoramento', stat:'Aberto'}
+];
+
+const COTACOES = [
+  {id:'SUMAP420118035', prod:'Frango congelado kg', mes:'05/2026', uf:'PE', emp:'SU', qtd:5, min:13.10, med:13.80, max:14.50, fMin:'NORDESTE PROTEÍNAS', comprou:'Sim, mas não no menor'},
+  {id:'RCSPI105201000', prod:'Arroz tipo 1 5kg', mes:'05/2026', uf:'SP', emp:'RC', qtd:4, min:24.10, med:24.85, max:25.40, fMin:'GRÃOS DO CERRADO', comprou:'Sim, no menor'},
+  {id:'RCBAI206301045', prod:'Feijão carioca 1kg', mes:'05/2026', uf:'BA', emp:'RC', qtd:3, min:8.92, med:9.30, max:9.65, fMin:'GRÃOS DO CERRADO', comprou:'Sim, mas não no menor'},
+  {id:'MEPEL310452201', prod:'Leite UHT integral 1L', mes:'05/2026', uf:'PE', emp:'ME', qtd:4, min:5.92, med:6.15, max:6.40, fMin:'LATICÍNIOS PRIMAVERA', comprou:'Sim, mas não no menor'},
+  {id:'RCPBI912332016', prod:'Açúcar refinado 1kg', mes:'05/2026', uf:'PB', emp:'RC', qtd:1, min:5.15, med:5.15, max:5.15, fMin:'ALIBER FOODS', comprou:'Sim'},
+  {id:'SUESI013220078', prod:'Café torrado moído 500g', mes:'05/2026', uf:'ES', emp:'SU', qtd:2, min:17.40, med:18.15, max:18.90, fMin:'BOA TERRA', comprou:'Não'},
+  {id:'MEPEI811090147', prod:'Macarrão espaguete 500g', mes:'05/2026', uf:'PE', emp:'ME', qtd:1, min:4.62, med:4.62, max:4.62, fMin:'COMERCIAL DOM PEDRO', comprou:'Sim'},
+  {id:'SUMAP602231009', prod:'Polpa de fruta 1kg', mes:'05/2026', uf:'MA', emp:'SU', qtd:3, min:11.40, med:11.60, max:11.85, fMin:'FF INDÚSTRIA POLPAS', comprou:'Sim, mas não no menor'},
+  {id:'RCRJI455771008', prod:'Carne bovina dianteira kg', mes:'05/2026', uf:'RJ', emp:'RC', qtd:4, min:36.80, med:37.60, max:38.40, fMin:'NORDESTE PROTEÍNAS', comprou:'Sim, mas não no menor'},
+  {id:'MESPI708045221', prod:'Óleo de soja 900ml', mes:'05/2026', uf:'SP', emp:'ME', qtd:3, min:7.32, med:7.34, max:7.40, fMin:'FONTE VIVA', comprou:'Sim, no menor'}
+];
+
+/* =========================================================
+   Helpers
+   ========================================================= */
+function el(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild}
+function svgSpark(arr, color='#2563eb'){
+  const w=160,h=36,p=2;
+  const min=Math.min(...arr), max=Math.max(...arr);
+  const span=Math.max(0.0001,max-min);
+  const pts=arr.map((v,i)=>{
+    const x=p + i*(w-2*p)/(arr.length-1);
+    const y=h-p - ((v-min)/span)*(h-2*p);
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  const last=pts.split(' ').pop().split(',');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="2.4" fill="${color}"/>
+  </svg>`;
+}
+function badges(arr){return arr.map(e=>`<span class="badge ${e.toLowerCase()}">${e}</span>`).join('');}
+function pillRegime(r){
+  if(r==='Lucro Real') return '<span class="pill b">LUCRO REAL</span>';
+  if(r==='Lucro Presumido') return '<span class="pill k">PRESUMIDO</span>';
+  if(r==='Simples') return '<span class="pill y">SIMPLES</span>';
+  if(r==='MEI') return '<span class="pill y">MEI</span>';
+  return '<span class="pill r">INDETERMINADO</span>';
+}
+function pillCredito(c){
+  if(c==='Alto') return '<span class="pill g">ALTO</span>';
+  if(c==='Condicionado') return '<span class="pill y">CONDICIONADO</span>';
+  if(c==='Pendente') return '<span class="pill r">PENDENTE</span>';
+  if(c==='Baixo') return '<span class="pill k">BAIXO</span>';
+  return '<span class="pill k">INDETERMINADO</span>';
+}
+function pillPrio(p){
+  return p==='Alta' ? '<span class="pill r">ALTA</span>'
+       : p==='Média' ? '<span class="pill y">MÉDIA</span>'
+       : '<span class="pill k">BAIXA</span>';
+}
+function pillStatus(s){
+  if(/conciliado/i.test(s)) return '<span class="pill g">CONCILIADO</span>';
+  if(/parcial/i.test(s)) return '<span class="pill y">PARCIAL</span>';
+  if(/pendente|sem nota/i.test(s)) return '<span class="pill r">'+s.toUpperCase()+'</span>';
+  if(/aberto/i.test(s)) return '<span class="pill b">ABERTO</span>';
+  if(/em andamento/i.test(s)) return '<span class="pill y">EM ANDAMENTO</span>';
+  if(/resolvido/i.test(s)) return '<span class="pill g">RESOLVIDO</span>';
+  return '<span class="pill k">'+s.toUpperCase()+'</span>';
+}
+function tagCurva(c){return `<span class="curva ${c}">${c}</span>`}
+function inflacaoTag(v){
+  if(v>=15) return `<span class="pill r">${FMT.pct(v)}</span>`;
+  if(v>=5) return `<span class="pill y">${FMT.pct(v)}</span>`;
+  if(v<=-3) return `<span class="pill g">${FMT.pct(v)}</span>`;
+  return `<span class="pill k">${FMT.pct(v)}</span>`;
+}
+
+/* =========================================================
+   PAGE RENDERERS
+   ========================================================= */
+const pages = {};
+
+/* ---------- RESUMO EXECUTIVO ---------- */
+pages.resumo = () => `
+  <div class="page-h">
+    <div>
+      <h2>Resumo executivo</h2>
+      <div class="crumb">Compras nos últimos 12 meses · RC + ME + SU · curvas AAA, AA, A</div>
+    </div>
+    <div class="tools">
+      <div class="subtabs">
+        <button class="st active">Valor</button>
+        <button class="st">Volume</button>
+        <button class="st">Impacto</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis" style="margin-bottom:10px">
+    <div class="kpi"><div class="lab">Total comprado</div><div class="val">R$ 184,2 mi</div><div class="delta up"><b>+6,8%</b><span>vs. 12m anteriores</span></div></div>
+    <div class="kpi"><div class="lab">Fornecedores ativos</div><div class="val">1.284</div><div class="delta"><b>312</b><span>na curva A+</span></div></div>
+    <div class="kpi"><div class="lab">Produtos / IDs</div><div class="val">8.412</div><div class="delta"><b>2.184</b><span>IDs analíticos</span></div></div>
+    <div class="kpi alert"><div class="lab">Impacto R$</div><div class="val">R$ 4,82 mi</div><div class="delta down"><b>+12,4%</b><span>vs. trimestre anterior</span></div></div>
+    <div class="kpi ok"><div class="lab">Oportunidade R$</div><div class="val">R$ 3,18 mi</div><div class="delta up"><b>312 itens</b><span>na fila</span></div></div>
+    <div class="kpi"><div class="lab">Compras com cotação</div><div class="val">68%</div><div class="delta warn"><b>−4 p.p.</b><span>meta 80%</span></div></div>
+    <div class="kpi warn"><div class="lab">Risco fiscal 2027</div><div class="val">87 forn.</div><div class="delta down"><b>R$ 22,1 mi</b><span>valor exposto</span></div></div>
+    <div class="kpi alert"><div class="lab">CP em aberto</div><div class="val">R$ 31,4 mi</div><div class="delta down"><b>R$ 4,1 mi</b><span>vencido</span></div></div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h">
+        <div><h3>Tendência mensal de compras</h3><div class="sub">Valor comprado · jun/2025 → mai/2026</div></div>
+        <div class="subtabs"><button class="st active">12m</button><button class="st">6m</button><button class="st">YTD</button></div>
+      </div>
+      <div class="card-b" style="padding:14px 12px 6px">
+        <svg viewBox="0 0 600 180" width="100%" height="180" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2563eb" stop-opacity=".18"/>
+              <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          ${[0,1,2,3].map(i=>`<line x1="30" x2="595" y1="${30+i*36}" y2="${30+i*36}" stroke="#eef2f7"/>`).join('')}
+          <path d="M30,120 L77,108 L124,118 L171,102 L218,95 L265,88 L312,80 L359,90 L406,72 L453,65 L500,58 L547,62 L595,48 L595,180 L30,180 Z" fill="url(#g1)"/>
+          <polyline points="30,120 77,108 124,118 171,102 218,95 265,88 312,80 359,90 406,72 453,65 500,58 547,62 595,48" fill="none" stroke="#2563eb" stroke-width="1.8"/>
+          ${['Jun','Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai'].map((m,i)=>`<text x="${30+i*47+24}" y="170" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Segoe UI">${m}</text>`).join('')}
+          ${[13,14,15,16].map((v,i)=>`<text x="22" y="${36+i*36}" text-anchor="end" font-size="9" fill="#94a3b8" font-family="Segoe UI">R$ ${20-i*2} mi</text>`).join('')}
+        </svg>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Compras por negócio</h3><div class="sub">Valor 12m</div></div>
+      <div class="card-b">
+        <div class="hbar-list">
+          ${[
+            ['Cozinha central','RC + ME', 62.4, 90],
+            ['Escola','RC + SU', 48.1, 70],
+            ['Hospital','ME', 31.8, 46],
+            ['Presídio','SU', 22.7, 33],
+            ['Merenda','RC', 12.4, 18],
+            ['CD / Matriz','—', 6.8, 10]
+          ].map(([n,s,v,p])=>`
+            <div class="hbar">
+              <div class="lab">${n}<div class="sub">${s}</div></div>
+              <div class="bar"><span style="width:${p}%"></span></div>
+              <div class="v">R$ ${v.toString().replace('.',',')} mi</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Top categorias</h3><div class="sub">por valor comprado · inflação · impacto</div></div>
+      <table class="table">
+        <thead><tr><th>Categoria</th><th class="num">Valor 12m</th><th class="num">% do total</th><th class="num">Inflação</th><th class="num">Impacto R$</th></tr></thead>
+        <tbody>
+          ${[
+            ['Proteínas',54.2,29.4,12.8,1480000],
+            ['Alimentos secos',46.1,25.0,9.4,1120000],
+            ['Laticínios',28.7,15.6,-1.8,310000],
+            ['Hortifruti',21.2,11.5,6.1,420000],
+            ['Bebidas',18.9,10.3,18.4,980000],
+            ['Embalagens',15.1,8.2,4.2,510000]
+          ].map(r=>`
+            <tr>
+              <td class="nm">${r[0]}</td>
+              <td class="num">R$ ${r[1].toString().replace('.',',')} mi</td>
+              <td class="num">${r[2].toString().replace('.',',')}%</td>
+              <td class="num">${inflacaoTag(r[3])}</td>
+              <td class="num">${FMT.brl(r[4])}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Top fornecedores</h3><div class="sub">por valor · curva · regime · alerta</div></div>
+      <table class="table">
+        <thead><tr><th>Fornecedor</th><th>Empresas</th><th>Curva</th><th class="num">Valor</th><th>Regime</th><th>Alerta</th></tr></thead>
+        <tbody>
+          ${FORN.slice(0,6).map(f=>`
+            <tr>
+              <td class="nm">${f.n}<div class="sm mono">${f.cnpj}</div></td>
+              <td><span class="badge-row">${badges(f.emps)}</span></td>
+              <td>${tagCurva(f.curva)}</td>
+              <td class="num">${FMT.brl(f.valor)}</td>
+              <td>${pillRegime(f.regime)}</td>
+              <td>${f.alerts[0]==='—'?'<span class="muted">—</span>':'<span class="pill r">'+f.alerts[0].toUpperCase()+'</span>'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">
+      <div><h3>Alertas executivos</h3><div class="sub">fila curta de prioridades · clicar para enviar à área responsável</div></div>
+      <div class="meta"><span class="pill r">6 ALTA</span> <span class="pill y">4 MÉDIA</span> <span class="pill b">2 INFO</span></div>
+    </div>
+    <div class="alerts">
+      ${[
+        ['r','Acima da menor cotação','FONTE VIVA · Frango congelado kg · SU/PE','Impacto R$ 184.500','Compras'],
+        ['r','Item curva A com inflação +31,4%','Café torrado moído 500g · ID SUESI013220078','Impacto R$ 142.100','Compras'],
+        ['r','Fornecedor alto valor com regime indeterminado','BOA TERRA HORTIFRUTI EIRELI · R$ 5,4 mi em 12m','Crédito 2027 pendente','Fiscal'],
+        ['y','CP vencido > 30 dias','SELECT NUTRI · R$ 412.000','Pressão de caixa','Financeiro'],
+        ['y','Adiantamento sem nota há 92 dias','FF INDÚSTRIA POLPAS · AD #4218','R$ 86.000 pendente','Financeiro'],
+        ['y','Produto curva A com 1 cotação','Açúcar refinado 1kg · ALIBER FOODS','Baixa concorrência','Compras'],
+        ['b','Saneamento cadastral pendente','12 fornecedores sem CNPJ oficial','Bloqueia análise fiscal','BI / Cadastro'],
+        ['b','Cotação incompleta','MAR/2026 · 218 itens sem MIN/MAX','Cobertura caiu para 72%','BI']
+      ].map(([t,tit,who,im,area])=>`
+        <div class="alert-row ${t}">
+          <span class="dot"></span>
+          <div><div class="nm" style="font-weight:600">${tit}</div><div class="who">${who}</div></div>
+          <div class="num">${im}</div>
+          <span class="pill ghost">${area}</span>
+          <button class="act">Abrir</button>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="row-2" style="margin-top:10px">
+    <div class="card">
+      <div class="card-h"><h3>Compras por região e UF</h3><div class="sub">N · NE · SE · S · CO · R$ mi · 12m</div></div>
+      <div class="card-b">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="hbar-list compact">
+            <div class="hbar"><div class="lab">SE<div class="sub">SP · RJ · MG · ES</div></div><div class="bar"><span style="width:96%"></span></div><div class="v">R$ 82,4 mi</div></div>
+            <div class="hbar"><div class="lab">NE<div class="sub">PE · BA · MA · PB · PI · SE · RN</div></div><div class="bar"><span style="width:74%"></span></div><div class="v">R$ 64,2 mi</div></div>
+            <div class="hbar"><div class="lab">N<div class="sub">PA</div></div><div class="bar"><span style="width:24%"></span></div><div class="v">R$ 20,8 mi</div></div>
+            <div class="hbar"><div class="lab">CO<div class="sub">DF</div></div><div class="bar"><span style="width:14%"></span></div><div class="v">R$ 12,1 mi</div></div>
+            <div class="hbar"><div class="lab">S<div class="sub">PR · RS · SC</div></div><div class="bar"><span style="width:5%"></span></div><div class="v">R$ 4,7 mi</div></div>
+          </div>
+          <div class="hbar-list compact">
+            <div class="hbar"><div class="lab"><span class="pill k" style="margin-right:6px">SP</span>São Paulo</div><div class="bar"><span style="width:100%"></span></div><div class="v">R$ 42,1 mi</div></div>
+            <div class="hbar"><div class="lab"><span class="pill k" style="margin-right:6px">RJ</span>Rio de Janeiro</div><div class="bar"><span style="width:62%"></span></div><div class="v">R$ 26,1 mi</div></div>
+            <div class="hbar"><div class="lab"><span class="pill k" style="margin-right:6px">PE</span>Pernambuco</div><div class="bar"><span style="width:54%"></span></div><div class="v">R$ 22,8 mi</div></div>
+            <div class="hbar"><div class="lab"><span class="pill k" style="margin-right:6px">BA</span>Bahia</div><div class="bar"><span style="width:38%"></span></div><div class="v">R$ 16,1 mi</div></div>
+            <div class="hbar"><div class="lab"><span class="pill k" style="margin-right:6px">MA</span>Maranhão</div><div class="bar"><span style="width:29%"></span></div><div class="v">R$ 12,2 mi</div></div>
+            <div class="hbar"><div class="lab"><span class="pill k" style="margin-right:6px">PA</span>Pará</div><div class="bar"><span style="width:23%"></span></div><div class="v">R$ 9,8 mi</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Ranking por filial</h3><div class="sub">top 8 · valor 12m · CP em aberto</div></div>
+      <table class="table">
+        <thead><tr><th>Filial</th><th>Negócio</th><th>UF</th><th class="num">Valor</th><th class="num">CP aberto</th></tr></thead>
+        <tbody>
+          ${[
+            ['MATRIZ SP','Matriz','SP',32100000,4820000],
+            ['COZINHA CENTRAL RJ','Cozinha','RJ',24200000,3120000],
+            ['HOSP. RECIFE','Hospital','PE',18400000,2840000],
+            ['ESCOLA SALVADOR','Escola','BA',14200000,1920000],
+            ['PRESÍDIO PARÁ','Presídio','PA',9800000,1640000],
+            ['MERENDA SÃO LUÍS','Merenda','MA',7200000,1280000],
+            ['CD JABOATÃO','CD','PE',6800000,820000],
+            ['ESCOLA NATAL','Escola','RN',4200000,420000]
+          ].map(r=>`
+            <tr>
+              <td class="nm">${r[0]}</td>
+              <td><span class="pill ghost">${r[1]}</span></td>
+              <td><span class="pill k">${r[2]}</span></td>
+              <td class="num">${FMT.brl(r[3])}</td>
+              <td class="num">${FMT.brl(r[4])}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+`;
+
+/* ---------- FORNECEDOR 360 ---------- */
+pages.forn360 = () => `
+  <div class="page-h">
+    <div>
+      <h2>Fornecedor 360</h2>
+      <div class="crumb">1.284 fornecedores ativos · clique em uma linha para abrir o detalhe</div>
+    </div>
+    <div class="tools">
+      <button class="btn"><span>Ordenar: Valor ▾</span></button>
+      <button class="btn"><span>Colunas ▾</span></button>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(6,1fr);margin-bottom:10px">
+    <div class="kpi"><div class="lab">Fornecedores</div><div class="val">1.284</div><div class="delta"><b>312</b><span>curva A+</span></div></div>
+    <div class="kpi"><div class="lab">Valor 12m</div><div class="val">R$ 184,2 mi</div></div>
+    <div class="kpi warn"><div class="lab">Sem CNPJ na base</div><div class="val">42</div><div class="delta down"><b>R$ 6,1 mi</b><span>expostos</span></div></div>
+    <div class="kpi alert"><div class="lab">Risco fiscal × alto valor</div><div class="val">87</div></div>
+    <div class="kpi"><div class="lab">Lucro Real</div><div class="val">214</div></div>
+    <div class="kpi"><div class="lab">Simples Nacional</div><div class="val">468</div></div>
+  </div>
+
+  <div class="card">
+    <div class="tagbar">
+      <span class="tg active">Todos <span class="n">1284</span></span>
+      <span class="tg">Curva AAA <span class="n">42</span></span>
+      <span class="tg">Curva AA <span class="n">98</span></span>
+      <span class="tg">Curva A <span class="n">172</span></span>
+      <span class="tg">Crédito 2027 alto <span class="n">312</span></span>
+      <span class="tg">Crédito condicionado <span class="n">187</span></span>
+      <span class="tg">Pendente <span class="n">87</span></span>
+      <span class="tg">Indeterminado <span class="n">42</span></span>
+      <span class="tg">Com adiantamento <span class="n">38</span></span>
+      <span class="tg">CP vencido <span class="n">61</span></span>
+    </div>
+    <table class="table" id="tblForn">
+      <thead>
+        <tr>
+          <th class="ck"></th>
+          <th>Fornecedor</th>
+          <th>CNPJ</th>
+          <th>Empresas</th>
+          <th>Curva</th>
+          <th class="num">Valor 12m</th>
+          <th>Regime</th>
+          <th>Crédito 2027</th>
+          <th>Alertas</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${FORN.map((f,i)=>`
+          <tr class="row-hd ${i===0?'open expanded':''}" data-i="${i}">
+            <td class="ck"><span class="chev">▶</span></td>
+            <td class="nm">${f.n}</td>
+            <td class="mono">${f.cnpj}</td>
+            <td>${badges(f.emps)}</td>
+            <td>${tagCurva(f.curva)}</td>
+            <td class="num">${FMT.brl(f.valor)}</td>
+            <td>${pillRegime(f.regime)}</td>
+            <td>${pillCredito(f.cred)}</td>
+            <td>${f.alerts.map(a=>a==='—'?'<span class="muted">—</span>':'<span class="pill '+(/(fiscal|sem cnpj)/i.test(a)?'y':(/cot|inflação|cp/i.test(a)?'r':'b'))+'">'+a.toUpperCase()+'</span>').join(' ')}</td>
+          </tr>
+          ${i===0 ? detailForn(f) : ''}
+        `).join('')}
+      </tbody>
+    </table>
+    <div class="pager">
+      <div class="info">Exibindo 1–12 de 1.284 fornecedores</div>
+      <div class="ctrl">
+        <button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>…</button><button>107</button><button>›</button>
+      </div>
+    </div>
+  </div>
+`;
+
+function detailForn(f){
+  return `<tr class="detail"><td colspan="9" style="padding:0">
+    <div class="det-grid">
+      <div class="det">
+        <h4>Identidade e cadastro</h4>
+        <dl class="kv">
+          <dt>CDFORNECED</dt><dd class="mono">12.034</dd>
+          <dt>Razão original</dt><dd style="text-align:right">${f.n}</dd>
+          <dt>Razão <b style="color:var(--blue)">oficial</b></dt><dd style="text-align:right">${f.oficial}</dd>
+          <dt>CNPJ</dt><dd class="mono">${f.cnpj}</dd>
+          <dt>Região · UFs</dt><dd>${f.regiao} · SP · RJ · PE · BA</dd>
+          <dt>Situação</dt><dd><span class="pill ${/sem cadastro/i.test(f.oficial)?'r':'g'}">${/sem cadastro/i.test(f.oficial)?'SEM OFICIAL':'ATIVA'}</span></dd>
+        </dl>
+      </div>
+      <div class="det">
+        <h4>Compras 12m · categorias</h4>
+        <dl class="kv">
+          <dt>Valor total</dt><dd>${FMT.brl(f.valor)}</dd>
+          <dt>NFs</dt><dd>1.284</dd>
+          <dt>Produtos únicos</dt><dd>184</dd>
+          <dt>IDs únicos</dt><dd>312</dd>
+          <dt>CAT2 dominante</dt><dd>${f.cat}</dd>
+          <dt>Última compra</dt><dd>24/05/2026</dd>
+        </dl>
+      </div>
+      <div class="det">
+        <h4>Impacto · cotação vs. inflação</h4>
+        <dl class="kv">
+          <dt>Imp. por cotação</dt><dd><span class="pill r">${FMT.brl(412800)}</span></dd>
+          <dt>Imp. por inflação</dt><dd><span class="pill y">${FMT.brl(186200)}</span></dd>
+          <dt>Imp. total</dt><dd><b>${FMT.brl(599000)}</b></dd>
+          <dt>Oportunidade</dt><dd><span class="pill g">${FMT.brl(298400)}</span></dd>
+          <dt>Itens com 1 cot.</dt><dd>14</dd>
+          <dt>Itens acima do menor</dt><dd>28</dd>
+        </dl>
+      </div>
+      <div class="det">
+        <h4>Fiscal 2027</h4>
+        <dl class="kv">
+          <dt>Regime</dt><dd>${pillRegime(f.regime)}</dd>
+          <dt>Crédito 2027</dt><dd>${pillCredito(f.cred)}</dd>
+          <dt>Coerência regime × crédito</dt><dd><span class="pill g">OK</span></dd>
+          <dt>Evidência</dt><dd>NFe + Sintegra</dd>
+          <dt>Valor exposto</dt><dd>${f.cred==='Alto'?'<span class="muted">—</span>':'R$ 1,84 mi'}</dd>
+          <dt>Última validação</dt><dd>18/05/2026</dd>
+        </dl>
+      </div>
+      <div class="det">
+        <h4>Financeiro · CP_STATUS</h4>
+        <dl class="kv">
+          <dt>CP aberto</dt><dd>R$ 1.184.300</dd>
+          <dt>Vencido</dt><dd><span class="pill r">R$ 142.800</span></dd>
+          <dt>A vencer 7d</dt><dd>R$ 218.600</dd>
+          <dt>Faixa de dias</dt><dd><span class="pill y">31-60</span></dd>
+          <dt>Prazo médio</dt><dd>28 dias</dd>
+          <dt>Status</dt><dd><span class="pill b">EM ABERTO</span></dd>
+        </dl>
+      </div>
+      <div class="det">
+        <h4>Adiantamento · AD status</h4>
+        <dl class="kv">
+          <dt>AD ativo</dt><dd>R$ 86.000</dd>
+          <dt>Conciliado</dt><dd>R$ 0</dd>
+          <dt>Status</dt><dd><span class="pill r">PENDENTE</span></dd>
+          <dt>Dias sem NF</dt><dd>92 dias</dd>
+          <dt>NFs vinculadas</dt><dd>3 de 5</dd>
+          <dt>Ação</dt><dd><span class="pill b">CONCILIAR</span></dd>
+        </dl>
+      </div>
+      <div class="det" style="grid-column:span 2">
+        <h4>Alertas e ação sugerida</h4>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${f.alerts.filter(a=>a!=='—').map(a=>`
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--line-soft)">
+              <span class="pill ${/cot|inflação|cp/i.test(a)?'r':/cnpj|crédito|mei/i.test(a)?'y':'b'}">${a.toUpperCase()}</span>
+              <button class="act" style="height:24px;padding:0 8px;border:1px solid var(--blue);background:var(--blue-soft);color:var(--blue);border-radius:6px;font-size:11px;font-weight:600">${/cot/i.test(a)?'Renegociar':/cnpj/i.test(a)?'Saneamento':/crédito|mei/i.test(a)?'Validar fiscal':/cp/i.test(a)?'Negociar':/ad/i.test(a)?'Conciliar':'Abrir'}</button>
+            </div>`).join('')||'<span class="muted" style="font-size:12px">Sem alertas neste fornecedor.</span>'}
+        </div>
+      </div>
+    </div>
+
+    <div class="det-block">
+      <div class="card-h"><h3>Produtos comprados deste fornecedor</h3><div class="sub">12m · ordenado por impacto</div></div>
+      <table class="table">
+        <thead><tr><th>ID</th><th>Produto original / <b style="color:var(--blue)">oficial</b></th><th>CAT2 · CAT3</th><th>Curva ID</th><th class="num">Valor</th><th class="num">PMP</th><th class="num">Menor cot.</th><th class="num">Impacto</th><th>Status</th></tr></thead>
+        <tbody>
+          ${[
+            ['RCSPI105201000','Arroz tipo 1 5kg','Arroz tipo I 5kg pacote','I1 · Estocáveis · I104','AAA',2840000,24.80,24.10,184600,'Acima'],
+            ['SUMAP420118035','Frango congelado','Frango cong. peito kg','I2 · Perecíveis · I2012','AA',2120000,14.20,13.10,621400,'Acima'],
+            ['RCBAI206301045','Feijão carioca 1kg','Feijão carioca tipo I 1kg','I1 · Estocáveis · I101','AAA',1680000,9.42,8.92,84800,'Acima'],
+            ['MEPEL310452201','Leite UHT integ. 1L','Leite UHT integral 1L caixa','I1 · Estocáveis · I109','AAA',1420000,6.18,5.92,62100,'Acima'],
+            ['MESPI708045221','Óleo de soja 900ml','Óleo soja 900ml pet','I1 · Estocáveis · I101','A',840000,7.34,7.32,0,'Menor preço']
+          ].map(r=>`
+            <tr>
+              <td class="mono">${r[0]}</td>
+              <td><div class="nm">${r[1]}</div><div class="sm">${r[2]}</div></td>
+              <td>${r[3]}</td>
+              <td>${tagCurva(r[4])}</td>
+              <td class="num">${FMT.brl(r[5])}</td>
+              <td class="num">${FMT.brl2(r[6])}</td>
+              <td class="num">${FMT.brl2(r[7])}</td>
+              <td class="num">${r[8]>0?'<span class="pill r">'+FMT.brl(r[8])+'</span>':'<span class="pill g">R$ 0</span>'}</td>
+              <td>${r[9]==='Menor preço'?'<span class="pill g">MENOR PREÇO</span>':'<span class="pill r">ACIMA DA MENOR</span>'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="det-block">
+      <div class="card-h"><h3>Cotações e fornecedores alternativos</h3><div class="sub">comparativo nos últimos 90 dias · FORN_MENOR_PRECO / CNPJ_MENOR_PRECO</div></div>
+      <table class="table">
+        <thead><tr><th>ID</th><th>Produto</th><th class="num">Comprado</th><th class="num">Min cot.</th><th class="num">Med cot.</th><th class="num">Máx cot.</th><th class="num">QTD_COT</th><th>Fornecedor menor preço</th><th>Decisão</th></tr></thead>
+        <tbody>
+          ${[
+            ['SUMAP420118035','Frango congelado kg',14.20,13.10,13.80,14.50,5,'NORDESTE PROTEÍNAS'],
+            ['RCSPI105201000','Arroz tipo 1 5kg',24.80,24.10,24.85,25.40,4,'GRÃOS DO CERRADO'],
+            ['MEPEL310452201','Leite UHT integral 1L',6.18,5.92,6.15,6.40,4,'LATICÍNIOS PRIMAVERA']
+          ].map(r=>`
+            <tr>
+              <td class="mono">${r[0]}</td>
+              <td class="nm">${r[1]}</td>
+              <td class="num">${FMT.brl2(r[2])}</td>
+              <td class="num">${FMT.brl2(r[3])}</td>
+              <td class="num">${FMT.brl2(r[4])}</td>
+              <td class="num">${FMT.brl2(r[5])}</td>
+              <td class="num"><span class="pill b">${r[6]}</span></td>
+              <td>${r[7]}</td>
+              <td><button class="act" style="height:24px;padding:0 8px;border:1px solid var(--blue);background:var(--blue-soft);color:var(--blue);border-radius:6px;font-size:11px;font-weight:600">Renegociar</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </td></tr>`;
+}
+
+/* ---------- OPORTUNIDADES ---------- */
+pages.oportunidades = () => `
+  <div class="page-h">
+    <div>
+      <h2>Oportunidades</h2>
+      <div class="crumb">Fila de ação · ordenada por prioridade × impacto R$</div>
+    </div>
+    <div class="tools">
+      <button class="btn primary">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        Distribuir 12 itens
+      </button>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(6,1fr);margin-bottom:10px">
+    <div class="kpi ok"><div class="lab">Oportunidade R$</div><div class="val">R$ 3,18 mi</div><div class="delta up"><b>312 itens</b><span>na fila</span></div></div>
+    <div class="kpi alert"><div class="lab">Prioridade alta</div><div class="val">84</div><div class="delta down"><b>R$ 2,12 mi</b><span>concentrado</span></div></div>
+    <div class="kpi"><div class="lab">Acima da menor cot.</div><div class="val">142</div></div>
+    <div class="kpi warn"><div class="lab">Inflação curva A</div><div class="val">48</div></div>
+    <div class="kpi warn"><div class="lab">1 cotação</div><div class="val">61</div></div>
+    <div class="kpi"><div class="lab">Não é menor preço</div><div class="val">31</div></div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Matriz de prioridade</h3><div class="sub">impacto × esforço de execução</div></div>
+      <div class="card-b">
+        <div class="matrix" style="grid-template-columns:80px repeat(3,1fr)">
+          <div class="cell head"></div><div class="cell head">Baixo esforço</div><div class="cell head">Médio</div><div class="cell head">Alto esforço</div>
+          <div class="cell head" style="justify-content:flex-end;align-items:flex-start;writing-mode:vertical-rl;height:auto;padding-top:6px">Alto impacto</div>
+          <div class="cell s5">28 · R$ 1,42 mi</div>
+          <div class="cell s4">22 · R$ 0,71 mi</div>
+          <div class="cell s3">14 · R$ 0,42 mi</div>
+          <div class="cell head" style="justify-content:flex-end;align-items:flex-start;writing-mode:vertical-rl;height:auto;padding-top:6px">Médio</div>
+          <div class="cell s3">41 · R$ 0,38 mi</div>
+          <div class="cell s2">62 · R$ 0,18 mi</div>
+          <div class="cell s2">38 · R$ 0,07 mi</div>
+          <div class="cell head" style="justify-content:flex-end;align-items:flex-start;writing-mode:vertical-rl;height:auto;padding-top:6px">Baixo</div>
+          <div class="cell s1">42 · R$ 0,02 mi</div>
+          <div class="cell s1">35 · R$ 0,01 mi</div>
+          <div class="cell s1">30 · R$ 0,003 mi</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Oportunidade por tipo</h3><div class="sub">impacto R$ · 12m</div></div>
+      <div class="card-b">
+        <div class="hbar-list">
+          ${[
+            ['Acima da menor cotação','142 itens', 1.42, 95, 'r'],
+            ['Item curva A com inflação','48 itens', 0.82, 55, 'y'],
+            ['1 cotação no período','61 itens', 0.41, 28, 'y'],
+            ['Não é menor preço','31 itens', 0.28, 19, 'r'],
+            ['Risco fiscal × alto valor','22 itens', 0.18, 12, 'k'],
+            ['Alto impacto em R$','8 itens', 0.07, 5, 'g']
+          ].map(([n,s,v,p,c])=>`
+            <div class="hbar">
+              <div class="lab">${n}<div class="sub">${s}</div></div>
+              <div class="bar ${c}"><span style="width:${p}%"></span></div>
+              <div class="v">R$ ${v.toString().replace('.',',')} mi</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tagbar">
+      <span class="tg active">Fila completa <span class="n">312</span></span>
+      <span class="tg">Hoje <span class="n">28</span></span>
+      <span class="tg">Esta semana <span class="n">84</span></span>
+      <span class="tg">Aberto <span class="n">241</span></span>
+      <span class="tg">Em andamento <span class="n">52</span></span>
+      <span class="tg">Resolvido <span class="n">19</span></span>
+    </div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Tipo</th><th>Prio.</th><th>ID</th><th>Produto / Fornecedor</th>
+          <th>Forn. atual</th><th class="num">Menor cot.</th><th class="num">Impacto R$</th>
+          <th>Evidência</th><th>Ação sugerida</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${OPP.map(o=>`
+          <tr>
+            <td><span class="pill ${/acima|impacto/i.test(o.tipo)?'r':/inflação|fiscal/i.test(o.tipo)?'y':'b'}">${o.tipo.toUpperCase()}</span></td>
+            <td>${pillPrio(o.prio)}</td>
+            <td class="mono">${o.id}</td>
+            <td class="nm">${o.prod}</td>
+            <td>${o.fAtual}</td>
+            <td class="num">${typeof o.menor==='number'?FMT.brl2(o.menor):'<span class="muted">—</span>'}</td>
+            <td class="num"><b>${FMT.brl(o.imp)}</b></td>
+            <td class="sm">${o.ev}</td>
+            <td>${o.acao}</td>
+            <td>${pillStatus(o.stat)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    <div class="pager">
+      <div class="info">Exibindo 1–9 de 312 oportunidades · impacto exibido: R$ 1,21 mi</div>
+      <div class="ctrl">
+        <button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>…</button><button>35</button><button>›</button>
+      </div>
+    </div>
+  </div>
+`;
+
+/* ---------- PRODUTOS E PREÇOS ---------- */
+pages.produtos = () => `
+  <div class="page-h">
+    <div>
+      <h2>Produtos e preços</h2>
+      <div class="crumb">8.412 produtos · 2.184 IDs analíticos · PMP, cotação e impacto por ID</div>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(6,1fr);margin-bottom:10px">
+    <div class="kpi"><div class="lab">Produtos analisados</div><div class="val">8.412</div></div>
+    <div class="kpi"><div class="lab">IDs ativos 12m</div><div class="val">2.184</div></div>
+    <div class="kpi alert"><div class="lab">Variação PMP &gt; 10%</div><div class="val">312</div></div>
+    <div class="kpi warn"><div class="lab">Sem cotação</div><div class="val">418</div></div>
+    <div class="kpi"><div class="lab">PMP médio (cesta)</div><div class="val">R$ 12,42</div></div>
+    <div class="kpi"><div class="lab">Inflação cesta 12m</div><div class="val">+9,1%</div></div>
+  </div>
+
+  <div class="card">
+    <div class="tagbar">
+      <span class="tg active">Todos <span class="n">2184</span></span>
+      <span class="tg">Curva ID AAA <span class="n">62</span></span>
+      <span class="tg">Curva ID AA <span class="n">148</span></span>
+      <span class="tg">Inflação &gt; 10% <span class="n">312</span></span>
+      <span class="tg">Deflação <span class="n">87</span></span>
+      <span class="tg">Sem cotação <span class="n">418</span></span>
+    </div>
+    <table class="table">
+      <thead><tr>
+        <th class="ck"></th><th>Produto</th><th>ID</th><th>Categoria</th>
+        <th>Curva ID</th><th>Curva Prod.</th><th class="num">PMP atual</th>
+        <th class="num">Variação 12m</th><th>Série PMP</th><th class="num">Impacto R$</th>
+      </tr></thead>
+      <tbody>
+        ${PRODS.map((p,i)=>`
+          <tr class="row-hd ${i===3?'open expanded':''}" data-i="${i}">
+            <td class="ck"><span class="chev">▶</span></td>
+            <td class="nm">${p.p}</td>
+            <td class="mono">${p.id}</td>
+            <td>${p.cat}</td>
+            <td>${tagCurva(p.cId)}</td>
+            <td>${tagCurva(p.cP)}</td>
+            <td class="num">${FMT.brl2(p.pmp)}</td>
+            <td class="num">${inflacaoTag(p.var12)}</td>
+            <td style="width:170px">${svgSpark(p.serie, p.var12>=0?'#b91c1c':'#16a34a')}</td>
+            <td class="num">${FMT.brl(p.imp)}</td>
+          </tr>
+          ${i===3 ? detailProduto(p) : ''}
+        `).join('')}
+      </tbody>
+    </table>
+    <div class="pager">
+      <div class="info">Exibindo 1–10 de 2.184 IDs</div>
+      <div class="ctrl"><button>‹</button><button class="active">1</button><button>2</button><button>3</button><button>…</button><button>219</button><button>›</button></div>
+    </div>
+  </div>
+`;
+
+function detailProduto(p){
+  return `<tr class="detail"><td colspan="10" style="padding:0">
+    <div class="det-grid">
+      <div class="det">
+        <h4>Identificação · original vs. oficial</h4>
+        <dl class="kv">
+          <dt>CDPRODUTO</dt><dd class="mono">PRD-4218</dd>
+          <dt>Produto original</dt><dd style="text-align:right">${p.p}</dd>
+          <dt>Produto <b style="color:var(--blue)">oficial</b></dt><dd style="text-align:right">${p.p.replace(/\s+\d+\s?(kg|l|ml|g)\b/i,'').toUpperCase()} · padrão</dd>
+          <dt>ID</dt><dd class="mono">${p.id}</dd>
+          <dt>CAT1 · CAT2 · CAT3</dt><dd>I · ${p.cat} · I201</dd>
+          <dt>CAT4 · CAT5</dt><dd>I2012 · I201203</dd>
+          <dt>Empresas</dt><dd>${badges(['RC','ME','SU'])}</dd>
+        </dl>
+      </div>
+      <div class="det">
+        <h4>PMP_ID_INF_12</h4>
+        <div style="font-variant-numeric:tabular-nums">
+          ${svgSpark(p.serie, '#2563eb')}
+        </div>
+        <dl class="kv" style="margin-top:6px">
+          <dt>PMP_0</dt><dd>${FMT.brl2(p.serie[0])}</dd>
+          <dt>PMP_6</dt><dd>${FMT.brl2(p.serie[6])}</dd>
+          <dt>PMP_12</dt><dd>${FMT.brl2(p.serie[12])}</dd>
+          <dt>Variação · INF_ID</dt><dd>${inflacaoTag(p.var12)}</dd>
+          <dt>Impacto · IMP_ID</dt><dd><b>${FMT.brl(p.imp)}</b></dd>
+        </dl>
+      </div>
+      <div class="det">
+        <h4>Cotações 90d · FORN_MENOR_PRECO</h4>
+        <dl class="kv">
+          <dt>QTD_COT</dt><dd><span class="pill b">5</span></dd>
+          <dt>MIN_COT</dt><dd>R$ 13,10</dd>
+          <dt>MED_COT</dt><dd>R$ 13,80</dd>
+          <dt>MAX_COT</dt><dd>R$ 14,50</dd>
+          <dt>Forn. comprado</dt><dd>FONTE VIVA</dd>
+          <dt>Forn. menor preço</dt><dd>NORDESTE PROTEÍNAS</dd>
+          <dt>Comprou no menor?</dt><dd><span class="pill r">NÃO</span></dd>
+        </dl>
+      </div>
+      <div class="det">
+        <h4>Compras por UF / filial</h4>
+        ${[
+          ['SP · Cozinha central',38],
+          ['PE · Hospital',26],
+          ['RJ · Escola',18],
+          ['BA · Presídio',12],
+          ['MA · Merenda',6]
+        ].map(([n,p])=>`
+          <div class="row" style="border-bottom:1px dashed var(--line-soft)">
+            <span>${n}</span><span style="display:flex;align-items:center;gap:8px;width:140px">
+              <span class="bar" style="width:80px"><span style="width:${p}%"></span></span>
+              <b>${p}%</b>
+            </span>
+          </div>`).join('')}
+      </div>
+    </div>
+  </td></tr>`;
+}
+
+/* ---------- COTAÇÕES ---------- */
+pages.cotacoes = () => `
+  <div class="page-h">
+    <div>
+      <h2>Cotações</h2>
+      <div class="crumb">Disciplina e competitividade · MIN/MED/MAX por ID, mês, UF e empresa</div>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:10px">
+    <div class="kpi"><div class="lab">Produtos cotados</div><div class="val">1.766</div><div class="delta"><b>81%</b><span>cobertura</span></div></div>
+    <div class="kpi"><div class="lab">Média cot/produto</div><div class="val">3,4</div></div>
+    <div class="kpi warn"><div class="lab">1 cotação</div><div class="val">418</div></div>
+    <div class="kpi alert"><div class="lab">0 cotação</div><div class="val">418</div></div>
+    <div class="kpi ok"><div class="lab">Potencial menor preço</div><div class="val">R$ 1,42 mi</div></div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Distribuição de quantidade de cotações</h3><div class="sub">QTD_COT por ID · base 12m</div></div>
+      <div class="card-b">
+        <div class="hbar-list">
+          ${[
+            ['0 cotações','sem disciplina', 418, 95, 'r'],
+            ['1 cotação','baixa concorrência', 418, 95, 'y'],
+            ['2 cotações','aceitável', 312, 71, 'b'],
+            ['3 cotações','adequado', 482, 100, 'b'],
+            ['4 cotações','disciplina alta', 354, 80, 'g'],
+            ['5+ cotações','ótimo',200, 45, 'g']
+          ].map(([n,s,v,p,c])=>`
+            <div class="hbar">
+              <div class="lab">${n}<div class="sub">${s}</div></div>
+              <div class="bar ${c}"><span style="width:${p}%"></span></div>
+              <div class="v">${FMT.num(v)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Compra vs. menor cotação</h3><div class="sub">share por decisão</div></div>
+      <div class="card-b">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:center">
+          <svg viewBox="0 0 200 200" width="180" height="180" style="margin:0 auto;display:block">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#eef2f7" stroke-width="22"/>
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#16a34a" stroke-width="22" stroke-dasharray="251 502" transform="rotate(-90 100 100)"/>
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#b91c1c" stroke-width="22" stroke-dasharray="151 502" stroke-dashoffset="-251" transform="rotate(-90 100 100)"/>
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#a16207" stroke-width="22" stroke-dasharray="50 502" stroke-dashoffset="-402" transform="rotate(-90 100 100)"/>
+            <text x="100" y="98" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a" font-family="Segoe UI">50%</text>
+            <text x="100" y="116" text-anchor="middle" font-size="10" fill="#64748b" font-family="Segoe UI">comprou no menor</text>
+          </svg>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line-soft)"><span style="width:10px;height:10px;background:#16a34a;border-radius:3px;display:inline-block"></span> No menor preço <b style="margin-left:auto">50%</b></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line-soft)"><span style="width:10px;height:10px;background:#b91c1c;border-radius:3px;display:inline-block"></span> Acima do menor <b style="margin-left:auto">30%</b></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line-soft)"><span style="width:10px;height:10px;background:#a16207;border-radius:3px;display:inline-block"></span> Sem cotação <b style="margin-left:auto">10%</b></div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span style="width:10px;height:10px;background:#cbd5e1;border-radius:3px;display:inline-block"></span> 1 cotação só <b style="margin-left:auto">10%</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <table class="table">
+      <thead><tr>
+        <th>ID</th><th>Produto</th><th>Mês</th><th>UF</th><th>Empresa</th>
+        <th class="num">QTD_COT</th><th class="num">MIN</th><th class="num">MED</th><th class="num">MAX</th>
+        <th>Forn. menor preço</th><th>Compra realizada</th>
+      </tr></thead>
+      <tbody>
+        ${COTACOES.map(c=>`
+          <tr>
+            <td class="mono">${c.id}</td>
+            <td class="nm">${c.prod}</td>
+            <td>${c.mes}</td>
+            <td><span class="pill k">${c.uf}</span></td>
+            <td>${badges([c.emp])}</td>
+            <td class="num">${c.qtd===1?'<span class="pill r">1</span>':c.qtd<=2?'<span class="pill y">'+c.qtd+'</span>':'<span class="pill b">'+c.qtd+'</span>'}</td>
+            <td class="num">${FMT.brl2(c.min)}</td>
+            <td class="num">${FMT.brl2(c.med)}</td>
+            <td class="num">${FMT.brl2(c.max)}</td>
+            <td>${c.fMin}</td>
+            <td>${/no menor/i.test(c.comprou)?'<span class="pill g">'+c.comprou.toUpperCase()+'</span>':/não/i.test(c.comprou)?'<span class="pill r">NÃO COMPROU</span>':'<span class="pill y">'+c.comprou.toUpperCase()+'</span>'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+`;
+
+/* ---------- INFLAÇÃO E IMPACTO ---------- */
+pages.inflacao = () => `
+  <div class="page-h">
+    <div>
+      <h2>Inflação e impacto</h2>
+      <div class="crumb">PMP_ID_INF_12 · ranking por R$ e por variação percentual</div>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:10px">
+    <div class="kpi alert"><div class="lab">Impacto total 12m</div><div class="val">R$ 4,82 mi</div></div>
+    <div class="kpi warn"><div class="lab">Inflação média (cesta)</div><div class="val">+9,1%</div></div>
+    <div class="kpi"><div class="lab">Top inflação</div><div class="val">+31,4%</div><div class="delta"><b>Café 500g</b></div></div>
+    <div class="kpi ok"><div class="lab">Top deflação</div><div class="val">−3,4%</div><div class="delta"><b>Leite UHT</b></div></div>
+    <div class="kpi"><div class="lab">Itens afetados</div><div class="val">312</div></div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Ranking de impacto em R$</h3><div class="sub">IMP_ID · 12m</div></div>
+      <div class="card-b">
+        <div class="hbar-list">
+          ${PRODS.slice().sort((a,b)=>b.imp-a.imp).slice(0,8).map(p=>`
+            <div class="hbar">
+              <div class="lab">${p.p}<div class="sub mono">${p.id}</div></div>
+              <div class="bar r"><span style="width:${(p.imp/700000)*100}%"></span></div>
+              <div class="v">${FMT.brl(p.imp)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Ranking de variação % (12m)</h3><div class="sub">PERC_INF_12</div></div>
+      <div class="card-b">
+        <div class="hbar-list">
+          ${PRODS.slice().sort((a,b)=>b.var12-a.var12).slice(0,8).map(p=>{
+            const w = Math.min(100, Math.abs(p.var12)/35*100);
+            const c = p.var12>=15?'r':p.var12>=5?'y':p.var12<=-3?'g':'k';
+            return `<div class="hbar">
+              <div class="lab">${p.p}<div class="sub">${p.cat}</div></div>
+              <div class="bar ${c}"><span style="width:${w}%"></span></div>
+              <div class="v">${FMT.pct(p.var12)}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <table class="table">
+      <thead><tr>
+        <th>ID</th><th>Produto</th><th>Categoria</th><th>Mês</th>
+        <th class="num">PMP_0</th><th class="num">PMP_1</th><th class="num">PMP_12</th>
+        <th class="num">INF_ID</th><th class="num">IMP_ID</th><th>Curva</th>
+      </tr></thead>
+      <tbody>
+        ${PRODS.map(p=>`
+          <tr>
+            <td class="mono">${p.id}</td>
+            <td class="nm">${p.p}</td>
+            <td>${p.cat}</td>
+            <td>05/2026</td>
+            <td class="num">${FMT.brl2(p.serie[0])}</td>
+            <td class="num">${FMT.brl2(p.serie[1])}</td>
+            <td class="num"><b>${FMT.brl2(p.serie[12])}</b></td>
+            <td class="num">${inflacaoTag(p.var12)}</td>
+            <td class="num">${FMT.brl(p.imp)}</td>
+            <td>${tagCurva(p.cId)}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+`;
+
+/* ---------- FISCAL 2027 ---------- */
+pages.fiscal = () => `
+  <div class="page-h">
+    <div>
+      <h2>Fiscal 2027</h2>
+      <div class="crumb">Cruzamento de compras × regime fiscal × crédito 2027</div>
+    </div>
+    <div class="tools"><span class="pill r">87 FORNECEDORES EM RISCO</span></div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:10px">
+    <div class="kpi ok"><div class="lab">Compra com crédito alto</div><div class="val">R$ 102,4 mi</div><div class="delta"><b>56%</b><span>do total</span></div></div>
+    <div class="kpi warn"><div class="lab">Compra condicionada</div><div class="val">R$ 38,7 mi</div></div>
+    <div class="kpi alert"><div class="lab">Compra pendente</div><div class="val">R$ 16,9 mi</div></div>
+    <div class="kpi alert"><div class="lab">Fornecedores indeterminados</div><div class="val">42</div><div class="delta down"><b>R$ 6,1 mi</b><span>expostos</span></div></div>
+    <div class="kpi alert"><div class="lab">Valor em risco</div><div class="val">R$ 22,1 mi</div></div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Matriz · valor comprado × regime fiscal</h3><div class="sub">R$ por faixa</div></div>
+      <div class="card-b">
+        <div class="matrix" style="grid-template-columns:120px repeat(4,1fr)">
+          <div class="cell head"></div>
+          <div class="cell head">Lucro Real</div>
+          <div class="cell head">Presumido</div>
+          <div class="cell head">Simples</div>
+          <div class="cell head">Indeterminado</div>
+
+          <div class="cell head" style="justify-content:flex-start">&gt; R$ 5 mi</div>
+          <div class="cell s5">8 · R$ 62 mi</div>
+          <div class="cell s3">4 · R$ 24 mi</div>
+          <div class="cell warn">2 · R$ 11 mi</div>
+          <div class="cell alert">3 · R$ 14 mi</div>
+
+          <div class="cell head" style="justify-content:flex-start">R$ 1–5 mi</div>
+          <div class="cell s4">28 · R$ 38 mi</div>
+          <div class="cell s3">22 · R$ 18 mi</div>
+          <div class="cell warn">14 · R$ 9 mi</div>
+          <div class="cell alert">7 · R$ 4 mi</div>
+
+          <div class="cell head" style="justify-content:flex-start">&lt; R$ 1 mi</div>
+          <div class="cell s2">178 · R$ 2,4 mi</div>
+          <div class="cell s2">214 · R$ 1,8 mi</div>
+          <div class="cell s1">468 · R$ 1,1 mi</div>
+          <div class="cell warn">32 · R$ 0,2 mi</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Fila fiscal priorizada</h3><div class="sub">por valor exposto × pendência</div></div>
+      <div class="card-b" style="padding:0">
+        <table class="table">
+          <thead><tr><th>Fornecedor</th><th>Curva</th><th class="num">Valor</th><th>Crédito 2027</th><th>Ação</th></tr></thead>
+          <tbody>
+            ${[
+              ['SELECT NUTRI ALIMENTOS', 'AAA', 14210000, 'Condicionado', 'Validar regime'],
+              ['BOA TERRA HORTIFRUTI', 'A', 5410000, 'Indeterminado', 'Saneamento CNPJ'],
+              ['ALIBER FOODS LTDA', 'AA', 8120000, 'Pendente', 'Revisar CFOP'],
+              ['FF INDÚSTRIA POLPAS', 'A', 6240000, 'Condicionado', 'Reapurar nota'],
+              ['DISTRIBUIDORA MARQUES', 'C', 1820000, 'Indeterminado', 'Solicitar regime'],
+              ['GRÃOS DO CERRADO', 'BB', 2880000, 'Pendente', 'Revisar CFOP']
+            ].map(r=>`
+              <tr>
+                <td class="nm">${r[0]}</td>
+                <td>${tagCurva(r[1])}</td>
+                <td class="num">${FMT.brl(r[2])}</td>
+                <td>${pillCredito(r[3])}</td>
+                <td><button class="act" style="height:24px;padding:0 8px;border:1px solid var(--blue);background:var(--blue-soft);color:var(--blue);border-radius:6px;font-size:11px;font-weight:600">${r[4]}</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Fornecedores · detalhe fiscal</h3><div class="sub">valor comprado · curva · regime · crédito · ação</div></div>
+    <table class="table">
+      <thead><tr><th>Fornecedor</th><th>CNPJ</th><th class="num">Valor comprado</th><th>Curva</th><th>Regime fiscal</th><th>Crédito 2027</th><th>Evidência</th><th>Ação fiscal</th></tr></thead>
+      <tbody>
+        ${FORN.map(f=>`
+          <tr>
+            <td class="nm">${f.n}</td>
+            <td class="mono">${f.cnpj}</td>
+            <td class="num">${FMT.brl(f.valor)}</td>
+            <td>${tagCurva(f.curva)}</td>
+            <td>${pillRegime(f.regime)}</td>
+            <td>${pillCredito(f.cred)}</td>
+            <td class="sm">${f.cred==='Alto'?'NFe + Sintegra OK':f.cred==='Condicionado'?'NF sem CFOP de crédito':f.cred==='Pendente'?'Sem evidência fiscal':'CNPJ sem registro'}</td>
+            <td><span class="pill ${f.cred==='Alto'?'g':f.cred==='Condicionado'?'y':'r'}">${f.cred==='Alto'?'OK':f.cred==='Condicionado'?'REVISAR':'SANEAR'}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+`;
+
+/* ---------- FINANCEIRO ---------- */
+pages.financeiro = () => `
+  <div class="page-h">
+    <div>
+      <h2>Financeiro operacional</h2>
+      <div class="crumb">Compras × contas a pagar · timeline semanal e fila por fornecedor</div>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:10px">
+    <div class="kpi"><div class="lab">CP em aberto</div><div class="val">R$ 31,4 mi</div></div>
+    <div class="kpi alert"><div class="lab">CP vencido</div><div class="val">R$ 4,1 mi</div><div class="delta down"><b>61 forn.</b></div></div>
+    <div class="kpi warn"><div class="lab">A vencer 7 dias</div><div class="val">R$ 6,8 mi</div></div>
+    <div class="kpi warn"><div class="lab">Pressão de caixa</div><div class="val">28 forn.</div></div>
+    <div class="kpi"><div class="lab">Em negociação</div><div class="val">R$ 1,42 mi</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-h"><h3>Timeline semanal · próximas 8 semanas</h3><div class="sub">a vencer · vencido · em negociação</div></div>
+    <div class="card-b">
+      <svg viewBox="0 0 800 160" width="100%" height="160" preserveAspectRatio="none">
+        ${[0,1,2,3].map(i=>`<line x1="40" x2="790" y1="${20+i*32}" y2="${20+i*32}" stroke="#eef2f7"/>`).join('')}
+        ${[
+          {v:1.2,o:0.3,n:0.0},{v:1.8,o:0.4,n:0.1},{v:2.1,o:0.2,n:0.0},
+          {v:1.4,o:0.6,n:0.2},{v:0.9,o:0.3,n:0.0},{v:2.4,o:0.1,n:0.3},
+          {v:1.6,o:0.5,n:0.1},{v:1.1,o:0.2,n:0.0}
+        ].map((w,i)=>{
+          const x=60+i*92, max=160, scale=30;
+          const av=w.v*scale, ven=w.o*scale, neg=w.n*scale;
+          return `
+            <rect x="${x}" y="${max-20-av}" width="22" height="${av}" fill="#2563eb"/>
+            <rect x="${x+24}" y="${max-20-ven}" width="22" height="${ven}" fill="#b91c1c"/>
+            <rect x="${x+48}" y="${max-20-neg}" width="22" height="${neg}" fill="#a16207"/>
+            <text x="${x+34}" y="${max-6}" text-anchor="middle" font-size="10" fill="#64748b" font-family="Segoe UI">S${i+22}</text>
+            <text x="${x+34}" y="${max-22-av-4}" text-anchor="middle" font-size="9" fill="#0f172a" font-family="Segoe UI">${w.v.toFixed(1).replace('.',',')}</text>
+          `;
+        }).join('')}
+        <text x="32" y="30" text-anchor="end" font-size="9" fill="#94a3b8" font-family="Segoe UI">R$ mi</text>
+      </svg>
+      <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);padding-top:6px">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;vertical-align:1px;margin-right:5px"></span>A vencer</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#b91c1c;border-radius:2px;vertical-align:1px;margin-right:5px"></span>Vencido</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#a16207;border-radius:2px;vertical-align:1px;margin-right:5px"></span>Em negociação</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Contas a pagar por fornecedor</h3><div class="sub">priorizado por vencido × curva</div></div>
+    <table class="table">
+      <thead><tr>
+        <th>Fornecedor</th><th class="num">CP aberto</th><th class="num">Vencido</th>
+        <th class="num">A vencer</th><th>Faixa de dias</th><th>Última compra</th><th>Curva</th><th>Ação</th>
+      </tr></thead>
+      <tbody>
+        ${[
+          ['SELECT NUTRI ALIMENTOS', 1840000, 412000, 920000, '31-60 dias', '24/05/2026', 'AAA','Negociar'],
+          ['FONTE VIVA ALIMENTOS', 1184300, 142800, 218600, '0-7 dias',    '26/05/2026', 'AAA','Liberar'],
+          ['J. J. FOODS LTDA',     842100,  98400, 318400,  '8-30 dias',    '22/05/2026', 'AA','Liberar'],
+          ['GRÃOS DO CERRADO',     412800, 186200, 84300,   '60+ dias',     '12/04/2026', 'BB','Cobrar nota'],
+          ['ALIBER FOODS LTDA',    682400,   0,    412800,  '0-7 dias',     '25/05/2026', 'AA','Liberar'],
+          ['LATICÍNIOS PRIMAVERA', 312800,  88400, 124000,  '8-30 dias',    '20/05/2026', 'B','Aguardando NF'],
+          ['FF INDÚSTRIA POLPAS',  248600,  42100, 184200,  '31-60 dias',   '19/05/2026', 'A','Conciliar AD'],
+          ['NORDESTE PROTEÍNAS',   384200,    0,   384200,  '0-7 dias',     '24/05/2026', 'BB','Liberar']
+        ].map(r=>`
+          <tr>
+            <td class="nm">${r[0]}</td>
+            <td class="num">${FMT.brl(r[1])}</td>
+            <td class="num">${r[2]>0?'<span class="pill r">'+FMT.brl(r[2])+'</span>':'<span class="muted">—</span>'}</td>
+            <td class="num">${FMT.brl(r[3])}</td>
+            <td>${r[4]==='60+ dias'?'<span class="pill r">'+r[4].toUpperCase()+'</span>':r[4]==='31-60 dias'?'<span class="pill y">'+r[4].toUpperCase()+'</span>':r[4]==='8-30 dias'?'<span class="pill b">'+r[4].toUpperCase()+'</span>':'<span class="pill g">'+r[4].toUpperCase()+'</span>'}</td>
+            <td>${r[5]}</td>
+            <td>${tagCurva(r[6])}</td>
+            <td><button class="act" style="height:24px;padding:0 8px;border:1px solid var(--blue);background:var(--blue-soft);color:var(--blue);border-radius:6px;font-size:11px;font-weight:600">${r[7]}</button></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+`;
+
+/* ---------- ADIANTAMENTOS ---------- */
+pages.adiantamentos = () => `
+  <div class="page-h">
+    <div>
+      <h2>Adiantamentos</h2>
+      <div class="crumb">AD_v3 ↔ NF · conciliação, pendência e impacto financeiro</div>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(5,1fr);margin-bottom:10px">
+    <div class="kpi"><div class="lab">AD total 12m</div><div class="val">R$ 18,4 mi</div></div>
+    <div class="kpi ok"><div class="lab">Conciliado</div><div class="val">R$ 14,2 mi</div><div class="delta up"><b>77%</b></div></div>
+    <div class="kpi alert"><div class="lab">Pendente</div><div class="val">R$ 3,1 mi</div><div class="delta down"><b>38 forn.</b></div></div>
+    <div class="kpi warn"><div class="lab">Parcial</div><div class="val">R$ 1,1 mi</div></div>
+    <div class="kpi"><div class="lab">Notas vinculadas</div><div class="val">2.184 / 2.612</div></div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Funil de conciliação</h3><div class="sub">AD lançado → conciliado integral</div></div>
+      <div class="card-b">
+        <div class="hbar-list">
+          ${[
+            ['AD lançado',2612,100,'b'],
+            ['Com NF vinculada',2184,84,'b'],
+            ['Conciliado parcial',1942,74,'y'],
+            ['Conciliado integral',1804,69,'g'],
+            ['Pendente > 60d',186,7,'r']
+          ].map(([n,v,p,c])=>`
+            <div class="hbar">
+              <div class="lab">${n}<div class="sub">${p}% do total</div></div>
+              <div class="bar ${c}"><span style="width:${p}%"></span></div>
+              <div class="v">${FMT.num(v)}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>AD por empresa</h3><div class="sub">valor pendente × conciliado</div></div>
+      <div class="card-b">
+        <div class="hbar-list">
+          ${[
+            ['RC · IDEAL', 6.2, 1.2, 70, 14, 'b','r'],
+            ['ME · MELHOR', 5.8, 0.9, 65, 10, 'b','r'],
+            ['SU · POMME / SUPERA', 2.2, 1.0, 28, 11, 'b','r']
+          ].map(([n,c,p,wc,wp,col1,col2])=>`
+            <div class="hbar" style="grid-template-columns:140px 1fr 110px">
+              <div class="lab">${n}<div class="sub">conciliado / pendente</div></div>
+              <div style="display:flex;gap:4px;align-items:center">
+                <span class="bar ${col1}" style="flex:1"><span style="width:${wc}%"></span></span>
+                <span class="bar ${col2}" style="flex:1"><span style="width:${wp}%"></span></span>
+              </div>
+              <div class="v">R$ ${c.toString().replace('.',',')} / ${p.toString().replace('.',',')} mi</div>
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);padding-top:8px">
+          <span><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;vertical-align:1px;margin-right:5px"></span>Conciliado</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#b91c1c;border-radius:2px;vertical-align:1px;margin-right:5px"></span>Pendente</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Adiantamentos detalhados</h3><div class="sub">fornecedor · nota · status_conciliacao</div></div>
+    <table class="table">
+      <thead><tr>
+        <th>Fornecedor</th><th>Nota fiscal</th><th>AD</th>
+        <th class="num">Valor AD</th><th class="num">Valor conciliado</th>
+        <th>Status</th><th>Mês entrada</th><th>Mês pagamento</th><th>Empresa</th>
+      </tr></thead>
+      <tbody>
+        ${[
+          ['FF INDÚSTRIA POLPAS','NF-128.422','AD-4218', 86000, 0,'Pendente','03/2026','—','SU'],
+          ['ALIBER FOODS LTDA','NF-129.014','AD-4231', 124000, 124000,'Conciliado','04/2026','05/2026','RC'],
+          ['SELECT NUTRI','NF-132.118','AD-4302', 248000, 184000,'Parcial','04/2026','05/2026','ME'],
+          ['GRÃOS DO CERRADO','—','AD-4318', 62000, 0,'Sem nota','02/2026','—','SU'],
+          ['BOA TERRA HORTIFRUTI','NF-134.220','AD-4341', 42000, 42000,'Conciliado','05/2026','05/2026','RC'],
+          ['J. J. FOODS LTDA','NF-135.020','AD-4360', 184200, 92000,'Parcial','04/2026','05/2026','ME'],
+          ['LATICÍNIOS PRIMAVERA','NF-136.118','AD-4392', 32000, 32000,'Conciliado','05/2026','05/2026','ME'],
+          ['NORDESTE PROTEÍNAS','—','AD-4418', 98000, 0,'Sem nota','03/2026','—','SU']
+        ].map(r=>`
+          <tr>
+            <td class="nm">${r[0]}</td>
+            <td class="mono">${r[1]}</td>
+            <td class="mono">${r[2]}</td>
+            <td class="num">${FMT.brl(r[3])}</td>
+            <td class="num">${FMT.brl(r[4])}</td>
+            <td>${pillStatus(r[5])}</td>
+            <td>${r[6]}</td>
+            <td>${r[7]}</td>
+            <td>${badges([r[8]])}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+`;
+
+/* ---------- CATEGORIAS ---------- */
+const CAT_TREE = {
+  totalInsumos: 487.4,
+  totalDespesas: 519.9,
+  totalAtivos: 12.8,
+  cat2: [
+    {c:'I2 · PERECÍVEIS', v:177.8, share:36, inf:8.4, imp:1480000, opp:620000, forn:212, prod:842},
+    {c:'I1 · ESTOCÁVEIS', v:148.8, share:30, inf:9.1, imp:1120000, opp:480000, forn:286, prod:1240},
+    {c:'I3 · HORTIFRUTI',  v:95.6,  share:20, inf:6.1, imp:420000,  opp:210000, forn:148, prod:412},
+    {c:'I4 · DESCARTÁVEIS',v:30.0,  share:6,  inf:4.2, imp:120000,  opp:64000,  forn:54,  prod:184},
+    {c:'I0 · NUTRICIONAIS',v:13.9,  share:3,  inf:11.4,imp:184000,  opp:78000,  forn:32,  prod:96}
+  ],
+  cat3: [
+    {c:'I201 · CARNES', parent:'I2', v:137.4, share:28, inf:9.8,  imp:1280000, forn:48},
+    {c:'I301 · IN NATURA', parent:'I3', v:91.7, share:18.8, inf:6.2, imp:380000, forn:62},
+    {c:'I104 · PANIFICAÇÃO', parent:'I1', v:34.9, share:7.2, inf:11.4, imp:284000, forn:28},
+    {c:'I403 · PLÁSTICO', parent:'I4', v:27.8, share:5.7, inf:4.8, imp:78000, forn:34},
+    {c:'I109 · LÁCTEOS', parent:'I1', v:25.9, share:5.3, inf:-1.8, imp:142000, forn:24}
+  ],
+  cat4: [
+    {c:'I2011 · BOVINOS', parent:'I201', v:81.8, share:16.8, inf:9.4, imp:712000},
+    {c:'I3013 · FRUTAS', parent:'I301', v:58.5, share:12.0, inf:5.6, imp:184000},
+    {c:'I2012 · AVES', parent:'I201', v:47.1, share:9.7,  inf:22.1, imp:621400},
+    {c:'I1091 · LEITES', parent:'I109', v:24.6, share:5.0, inf:-3.4, imp:120000},
+    {c:'I1041 · PÃES', parent:'I104', v:24.3, share:5.0, inf:11.8, imp:184600}
+  ],
+  cat5: [
+    {c:'I201203 · PEITO', parent:'I2012', v:41.4, share:8.5, inf:24.1, imp:412800},
+    {c:'I201104 · MOÍDOS', parent:'I2011', v:31.0, share:6.4, inf:9.2, imp:218000},
+    {c:'I109103 · LEITE EM PÓ', parent:'I1091', v:20.1, share:4.1, inf:-2.4, imp:62000},
+    {c:'I201102 · CUBOS', parent:'I2011', v:19.7, share:4.0, inf:8.4, imp:142000},
+    {c:'I205201 · POLPA DE FRUTA', parent:'I205', v:18.6, share:3.8, inf:5.6, imp:96000}
+  ]
+};
+
+pages.categorias = () => {
+  const view = 'I'; // produtos/insumos por padrão
+  const heat = [
+    // UF cols: SP, RJ, MG, PE, BA, MA, PA
+    ['I2 · Perecíveis',     [62, 42, 28, 24, 12, 6, 4]],
+    ['I1 · Estocáveis',     [48, 28, 22, 22, 14, 8, 6]],
+    ['I3 · Hortifruti',     [22, 12, 18, 18, 10, 8, 7]],
+    ['I4 · Descartáveis',   [10,  6,  4,  4,  3, 2, 1]],
+    ['I0 · Nutricionais',   [ 4,  2,  3,  2,  1, 1, 0]]
+  ];
+  const max = Math.max(...heat.flatMap(r=>r[1]));
+  return `
+  <div class="page-h">
+    <div>
+      <h2>Categorias</h2>
+      <div class="crumb">Drilldown CAT1 → CAT5 · Insumos · Despesas · Ativos</div>
+    </div>
+    <div class="tools">
+      <div class="subtabs" id="catView">
+        <button class="st active" data-v="I">Produtos / Insumos · R$ 487,4 mi</button>
+        <button class="st" data-v="D">Despesas · R$ 519,9 mi</button>
+        <button class="st" data-v="A">Ativos · R$ 12,8 mi</button>
+        <button class="st" data-v="ALL">Todos · R$ 1,02 bi</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(6,1fr);margin-bottom:10px">
+    <div class="kpi"><div class="lab">Total comprado</div><div class="val">R$ 487,4 mi</div><div class="delta"><b>I · Insumos</b><span>filtro ativo</span></div></div>
+    <div class="kpi"><div class="lab">Categorias ativas</div><div class="val">5 · 28 · 86</div><div class="delta"><b>CAT2 · CAT3 · CAT4</b></div></div>
+    <div class="kpi"><div class="lab">Produtos / IDs</div><div class="val">2.184</div><div class="delta"><b>8.412</b><span>produtos</span></div></div>
+    <div class="kpi"><div class="lab">Fornecedores</div><div class="val">486</div><div class="delta"><b>na categoria</b></div></div>
+    <div class="kpi alert"><div class="lab">Impacto R$</div><div class="val">R$ 3,32 mi</div></div>
+    <div class="kpi ok"><div class="lab">Oportunidade R$</div><div class="val">R$ 1,42 mi</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-h">
+      <div><h3>Drilldown CAT1 → CAT5</h3><div class="sub">clique em uma faixa para descer · valores em R$ mi</div></div>
+      <div class="meta sm muted">Visão atual: <b style="color:var(--ink)">I · INSUMOS</b> · <span class="pill b">CAT2 I2</span> <span style="color:#94a3b8">›</span> <span class="pill ghost">CAT3 todos</span></div>
+    </div>
+    <div class="card-b">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+        <div>
+          <h4 class="lvl-h">CAT2</h4>
+          <div class="hbar-list compact">
+            ${CAT_TREE.cat2.map((r,i)=>`
+              <div class="hbar hbar-clk ${i===0?'sel':''}" data-lvl="2" data-c="${r.c}">
+                <div class="lab nm" style="font-size:11.5px">${r.c}<div class="sub">${r.share}% · ${r.forn} forn.</div></div>
+                <div class="bar"><span style="width:${(r.v/177.8)*100}%"></span></div>
+                <div class="v">R$ ${r.v.toString().replace('.',',')} mi</div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div>
+          <h4 class="lvl-h">CAT3 <span class="muted">/ I2 · Perecíveis</span></h4>
+          <div class="hbar-list compact">
+            ${CAT_TREE.cat3.map((r,i)=>`
+              <div class="hbar hbar-clk ${i===0?'sel':''}">
+                <div class="lab nm" style="font-size:11.5px">${r.c}<div class="sub">${r.forn} forn.</div></div>
+                <div class="bar"><span style="width:${(r.v/137.4)*100}%"></span></div>
+                <div class="v">R$ ${r.v.toString().replace('.',',')} mi</div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div>
+          <h4 class="lvl-h">CAT4 <span class="muted">/ I201 · Carnes</span></h4>
+          <div class="hbar-list compact">
+            ${CAT_TREE.cat4.map((r,i)=>`
+              <div class="hbar hbar-clk ${i===2?'sel':''}">
+                <div class="lab nm" style="font-size:11.5px">${r.c}<div class="sub">${inflacaoTag(r.inf)}</div></div>
+                <div class="bar"><span style="width:${(r.v/81.8)*100}%"></span></div>
+                <div class="v">R$ ${r.v.toString().replace('.',',')} mi</div>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div>
+          <h4 class="lvl-h">CAT5 <span class="muted">/ I2012 · Aves</span></h4>
+          <div class="hbar-list compact">
+            ${CAT_TREE.cat5.map((r,i)=>`
+              <div class="hbar hbar-clk ${i===0?'sel':''}">
+                <div class="lab nm" style="font-size:11.5px">${r.c}<div class="sub">${inflacaoTag(r.inf)}</div></div>
+                <div class="bar"><span style="width:${(r.v/41.4)*100}%"></span></div>
+                <div class="v">R$ ${r.v.toString().replace('.',',')} mi</div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Categoria × UF</h3><div class="sub">CAT2 × UFs com maior volume · R$ mi</div></div>
+      <div class="card-b">
+        <div class="matrix" style="grid-template-columns:170px repeat(7,1fr)">
+          <div class="cell head"></div>
+          ${['SP','RJ','MG','PE','BA','MA','PA'].map(u=>`<div class="cell head">${u}</div>`).join('')}
+          ${heat.map(r=>`
+            <div class="cell head" style="justify-content:flex-start;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0;font-size:11.5px">${r[0]}</div>
+            ${r[1].map(v=>{
+              const lvl = v===0?'s1':v<8?'s1':v<16?'s2':v<28?'s3':v<48?'s4':'s5';
+              return `<div class="cell ${lvl}">${v===0?'—':v}</div>`;
+            }).join('')}
+          `).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Categoria × Mês</h3><div class="sub">jun/2025 → mai/2026 · CAT2 · R$ mi</div></div>
+      <div class="card-b">
+        <svg viewBox="0 0 600 220" width="100%" height="220" preserveAspectRatio="none">
+          ${[0,1,2,3].map(i=>`<line x1="30" x2="595" y1="${30+i*45}" y2="${30+i*45}" stroke="#eef2f7"/>`).join('')}
+          ${[
+            {n:'I2 Perecíveis', c:'#2563eb', d:[12,13,14,13,15,16,14,15,17,15,16,17]},
+            {n:'I1 Estocáveis', c:'#16a34a', d:[10,11,11,12,12,13,12,13,14,13,14,14]},
+            {n:'I3 Hortifruti',  c:'#a16207', d:[7,7,8,8,8,9,8,8,9,9,9,9]},
+            {n:'I4 Descartáveis',c:'#64748b', d:[2,2,3,2,3,3,3,3,3,3,3,3]}
+          ].map(s=>{
+            const pts = s.d.map((v,i)=>`${30+i*51.4},${190-(v/20)*150}`).join(' ');
+            return `<polyline points="${pts}" fill="none" stroke="${s.c}" stroke-width="1.8"/>`;
+          }).join('')}
+          ${['Jun','Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai'].map((m,i)=>`<text x="${30+i*51.4}" y="210" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Segoe UI">${m}</text>`).join('')}
+        </svg>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--muted);padding-top:6px;flex-wrap:wrap">
+          <span><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;vertical-align:1px;margin-right:5px"></span>Perecíveis</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#16a34a;border-radius:2px;vertical-align:1px;margin-right:5px"></span>Estocáveis</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#a16207;border-radius:2px;vertical-align:1px;margin-right:5px"></span>Hortifruti</span>
+          <span><span style="display:inline-block;width:10px;height:10px;background:#64748b;border-radius:2px;vertical-align:1px;margin-right:5px"></span>Descartáveis</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Categoria × Fornecedor</h3><div class="sub">principais fornecedores em I2 · Perecíveis</div></div>
+      <table class="table">
+        <thead><tr><th>Fornecedor</th><th>CAT3 dominante</th><th class="num">Valor</th><th>Curva</th><th>Regime</th></tr></thead>
+        <tbody>
+          ${[
+            ['FONTE VIVA ALIMENTOS','I201 · Carnes',18420000,'AAA','Lucro Real'],
+            ['SELECT NUTRI','I201 · Carnes',14210000,'AAA','Lucro Real'],
+            ['J. J. FOODS','I201 · Carnes',9870000,'AA','Lucro Presumido'],
+            ['NORDESTE PROTEÍNAS','I201 · Carnes',2410000,'BB','Lucro Real'],
+            ['LATICÍNIOS PRIMAVERA','I109 · Lácteos',4180000,'B','Lucro Real']
+          ].map(r=>`
+            <tr>
+              <td class="nm">${r[0]}</td>
+              <td>${r[1]}</td>
+              <td class="num">${FMT.brl(r[2])}</td>
+              <td>${tagCurva(r[3])}</td>
+              <td>${pillRegime(r[4])}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Categoria × Produto</h3><div class="sub">top IDs em I201 · Carnes</div></div>
+      <table class="table">
+        <thead><tr><th>Produto</th><th>ID</th><th class="num">PMP</th><th class="num">Inflação</th><th class="num">Impacto</th></tr></thead>
+        <tbody>
+          ${[
+            ['Frango peito kg','SUMAP420118035',14.20,22.1,621400],
+            ['Carne moída kg','RCSPI420118108',32.40,9.2,218000],
+            ['Carne bovina cubos kg','RCRJI420118202',38.80,8.4,142000],
+            ['Frango coxa kg','MEPEL420118308',11.40,18.4,98000],
+            ['Linguiça mista kg','SUMAP420118412',24.20,12.4,42000]
+          ].map(r=>`
+            <tr>
+              <td class="nm">${r[0]}</td>
+              <td class="mono">${r[1]}</td>
+              <td class="num">${FMT.brl2(r[2])}</td>
+              <td class="num">${inflacaoTag(r[3])}</td>
+              <td class="num">${FMT.brl(r[4])}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Alertas da categoria · I2 Perecíveis</h3><div class="sub">consolidado por tipo</div></div>
+    <div class="alerts">
+      ${[
+        ['r','Inflação +22,1% em I2012 · Aves','Frango peito kg · 38 IDs afetados','Impacto R$ 621.400','Compras'],
+        ['r','Acima da menor cotação em I2011 · Bovinos','FONTE VIVA · 14 IDs','Impacto R$ 412.800','Compras'],
+        ['y','Baixa concorrência de cotação em I109 · Lácteos','12 IDs com 1 cotação','Subestima impacto','Compras'],
+        ['y','Crédito 2027 condicionado em I4 · Descartáveis','ALIBER · DISTRIBUIDORA MARQUES','R$ 9,9 mi expostos','Fiscal'],
+        ['b','CP a vencer em I201 · Carnes','SELECT NUTRI · R$ 920.000','Próximos 30 dias','Financeiro'],
+        ['b','AD pendente em I3 · Hortifruti','FF INDÚSTRIA POLPAS · AD #4218','R$ 86.000 sem nota','Financeiro']
+      ].map(([t,tit,who,im,area])=>`
+        <div class="alert-row ${t}">
+          <span class="dot"></span>
+          <div><div class="nm" style="font-weight:600">${tit}</div><div class="who">${who}</div></div>
+          <div class="num">${im}</div>
+          <span class="pill ghost">${area}</span>
+          <button class="act">Abrir</button>
+        </div>`).join('')}
+    </div>
+  </div>
+`;
+};
+
+/* ---------- SERVIÇOS ---------- */
+pages.servicos = () => `
+  <div class="page-h">
+    <div>
+      <h2>Serviços</h2>
+      <div class="crumb">DESPESAS por UF · DESPESAS por UF e CAT · SERVIÇOS · SERVIÇOS por MES</div>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(6,1fr);margin-bottom:10px">
+    <div class="kpi"><div class="lab">Total em serviços</div><div class="val">R$ 142,8 mi</div><div class="delta up"><b>+4,2%</b><span>vs. 12m anteriores</span></div></div>
+    <div class="kpi"><div class="lab">Fornecedores de serviços</div><div class="val">486</div></div>
+    <div class="kpi"><div class="lab">UFs atendidas</div><div class="val">11</div><div class="delta"><b>SP · RJ · PE</b><span>top 3</span></div></div>
+    <div class="kpi warn"><div class="lab">Variação mensal</div><div class="val">+6,4%</div><div class="delta down"><b>mai/2026</b><span>vs. abr</span></div></div>
+    <div class="kpi"><div class="lab">Maior categoria</div><div class="val">D2 · Logística</div><div class="delta"><b>R$ 38,4 mi</b><span>27% do total</span></div></div>
+    <div class="kpi alert"><div class="lab">CP em aberto</div><div class="val">R$ 8,2 mi</div><div class="delta down"><b>R$ 1,1 mi</b><span>vencido</span></div></div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Serviços por UF</h3><div class="sub">valor 12m · R$ mi</div></div>
+      <div class="card-b">
+        <div class="hbar-list">
+          ${[
+            ['SP','São Paulo · matriz', 42.1, 100],
+            ['RJ','Rio de Janeiro',     28.4, 67],
+            ['PE','Pernambuco',         22.8, 54],
+            ['BA','Bahia',              16.1, 38],
+            ['MA','Maranhão',           12.2, 29],
+            ['PA','Pará',                9.8, 23],
+            ['ES','Espírito Santo',      6.2, 15],
+            ['SE','Sergipe',             3.4, 8],
+            ['RN','Rio G. do Norte',     1.8, 4]
+          ].map(r=>`
+            <div class="hbar">
+              <div class="lab"><span class="pill k" style="margin-right:6px">${r[0]}</span>${r[1]}</div>
+              <div class="bar"><span style="width:${r[3]}%"></span></div>
+              <div class="v">R$ ${r[2].toString().replace('.',',')} mi</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Serviços por mês</h3><div class="sub">jun/2025 → mai/2026</div></div>
+      <div class="card-b">
+        <svg viewBox="0 0 600 200" width="100%" height="200" preserveAspectRatio="none">
+          ${[0,1,2,3].map(i=>`<line x1="30" x2="595" y1="${30+i*40}" y2="${30+i*40}" stroke="#eef2f7"/>`).join('')}
+          ${[10.8,11.2,11.4,12.1,11.8,12.4,11.6,12.0,12.8,13.2,12.9,13.6].map((v,i)=>{
+            const x=30+i*47, w=38, h=(v/16)*160, y=190-h;
+            return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" fill="#2563eb" opacity="${.55+i*0.04}"/>
+              <text x="${x+w/2}" y="${y-4}" text-anchor="middle" font-size="9" fill="#0f172a" font-family="Segoe UI">${v.toFixed(1).replace('.',',')}</text>`;
+          }).join('')}
+          ${['Jun','Jul','Ago','Set','Out','Nov','Dez','Jan','Fev','Mar','Abr','Mai'].map((m,i)=>`<text x="${30+i*47+19}" y="206" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Segoe UI">${m}</text>`).join('')}
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Serviços por categoria</h3><div class="sub">CAT2 · D · Despesas</div></div>
+      <table class="table">
+        <thead><tr><th>Categoria</th><th class="num">Valor</th><th class="num">% do total</th><th class="num">Variação</th></tr></thead>
+        <tbody>
+          ${[
+            ['D2 · Logística e fretes',38.4,26.9,8.4],
+            ['D1 · Manutenção predial',24.6,17.2,4.2],
+            ['D3 · Limpeza e higiene',18.2,12.7,5.6],
+            ['D4 · Tecnologia e telecom',16.8,11.8,9.8],
+            ['D5 · Energia e utilidades',14.2,9.9,12.4],
+            ['D6 · Locação de equipamentos',11.4,8.0,3.1],
+            ['D7 · Consultoria e jurídico',8.6,6.0,-2.1],
+            ['D8 · Treinamento',5.4,3.8,1.4],
+            ['D9 · Outros',5.2,3.7,4.8]
+          ].map(r=>`
+            <tr>
+              <td class="nm">${r[0]}</td>
+              <td class="num">R$ ${r[1].toString().replace('.',',')} mi</td>
+              <td class="num">${r[2].toString().replace('.',',')}%</td>
+              <td class="num">${inflacaoTag(r[3])}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Fornecedores de serviços</h3><div class="sub">top 8 · valor 12m</div></div>
+      <table class="table">
+        <thead><tr><th>Fornecedor</th><th>Categoria</th><th class="num">Valor</th><th>Regime</th><th>Crédito</th></tr></thead>
+        <tbody>
+          ${[
+            ['TRANSPORTES CONTINENTAL','D2 · Logística',12420000,'Lucro Real','Alto'],
+            ['CLIN PREDIAL S/A','D1 · Manutenção',6840000,'Lucro Presumido','Alto'],
+            ['HIGI MAX SERVIÇOS','D3 · Limpeza',5210000,'Simples','Condicionado'],
+            ['INFOTECH CONECTA','D4 · TI',4820000,'Lucro Presumido','Alto'],
+            ['ELECTROPLUS BRASIL','D5 · Energia',4180000,'Lucro Real','Alto'],
+            ['LOC EQUIPA LTDA','D6 · Locação',3420000,'Simples','Condicionado'],
+            ['ADVOC. M&P','D7 · Jurídico',2180000,'Simples','Condicionado'],
+            ['JR PEREIRA TRANSP. MEI','D2 · Logística',418000,'MEI','Baixo']
+          ].map(r=>`
+            <tr>
+              <td class="nm">${r[0]}</td>
+              <td>${r[1]}</td>
+              <td class="num">${FMT.brl(r[2])}</td>
+              <td>${pillRegime(r[3])}</td>
+              <td>${pillCredito(r[4])}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h3>Serviços detalhados por CAT5</h3><div class="sub">valor · % · variação · fornecedor principal</div></div>
+    <div class="tscroll">
+      <table class="table">
+        <thead><tr><th>CAT5</th><th>CAT3 · CAT4</th><th class="num">Valor</th><th class="num">% sobre serviços</th><th class="num">Variação 12m</th><th>Fornecedor principal</th><th>Regime</th><th class="num">CP aberto</th></tr></thead>
+        <tbody>
+          ${[
+            ['D20101 · Frete urbano','D201 · Transporte rodov.',18400000,12.9,9.4,'TRANSPORTES CONTINENTAL','Lucro Real',1820000],
+            ['D20102 · Frete interestadual','D201 · Transporte rodov.',12200000,8.5,7.8,'TRANSPORTES CONTINENTAL','Lucro Real',840000],
+            ['D10301 · Refrigeração','D103 · Manut. elétrica',8420000,5.9,6.2,'CLIN PREDIAL S/A','Lucro Presumido',420000],
+            ['D10201 · Predial geral','D102 · Manut. predial',6420000,4.5,3.1,'CLIN PREDIAL S/A','Lucro Presumido',218000],
+            ['D30101 · Limpeza diária','D301 · Limpeza',5210000,3.6,5.6,'HIGI MAX SERVIÇOS','Simples',184000],
+            ['D40101 · Conectividade','D401 · Telecom',3820000,2.7,11.4,'INFOTECH CONECTA','Lucro Presumido',96000],
+            ['D40201 · Suporte TI','D402 · TI',1000000,0.7,8.2,'INFOTECH CONECTA','Lucro Presumido',42000],
+            ['D50101 · Energia elétrica','D501 · Utilities',14200000,9.9,12.4,'ELECTROPLUS BRASIL','Lucro Real',2420000],
+            ['D60101 · Empilhadeiras','D601 · Locação',6420000,4.5,3.4,'LOC EQUIPA LTDA','Simples',184000],
+            ['D70101 · Honorários jurídicos','D701 · Jurídico',2180000,1.5,-2.1,'ADVOC. M&P','Simples',62000]
+          ].map(r=>`
+            <tr>
+              <td class="mono">${r[0]}</td>
+              <td>${r[1]}</td>
+              <td class="num">${FMT.brl(r[2])}</td>
+              <td class="num">${r[3].toString().replace('.',',')}%</td>
+              <td class="num">${inflacaoTag(r[4])}</td>
+              <td class="nm">${r[5]}</td>
+              <td>${pillRegime(r[6])}</td>
+              <td class="num">${FMT.brl(r[7])}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+`;
+
+/* ---------- QUALIDADE DOS DADOS ---------- */
+pages.qualidade = () => `
+  <div class="page-h">
+    <div>
+      <h2>Qualidade dos dados</h2>
+      <div class="crumb">Confiança das fontes Zoho · saneamento necessário antes de decisão</div>
+    </div>
+  </div>
+
+  <div class="kpis" style="grid-template-columns:repeat(6,1fr);margin-bottom:10px">
+    <div class="kpi"><div class="lab">Linhas analisadas</div><div class="val">12,4 mi</div></div>
+    <div class="kpi ok"><div class="lab">Fontes OK</div><div class="val">28 / 34</div></div>
+    <div class="kpi warn"><div class="lab">Forn. sem CNPJ</div><div class="val">42</div></div>
+    <div class="kpi warn"><div class="lab">Itens sem ID</div><div class="val">218</div></div>
+    <div class="kpi alert"><div class="lab">Cotações incompletas</div><div class="val">418</div></div>
+    <div class="kpi alert"><div class="lab">Fiscal pendente</div><div class="val">87</div></div>
+  </div>
+
+  <div class="row-2" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-h"><h3>Cobertura por fonte</h3><div class="sub">% de campos críticos preenchidos</div></div>
+      <table class="table">
+        <thead><tr><th>Fonte</th><th class="num">Linhas</th><th>Cobertura</th><th class="num">%</th><th>Estado</th></tr></thead>
+        <tbody>
+          ${[
+            ['NFE',2841000, 98,'g'],
+            ['NF COM ITENS - CONSOLIDADO',1820000, 96,'g'],
+            ['NFE - IDEAL',840000, 99,'g'],
+            ['NFE - MELHOR',720000, 95,'g'],
+            ['NFE - SUPERA',418000, 88,'y'],
+            ['COT',312000, 72,'y'],
+            ['NUM_COT',184000, 68,'y'],
+            ['CP / TODAS - CONTAS A PAGAR',420000, 91,'g'],
+            ['ADIANTAMENTO_NFE',24000, 62,'r'],
+            ['AD_v3',12000, 78,'y'],
+            ['CURVA FORN - TODAS',1284, 100,'g'],
+            ['CURVA ID - TODAS',2184, 94,'g']
+          ].map(r=>`
+            <tr>
+              <td class="mono">${r[0]}</td>
+              <td class="num">${FMT.num(r[1])}</td>
+              <td><span class="bar ${r[3]}" style="display:inline-block;width:140px;vertical-align:middle"><span style="width:${r[2]}%"></span></span></td>
+              <td class="num"><b>${r[2]}%</b></td>
+              <td>${r[3]==='g'?'<span class="pill g">OK</span>':r[3]==='y'?'<span class="pill y">ATENÇÃO</span>':'<span class="pill r">CRÍTICO</span>'}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>Fila de saneamento</h3><div class="sub">por impacto na decisão</div></div>
+      <table class="table">
+        <thead><tr><th>Problema</th><th>Campo crítico</th><th class="num">Linhas</th><th>Impacto</th><th>Ação</th></tr></thead>
+        <tbody>
+          ${[
+            ['42 fornecedores sem CNPJ oficial','CDFORNECED_OFICIAL',42,'Bloqueia análise fiscal','Saneamento cadastral','r'],
+            ['218 produtos sem ID','ID',218,'Quebra agregações por contexto','Padronizar produto/UF','y'],
+            ['418 cotações sem MIN/MAX','MIN_COT, MAX_COT',418,'Subestima impacto R$','Reapurar planilha COT','r'],
+            ['86 ADs sem NF vinculada','NRONOTA_NF',86,'Inflaciona AD pendente','Conciliação manual','y'],
+            ['12 NFes sem CFOP de crédito','CFOP',12,'Crédito 2027 condicionado','Revisar fiscal','y'],
+            ['8 fornecedores em duplicidade','CNPJ',8,'Distorce curva ABC','Mesclar cadastro','b']
+          ].map(r=>`
+            <tr>
+              <td class="nm">${r[0]}</td>
+              <td class="mono">${r[1]}</td>
+              <td class="num">${FMT.num(r[2])}</td>
+              <td><span class="pill ${r[5]}">${r[3].toUpperCase()}</span></td>
+              <td><button class="act" style="height:24px;padding:0 8px;border:1px solid var(--blue);background:var(--blue-soft);color:var(--blue);border-radius:6px;font-size:11px;font-weight:600">${r[4]}</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+`;
+
+/* =========================================================
+   Routing + interaction
+   ========================================================= */
+const page = document.getElementById('page');
+const tabs = document.getElementById('tabs');
+const search = document.getElementById('search');
+let current = 'resumo';
+
+function render(p){
+  current = p;
+  page.innerHTML = pages[p]();
+  // wire expandable rows (Fornecedor 360, Produtos)
+  page.querySelectorAll('tr.row-hd').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const tbody = tr.parentElement;
+      const wasOpen = tr.classList.contains('open');
+      tbody.querySelectorAll('tr.row-hd.open').forEach(r=>r.classList.remove('open','expanded'));
+      tbody.querySelectorAll('tr.detail').forEach(r=>r.remove());
+      if(!wasOpen){
+        tr.classList.add('open','expanded');
+        const i = +tr.dataset.i;
+        let html = '';
+        if(current === 'forn360') html = detailForn(FORN[i]);
+        else if(current === 'produtos') html = detailProduto(PRODS[i]);
+        if(html){
+          const det = el(html);
+          tr.parentElement.insertBefore(det, tr.nextSibling);
+        }
+      }
+    });
+  });
+  // wire subtabs (visual)
+  page.querySelectorAll('.subtabs').forEach(st => {
+    st.querySelectorAll('.st').forEach(btn => {
+      btn.addEventListener('click', () => {
+        st.querySelectorAll('.st').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  });
+  // wire tagbar — functionally filter rows of the next table
+  page.querySelectorAll('.tagbar').forEach(tb=>{
+    const card = tb.closest('.card');
+    const table = card ? card.querySelector('table.table') : null;
+    tb.querySelectorAll('.tg').forEach(t=>{
+      t.addEventListener('click', () => {
+        tb.querySelectorAll('.tg').forEach(b=>b.classList.remove('active'));
+        t.classList.add('active');
+        if(!table) return;
+        const q = t.textContent.replace(/\d+/g,'').replace(/\s+/g,' ').trim().toLowerCase();
+        const rows = table.querySelectorAll('tbody tr:not(.detail)');
+        rows.forEach(r=>{
+          if(/todos|tudo|fila completa/.test(q)){ r.style.display=''; return; }
+          const txt = r.textContent.toLowerCase();
+          // approximate match
+          const key = q.replace(/^(curva|crédito|status)\s+/,'');
+          r.style.display = txt.includes(key) ? '' : 'none';
+        });
+        // Also hide detail rows belonging to hidden parents
+        table.querySelectorAll('tbody tr.detail').forEach(d=>{
+          const prev = d.previousElementSibling;
+          d.style.display = prev && prev.style.display==='none' ? 'none' : '';
+        });
+      });
+    });
+  });
+  // search filters current visible tables
+  applySearch(search.value);
+  window.scrollTo({top:0});
+}
+
+function applySearch(qRaw){
+  const q = (qRaw||'').trim().toLowerCase();
+  page.querySelectorAll('table.table').forEach(t=>{
+    t.querySelectorAll('tbody tr:not(.detail)').forEach(r=>{
+      if(!q){ r.style.display=''; return; }
+      r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+    t.querySelectorAll('tbody tr.detail').forEach(d=>{
+      const prev = d.previousElementSibling;
+      d.style.display = prev && prev.style.display==='none' ? 'none' : '';
+    });
+  });
+}
+
+tabs.addEventListener('click', e => {
+  const t = e.target.closest('.tab');
+  if(!t) return;
+  tabs.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  render(t.dataset.page);
+});
+
+/* =========================================================
+   Filtros — simulação funcional
+   ========================================================= */
+const FILTER_OPTIONS = {
+  'Empresa': ['Todas','RC · Ideal','ME · Melhor','SU · Pomme/Supera','RC · ME · SU'],
+  'Negócio': ['Todos','Cozinha central','Escola','Hospital','Presídio','Merenda','CD','Matriz'],
+  'Região':  ['Todas','N','NE','SE','S','CO','N · NE · SE'],
+  'UF':      ['Todas (11)','SP','RJ','ES','PE','BA','MA','PA','PB','PI','SE','RN','DF'],
+  'Filial':  ['Todas','Matriz SP','Cozinha central RJ','Hosp. Recife','Escola Salvador','Presídio Pará','Merenda São Luís','CD Jaboatão'],
+  'Período': ['Últimos 30 dias','Últimos 90 dias','Últimos 6 meses','Últimos 12 meses','YTD','Personalizado…'],
+  'Regime':  ['Todos','Lucro Real','Lucro Presumido','Simples','MEI','Indeterminado'],
+  'Crédito 2027': ['Todos','Alto','Condicionado','Pendente','Baixo','Indeterminado'],
+  'Alerta':  ['Todos','Acima da menor cot.','Inflação curva A','1 cotação','CP vencido','AD pendente','Crédito condicionado','Sem CNPJ oficial'],
+  'CAT1':    ['Todas','I · Insumos','D · Despesas','A · Ativos'],
+  'CAT2':    ['Todas','I2 · Perecíveis','I1 · Estocáveis','I3 · Hortifruti','I4 · Descartáveis','I0 · Nutricionais','D2 · Logística','D1 · Manutenção','D3 · Limpeza'],
+  'CAT3':    ['Todas','I201 · Carnes','I301 · In natura','I104 · Panificação','I403 · Plástico','I109 · Lácteos'],
+  'CAT4':    ['Todas','I2011 · Bovinos','I2012 · Aves','I3013 · Frutas','I1091 · Leites','I1041 · Pães'],
+  'CAT5':    ['Todas','I201203 · Peito','I201104 · Moídos','I109103 · Leite em pó','I201102 · Cubos','I205201 · Polpa'],
+  'Curva forn.': ['Todas','AAA','AA','A','B','BB','C','CC','CCC','AAA · AA · A'],
+  'Curva prod.': ['Todas','AAA','AA','A','B','BB','C','CC','CCC'],
+  'Curva ID':    ['Todas','AAA','AA','A','B','BB','C','CC','CCC'],
+  'Fornecedor':  ['Todos (1.284)','FONTE VIVA','SELECT NUTRI','J. J. FOODS','ALIBER FOODS','FF INDÚSTRIA POLPAS','BOA TERRA','LATICÍNIOS PRIMAVERA','NORDESTE PROTEÍNAS'],
+  'Produto/ID':  ['Todos (8.412)','Arroz tipo 1','Feijão carioca','Frango congelado','Leite UHT','Carne bovina','Café 500g'],
+  'Status cot.': ['Todos','0 cotação','1 cotação','2 cotações','3+ cotações','Comprou no menor','Acima do menor'],
+  'Status CP':   ['Todos','Em aberto','A vencer 7d','Vencido 30d','Vencido 60d+','Em negociação'],
+  'Status AD':   ['Todos','Conciliado','Parcial','Pendente','Sem nota'],
+  'Tipo gasto':  ['Todos','Insumos · Serviços · Despesas','Apenas insumos','Apenas serviços','Apenas despesas','Apenas ativos']
+};
+
+const filtersEl = document.getElementById('filters');
+const appliedTags = document.getElementById('appliedTags');
+let filterState = {};
+
+function renderAppliedTags(){
+  const tags = Object.entries(filterState).filter(([k,v])=>v && !/^(todas|todos|todas\s)/i.test(v));
+  appliedTags.innerHTML = tags.length===0
+    ? '<span class="muted">Sem filtros aplicados</span>'
+    : tags.map(([k,v])=>`<span class="pill" data-k="${k}">${k}: ${v} <span class="x">✕</span></span>`).join('');
+  appliedTags.querySelectorAll('.pill').forEach(p=>{
+    p.addEventListener('click', ()=>{
+      const k = p.dataset.k;
+      delete filterState[k];
+      filtersEl.querySelectorAll('.pick').forEach(pk=>{
+        if(pk.dataset.name===k){
+          pk.classList.remove('active');
+          pk.querySelector('.v').textContent = (FILTER_OPTIONS[k]||['Todos'])[0];
+        }
+      });
+      renderAppliedTags();
+    });
+  });
+}
+
+// Dropdown popup
+let openDropdown = null;
+function closeDropdown(){
+  if(openDropdown){ openDropdown.remove(); openDropdown = null; }
+}
+document.addEventListener('click', e=>{
+  if(openDropdown && !openDropdown.contains(e.target) && !e.target.closest('.pick')) closeDropdown();
+});
+filtersEl.addEventListener('click', e=>{
+  const p = e.target.closest('.pick');
+  if(!p) return;
+  e.stopPropagation();
+  const name = p.dataset.name;
+  const opts = FILTER_OPTIONS[name] || ['Todos'];
+  closeDropdown();
+  const dd = document.createElement('div');
+  dd.className = 'dropdown';
+  dd.innerHTML = opts.map(o=>`<div class="opt${(p.querySelector('.v').textContent.trim()===o)?' sel':''}">${o}</div>`).join('');
+  const rect = p.getBoundingClientRect();
+  dd.style.cssText = `position:fixed;top:${rect.bottom+4}px;left:${rect.left}px;min-width:${rect.width}px;max-width:260px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.12);z-index:60;padding:4px;max-height:280px;overflow:auto;font-size:12px`;
+  dd.querySelectorAll('.opt').forEach(o=>{
+    o.style.cssText = 'padding:6px 8px;border-radius:5px;cursor:pointer';
+    o.addEventListener('mouseenter',()=>o.style.background='var(--hover)');
+    o.addEventListener('mouseleave',()=>o.style.background='');
+    o.addEventListener('click', ()=>{
+      p.querySelector('.v').textContent = o.textContent;
+      const isDefault = /^(todas|todos)/i.test(o.textContent);
+      p.classList.toggle('active', !isDefault);
+      filterState[name] = o.textContent;
+      renderAppliedTags();
+      // cascade: when CAT1 changes, reset deeper CATs visually
+      const idx = ['CAT1','CAT2','CAT3','CAT4','CAT5'].indexOf(name);
+      if(idx>=0){
+        ['CAT2','CAT3','CAT4','CAT5'].slice(idx).forEach(child=>{
+          const cp = filtersEl.querySelector(`.pick[data-name="${child}"]`);
+          if(cp){
+            const def = (FILTER_OPTIONS[child]||['Todos'])[0];
+            cp.querySelector('.v').textContent = def;
+            cp.classList.remove('active');
+            delete filterState[child];
+          }
+        });
+        renderAppliedTags();
+      }
+      closeDropdown();
+    });
+    if(o.classList.contains('sel')){ o.style.background='var(--blue-soft)'; o.style.color='var(--blue)'; o.style.fontWeight='600'; }
+  });
+  document.body.appendChild(dd);
+  openDropdown = dd;
+});
+
+// Advanced filters toggle
+const advToggle = document.getElementById('advToggle');
+const filterRowCat = document.getElementById('filterRowCat');
+const filterRowAdv = document.getElementById('filterRowAdv');
+advToggle.addEventListener('click', ()=>{
+  const isOpen = advToggle.classList.toggle('open');
+  filterRowCat.style.display = isOpen ? '' : 'none';
+  filterRowAdv.style.display = isOpen ? '' : 'none';
+});
+
+// Clear
+document.getElementById('filtersClear').addEventListener('click', ()=>{
+  filterState = {};
+  filtersEl.querySelectorAll('.pick').forEach(pk=>{
+    pk.classList.remove('active');
+    const k = pk.dataset.name;
+    pk.querySelector('.v').textContent = (FILTER_OPTIONS[k]||['Todos'])[0];
+  });
+  // restore the original defaults (RC·ME·SU, último 12m, etc.)
+  ['Empresa','Região','Período'].forEach(k=>{
+    const pk = filtersEl.querySelector(`.pick[data-name="${k}"]`);
+    if(pk){
+      pk.classList.add('active');
+      pk.querySelector('.v').textContent = {Empresa:'RC · ME · SU',Região:'N · NE · SE',Período:'Últimos 12 meses'}[k];
+    }
+  });
+  renderAppliedTags();
+});
+
+// initialize state from active picks
+filtersEl.querySelectorAll('.pick').forEach(pk=>{
+  if(pk.classList.contains('active')){
+    filterState[pk.dataset.name] = pk.querySelector('.v').textContent.trim();
+  }
+});
+renderAppliedTags();
+
+// Search wired
+search.addEventListener('input', e=> applySearch(e.target.value));
+
+// Modal
+const modalBg = document.getElementById('modalBg');
+document.getElementById('btnMethod').addEventListener('click', ()=> modalBg.classList.add('open'));
+document.getElementById('modalX').addEventListener('click', ()=> modalBg.classList.remove('open'));
+modalBg.addEventListener('click', e=>{ if(e.target === modalBg) modalBg.classList.remove('open'); });
+
+document.addEventListener('keydown', e=>{
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){
+    e.preventDefault(); search.focus();
+  }
+  if(e.key === 'Escape'){ closeDropdown(); modalBg.classList.remove('open'); }
+});
+
+// First render
+render('resumo');
+</script>
+</body>
+</html>
