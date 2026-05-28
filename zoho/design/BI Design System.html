@@ -1,0 +1,892 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<title>BI Suprimentos · Sistema de Design</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* ========================================================
+     TOKENS — copiados 1:1 da BI Suprimentos v3.1.html
+     ======================================================== */
+  :root{
+    --bg:#f3f6fa;
+    --ink:#0f172a;
+    --muted:#64748b;
+    --line:#d8e0ea;
+    --line-soft:#e6ecf3;
+    --card:#ffffff;
+    --blue:#2563eb;
+    --blue-soft:#eff6ff;
+    --green:#16a34a;
+    --green-soft:#ecfdf5;
+    --yellow:#a16207;
+    --yellow-soft:#fef9c3;
+    --red:#b91c1c;
+    --red-soft:#fee2e2;
+    --gray:#475569;
+    --gray-soft:#eef2f7;
+    --head:#e9eff7;
+    --hover:#f6f9fd;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font:13px/1.4 "Segoe UI", Arial, sans-serif;
+    color:var(--ink);background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;color:inherit;cursor:pointer}
+
+  /* ========================================================
+     CLASSES DA BI — coladas para os previews ficarem fiéis
+     ======================================================== */
+
+  /* botão padrão */
+  .btn{height:32px;padding:0 12px;border:1px solid var(--line);background:var(--card);border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink)}
+  .btn:hover{background:var(--hover)}
+  .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  /* busca */
+  .search{height:38px;background:var(--card);border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;padding:0 12px;gap:8px;width:360px;max-width:100%}
+  .search input{flex:1;border:0;outline:0;background:transparent;font:13px "Segoe UI",Arial,sans-serif;color:var(--ink)}
+  .search input::placeholder{color:#94a3b8}
+  .search kbd{border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:10px;color:var(--muted);background:var(--bg)}
+
+  /* filter pick */
+  .f label{display:block;font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+  .f .pick{height:31px;border:1px solid #c9d5e3;border-radius:7px;background:var(--card);display:flex;align-items:center;justify-content:space-between;padding:0 9px;font-size:12px;color:var(--ink);width:200px;gap:6px;cursor:pointer;text-align:left}
+  .f .pick:hover{background:var(--hover)}
+  .f .pick.active{background:var(--blue-soft);border-color:var(--blue);color:var(--blue);font-weight:600}
+  .f .pick .caret{color:#94a3b8;font-size:10px}
+
+  /* tabs */
+  .tabs{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px;display:flex;gap:2px}
+  .tab{padding:8px 11px;border-radius:7px;font-size:12px;font-weight:600;color:var(--gray);border:1px solid transparent;background:var(--gray-soft);white-space:nowrap;cursor:pointer}
+  .tab:hover{background:var(--gray-soft);color:var(--ink);border-color:#0f172a}
+  .tab.active{background:#0f172a;color:#fff;border-color:#0f172a}
+  .tab .count{font-size:10px;font-weight:700;background:rgba(255,255,255,.18);color:inherit;border-radius:999px;padding:1px 6px;margin-left:6px}
+  .tab:not(.active) .count{background:var(--gray-soft);color:var(--muted)}
+
+  /* card */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px}
+  .card-h{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line-soft)}
+  .card-h h3{margin:0;font-size:13px;font-weight:700}
+  .card-h .sub{font-size:11px;color:var(--muted)}
+  .card-b{padding:10px 12px}
+
+  /* kpi */
+  .kpi{background:var(--card);border:1px solid #dbe2eb;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;position:relative;min-width:170px}
+  .kpi .lab{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .kpi .val{font-size:20px;font-weight:700;letter-spacing:-.3px}
+  .kpi .delta{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .kpi .delta b{font-weight:700}
+  .kpi .delta.up b{color:var(--green)}
+  .kpi .delta.down b{color:var(--red)}
+  .kpi .delta.warn b{color:var(--yellow)}
+  .kpi.alert::before,.kpi.warn::before,.kpi.ok::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px}
+  .kpi.alert::before{background:var(--red)}
+  .kpi.warn::before{background:var(--yellow)}
+  .kpi.ok::before{background:var(--green)}
+
+  /* table */
+  .table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+  .table thead th{background:var(--head);color:#334155;font-size:10.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:8px 10px;text-align:left;border-bottom:1px solid var(--line)}
+  .table tbody td{padding:9px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  .table tbody tr:hover{background:var(--hover)}
+  .table tbody tr.expanded{background:var(--blue-soft)}
+  .table .num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+  .table .id{font-family:"Consolas","Menlo",monospace;font-size:11.5px;color:#334155}
+  .table .nm{font-weight:600}
+  .table .sm{color:var(--muted);font-size:11px}
+
+  /* pills, badges, curva */
+  .pill{display:inline-flex;align-items:center;justify-content:center;height:22px;border-radius:999px;padding:0 8px;font-weight:800;font-size:11px;white-space:nowrap;line-height:1}
+  .pill.b{background:var(--blue-soft);color:var(--blue)}
+  .pill.g{background:var(--green-soft);color:var(--green)}
+  .pill.y{background:var(--yellow-soft);color:var(--yellow)}
+  .pill.r{background:var(--red-soft);color:var(--red)}
+  .pill.k{background:var(--gray-soft);color:var(--gray)}
+  .pill.ghost{background:transparent;border:1px solid var(--line);color:var(--gray)}
+
+  .badge{display:inline-flex;align-items:center;justify-content:center;height:18px;border-radius:4px;padding:0 6px;font-weight:800;font-size:10px;letter-spacing:.4px;background:#0f172a;color:#fff}
+  .badge.rc{background:#0f172a}
+  .badge.me{background:#1e3a8a}
+  .badge.su{background:#155e75}
+  .badge-row{display:inline-flex;gap:3px}
+
+  .curva{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:20px;border-radius:5px;padding:0 6px;font-weight:800;font-size:11px;letter-spacing:.4px;font-family:"Consolas","Menlo",monospace}
+  .curva.AAA,.curva.AA,.curva.A{background:#0f172a;color:#fff}
+  .curva.B,.curva.BB{background:#334155;color:#fff}
+  .curva.C,.curva.CC,.curva.CCC{background:#cbd5e1;color:#334155}
+
+  /* bars */
+  .bar{flex:1;height:8px;background:#eef2f7;border-radius:999px;overflow:hidden;position:relative;display:block;min-width:120px}
+  .bar > span{display:block;height:100%;background:var(--blue);border-radius:999px}
+  .bar.g > span{background:var(--green)}
+  .bar.y > span{background:var(--yellow)}
+  .bar.r > span{background:var(--red)}
+  .bar.k > span{background:var(--gray)}
+
+  /* matrix */
+  .matrix{display:grid;gap:6px;grid-template-columns:repeat(7,1fr);width:340px}
+  .matrix .cell{height:42px;border-radius:6px;background:#eef2f7;display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:11px;color:var(--ink);font-weight:600}
+  .matrix .cell.s1{background:#eef2f7}
+  .matrix .cell.s2{background:#dbeafe}
+  .matrix .cell.s3{background:#93c5fd;color:#0f172a}
+  .matrix .cell.s4{background:#3b82f6;color:#fff}
+  .matrix .cell.s5{background:#1d4ed8;color:#fff}
+  .matrix .cell.alert{background:#fee2e2;color:var(--red)}
+  .matrix .cell.warn{background:#fef9c3;color:#854d0e}
+
+  /* alerts */
+  .alert-row{display:grid;grid-template-columns:18px 1fr auto auto;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+  .alert-row:last-child{border-bottom:0}
+  .alert-row .dot{width:8px;height:8px;border-radius:999px;background:var(--gray);justify-self:center}
+  .alert-row.r .dot{background:var(--red)}
+  .alert-row.y .dot{background:var(--yellow)}
+  .alert-row.b .dot{background:var(--blue)}
+  .alert-row.g .dot{background:var(--green)}
+  .alert-row .who{color:var(--muted);font-size:11px}
+
+  /* action button .act */
+  .act{height:auto;min-height:24px;padding:4px 10px;border:1px solid var(--blue);background:var(--blue-soft);color:var(--blue);border-radius:6px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;line-height:1.2;white-space:nowrap}
+
+  /* breadcrumb */
+  .crumb-chain{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px}
+  .crumb-step{display:inline-flex;align-items:center;gap:6px;background:var(--blue-soft);color:var(--blue);border-radius:6px;padding:3px 8px;font-weight:600}
+  .crumb-step .lv{font-size:10px;background:var(--blue);color:#fff;border-radius:3px;padding:1px 4px;font-weight:700;letter-spacing:.4px}
+  .crumb-sep{color:#94a3b8;font-weight:700}
+
+  /* tag bar */
+  .tagbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0}
+  .tg{height:24px;padding:0 9px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:11.5px;color:var(--gray);display:inline-flex;align-items:center;gap:6px}
+  .tg.active{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+  .tg .n{font-weight:700;color:inherit;opacity:.8}
+
+  /* subtabs */
+  .subtabs{display:flex;gap:2px;padding:4px;background:#eef2f7;border-radius:8px;width:fit-content;font-size:11.5px}
+  .st{padding:5px 10px;border-radius:6px;font-weight:600;color:var(--gray);border:0;background:transparent}
+  .st.active{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(15,23,42,.06)}
+
+  /* pager */
+  .pager{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line-soft);width:100%}
+  .pager .info{font-size:11px;color:var(--muted)}
+  .pager .ctrl{display:flex;gap:4px}
+  .pager .ctrl button{height:26px;min-width:26px;padding:0 8px;border:1px solid var(--line);background:var(--card);border-radius:6px;font-size:11px;color:var(--ink)}
+  .pager .ctrl button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  /* status dots */
+  .sdot{display:inline-block;width:8px;height:8px;border-radius:999px;background:var(--gray);margin-right:6px;vertical-align:1px}
+  .sdot.g{background:var(--green)}
+  .sdot.y{background:var(--yellow)}
+  .sdot.r{background:var(--red)}
+  .sdot.b{background:var(--blue)}
+
+  /* hbar */
+  .hbar{display:grid;grid-template-columns:140px 1fr 90px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line-soft);font-size:12px}
+  .hbar:last-child{border-bottom:0}
+  .hbar .lab .sub{color:var(--muted);font-size:10.5px;margin-top:2px;display:block}
+  .hbar .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+
+  /* mono / util */
+  .mono{font-family:"Consolas","Menlo",monospace;font-size:11.5px}
+  .muted{color:var(--muted)}
+
+  /* ========================================================
+     LAYOUT DA PRÓPRIA PÁGINA DE DESIGN SYSTEM
+     ======================================================== */
+  .app{display:grid;grid-template-columns:220px 1fr;gap:16px;max-width:1400px;margin:0 auto;padding:16px}
+  .nav{
+    position:sticky;top:16px;align-self:start;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:12px;font-size:12px;max-height:calc(100vh - 32px);overflow:auto;
+  }
+  .nav h4{margin:10px 0 4px;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);font-weight:700}
+  .nav h4:first-child{margin-top:0}
+  .nav a{display:block;padding:4px 6px;border-radius:5px;color:var(--ink)}
+  .nav a:hover{background:var(--hover);color:var(--blue)}
+
+  .ds-head{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:18px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  }
+  .ds-head .mark{
+    width:36px;height:36px;border-radius:8px;background:#0f172a;color:#fff;
+    display:grid;place-items:center;font-weight:800;font-size:14px;letter-spacing:-.5px;
+  }
+  .ds-head h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.2px}
+  .ds-head .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .ds-head .stamp{font-size:11px;color:var(--muted);text-align:right;line-height:1.5}
+
+  section.ds{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:18px 20px;margin-bottom:14px;
+  }
+  section.ds > header{
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    padding-bottom:10px;margin-bottom:14px;border-bottom:1px solid var(--line-soft);
+  }
+  section.ds > header h2{margin:0;font-size:15px;font-weight:700;letter-spacing:-.1px}
+  section.ds > header .h-sub{font-size:11.5px;color:var(--muted)}
+
+  .specs{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+  .spec{
+    border:1px solid var(--line);border-radius:8px;background:#fbfdff;overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  .spec .top{
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    padding:10px 12px;border-bottom:1px solid var(--line-soft);background:var(--card);
+  }
+  .spec .top .name{font-size:12.5px;font-weight:700}
+  .spec .top .cls{font-family:"Consolas","Menlo",monospace;font-size:11px;color:var(--blue);background:var(--blue-soft);border-radius:4px;padding:1px 6px}
+  .spec .preview{
+    padding:16px;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;min-height:80px;
+    background:
+      linear-gradient(45deg,#f1f5f9 25%,transparent 25%),
+      linear-gradient(-45deg,#f1f5f9 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#f1f5f9 75%),
+      linear-gradient(-45deg,transparent 75%,#f1f5f9 75%);
+    background-size:14px 14px;background-position:0 0,0 7px,7px -7px,-7px 0;background-color:#fff;
+  }
+  .spec .preview.solid{background:#fff;background-image:none}
+  .spec .desc{padding:8px 12px 10px;font-size:11.5px;color:var(--muted);border-top:1px dashed var(--line-soft)}
+  .spec .desc code{background:var(--bg);padding:1px 4px;border-radius:3px;font-size:11px;color:var(--ink)}
+
+  /* color swatches */
+  .swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .sw{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--card)}
+  .sw .chip{height:54px}
+  .sw .meta{padding:8px 10px;font-size:11px}
+  .sw .meta .nm{font-weight:700;font-size:12px;display:block;margin-bottom:2px}
+  .sw .meta .hex{font-family:"Consolas","Menlo",monospace;color:var(--muted)}
+  .sw .meta .tk{display:block;font-family:"Consolas","Menlo",monospace;color:var(--blue);margin-top:2px}
+
+  /* type scale */
+  .type-grid{display:grid;gap:8px}
+  .type-row{display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:baseline;padding:10px 0;border-bottom:1px dashed var(--line-soft)}
+  .type-row:last-child{border-bottom:0}
+  .type-row .meta{font-size:11px;color:var(--muted)}
+  .type-row .meta b{display:block;color:var(--ink);font-size:12px}
+  .type-row .meta code{background:var(--bg);padding:1px 4px;border-radius:3px;font-family:"Consolas","Menlo",monospace;font-size:11px}
+
+  /* spacing scale */
+  .space-row{display:flex;align-items:center;gap:14px;padding:6px 0}
+  .space-row .lbl{width:140px;font-size:11.5px}
+  .space-row .lbl b{display:block;font-size:12.5px;font-weight:700}
+  .space-row .bar-vis{height:14px;background:var(--blue-soft);border:1px solid var(--blue);border-radius:3px}
+
+  /* small util in this page */
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid-row-fit{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+  /* responsive */
+  @media (max-width:900px){
+    .app{grid-template-columns:1fr}
+    .nav{position:static;max-height:none}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ====== NAV ====== -->
+  <aside class="nav">
+    <h4>Fundamentos</h4>
+    <a href="#cores">Cores · Tokens</a>
+    <a href="#tipografia">Tipografia</a>
+    <a href="#espaco">Espaçamento &amp; Raio</a>
+
+    <h4>Shell</h4>
+    <a href="#marca">Marca</a>
+    <a href="#busca">Busca</a>
+    <a href="#botoes">Botões</a>
+
+    <h4>Navegação</h4>
+    <a href="#abas">Abas</a>
+    <a href="#subtabs">Sub-abas</a>
+    <a href="#breadcrumb">Breadcrumb</a>
+    <a href="#pager">Paginação</a>
+
+    <h4>Filtros</h4>
+    <a href="#pick">Pickers</a>
+    <a href="#applied">Filtros aplicados</a>
+    <a href="#tagbar">Tag bar</a>
+
+    <h4>Contêineres</h4>
+    <a href="#card">Card</a>
+    <a href="#kpi">KPI</a>
+
+    <h4>Dados</h4>
+    <a href="#tabela">Tabela</a>
+    <a href="#barras">Barras &amp; HBar</a>
+    <a href="#matriz">Matriz / Heatmap</a>
+
+    <h4>Status &amp; Rótulos</h4>
+    <a href="#pills">Pills</a>
+    <a href="#badges">Badges Negócio</a>
+    <a href="#curva">Curva ABC</a>
+    <a href="#dots">Status dots</a>
+
+    <h4>Ações &amp; Alertas</h4>
+    <a href="#act">Botão de ação .act</a>
+    <a href="#alerts">Lista de alertas</a>
+
+    <h4>Tipográficas</h4>
+    <a href="#mono">Mono / IDs</a>
+  </aside>
+
+  <!-- ====== MAIN ====== -->
+  <main>
+
+    <div class="ds-head">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="mark">BI</div>
+        <div>
+          <h1>Sistema de Design — BI de Suprimentos</h1>
+          <div class="sub">Catálogo de tokens, componentes e nomenclatura · referência para v3.1 e versões seguintes</div>
+        </div>
+      </div>
+      <div class="stamp">
+        Versão <b style="color:var(--ink)">v1.0</b><br/>
+        Fonte: <b style="color:var(--ink)">BI Suprimentos v3.1.html</b>
+      </div>
+    </div>
+
+    <!-- ============================================ CORES -->
+    <section class="ds" id="cores">
+      <header>
+        <div>
+          <h2>1 · Cores · Tokens</h2>
+          <div class="h-sub">Variáveis CSS em <code>:root</code> — usar SEMPRE pelo nome do token, nunca pelo hex direto.</div>
+        </div>
+      </header>
+
+      <h4 style="margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Neutros</h4>
+      <div class="swatches" style="margin-bottom:14px">
+        <div class="sw"><div class="chip" style="background:var(--bg)"></div><div class="meta"><span class="nm">Background</span><span class="hex">#f3f6fa</span><span class="tk">--bg</span></div></div>
+        <div class="sw"><div class="chip" style="background:var(--card);border-bottom:1px solid var(--line)"></div><div class="meta"><span class="nm">Card / Superfície</span><span class="hex">#ffffff</span><span class="tk">--card</span></div></div>
+        <div class="sw"><div class="chip" style="background:var(--hover)"></div><div class="meta"><span class="nm">Hover sutil</span><span class="hex">#f6f9fd</span><span class="tk">--hover</span></div></div>
+        <div class="sw"><div class="chip" style="background:var(--head)"></div><div class="meta"><span class="nm">Cabeçalho tabela</span><span class="hex">#e9eff7</span><span class="tk">--head</span></div></div>
+        <div class="sw"><div class="chip" style="background:var(--line-soft)"></div><div class="meta"><span class="nm">Linha suave</span><span class="hex">#e6ecf3</span><span class="tk">--line-soft</span></div></div>
+        <div class="sw"><div class="chip" style="background:var(--line)"></div><div class="meta"><span class="nm">Linha / borda</span><span class="hex">#d8e0ea</span><span class="tk">--line</span></div></div>
+        <div class="sw"><div class="chip" style="background:var(--muted)"></div><div class="meta"><span class="nm" style="color:#fff">Texto secundário</span><span class="hex">#64748b</span><span class="tk">--muted</span></div></div>
+        <div class="sw"><div class="chip" style="background:var(--ink)"></div><div class="meta"><span class="nm" style="color:#fff">Tinta / texto</span><span class="hex">#0f172a</span><span class="tk">--ink</span></div></div>
+      </div>
+
+      <h4 style="margin:8px 0;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)">Status — par sólido + soft</h4>
+      <div class="swatches" style="margin-bottom:14px">
+        <div class="sw"><div class="chip" style="background:linear-gradient(90deg,var(--blue) 50%,var(--blue-soft) 50%)"></div><div class="meta"><span class="nm">Informação · Azul</span><span class="hex">#2563eb · #eff6ff</span><span class="tk">--blue · --blue-soft</span></div></div>
+        <div class="sw"><div class="chip" style="background:linear-gradient(90deg,var(--green) 50%,var(--green-soft) 50%)"></div><div class="meta"><span class="nm">OK · Verde</span><span class="hex">#16a34a · #ecfdf5</span><span class="tk">--green · --green-soft</span></div></div>
+        <div class="sw"><div class="chip" style="background:linear-gradient(90deg,var(--yellow) 50%,var(--yellow-soft) 50%)"></div><div class="meta"><span class="nm">Atenção · Amarelo</span><span class="hex">#a16207 · #fef9c3</span><span class="tk">--yellow · --yellow-soft</span></div></div>
+        <div class="sw"><div class="chip" style="background:linear-gradient(90deg,var(--red) 50%,var(--red-soft) 50%)"></div><div class="meta"><span class="nm">Crítico · Vermelho</span><span class="hex">#b91c1c · #fee2e2</span><span class="tk">--red · --red-soft</span></div></div>
+        <div class="sw"><div class="chip" style="background:linear-gradient(90deg,var(--gray) 50%,var(--gray-soft) 50%)"></div><div class="meta"><span class="nm">Neutro · Cinza</span><span class="hex">#475569 · #eef2f7</span><span class="tk">--gray · --gray-soft</span></div></div>
+      </div>
+
+      <div style="font-size:11.5px;color:var(--muted);background:var(--bg);border-left:3px solid var(--blue);padding:8px 12px;border-radius:0 6px 6px 0">
+        <b style="color:var(--ink)">Regra:</b> use <code>--blue</code> apenas para ação/seleção; <code>--green/--yellow/--red</code> só para status de dado (OK · Atenção · Crítico). Não usar como decoração.
+      </div>
+    </section>
+
+    <!-- ============================================ TIPOGRAFIA -->
+    <section class="ds" id="tipografia">
+      <header><div><h2>2 · Tipografia</h2><div class="h-sub">Família única, escala enxuta, <code>tabular-nums</code> para números.</div></div></header>
+      <div class="type-grid">
+        <div class="type-row">
+          <div class="meta"><b>Display · H1</b>20px / 700 / -.2px<br/><code>.brand h1</code></div>
+          <div style="font-size:20px;font-weight:700;letter-spacing:-.2px">BI de Suprimentos</div>
+        </div>
+        <div class="type-row">
+          <div class="meta"><b>Título de seção · H2</b>14–15px / 700<br/><code>.page-h h2</code></div>
+          <div style="font-size:14px;font-weight:700">Fila de saneamento</div>
+        </div>
+        <div class="type-row">
+          <div class="meta"><b>Card title · H3</b>13px / 700<br/><code>.card-h h3</code></div>
+          <div style="font-size:13px;font-weight:700">Cobertura por fonte</div>
+        </div>
+        <div class="type-row">
+          <div class="meta"><b>KPI valor</b>20px / 700 / -.3px<br/><code>.kpi .val</code></div>
+          <div style="font-size:20px;font-weight:700;letter-spacing:-.3px;font-variant-numeric:tabular-nums">R$ 12,4 mi</div>
+        </div>
+        <div class="type-row">
+          <div class="meta"><b>Corpo</b>13px / 1.4<br/><code>body</code></div>
+          <div style="font-size:13px;line-height:1.4">Texto padrão da interface, usado em parágrafos e descrições curtas.</div>
+        </div>
+        <div class="type-row">
+          <div class="meta"><b>Tabela</b>12.5px<br/><code>.table</code></div>
+          <div style="font-size:12.5px">Cota_NUM · IDEAL / MELHOR / SUPERA</div>
+        </div>
+        <div class="type-row">
+          <div class="meta"><b>Sub / Caption</b>11–11.5px / muted<br/><code>.card-h .sub</code></div>
+          <div style="font-size:11.5px;color:var(--muted)">% de campos críticos preenchidos</div>
+        </div>
+        <div class="type-row">
+          <div class="meta"><b>Rótulo (uppercase)</b>10–10.5px / 700 / .5–.6px<br/><code>.kpi .lab · th</code></div>
+          <div style="font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">FORN. SEM CNPJ</div>
+        </div>
+        <div class="type-row">
+          <div class="meta"><b>Mono / ID</b>11.5px Consolas/Menlo<br/><code>.mono · .id</code></div>
+          <div class="mono">CDFORNECED_OFICIAL · 12.345.678/0001-00</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ ESPAÇO -->
+    <section class="ds" id="espaco">
+      <header><div><h2>3 · Espaçamento &amp; Raio</h2><div class="h-sub">Grid de 2/4/6/8/10/12 px. Raios padronizados por contexto.</div></div></header>
+      <div class="grid-2">
+        <div>
+          <h4 style="margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Escala de espaçamento</h4>
+          <div class="space-row"><div class="lbl"><b>2 px</b>borda fina, gap mínimo</div><div class="bar-vis" style="width:2px"></div></div>
+          <div class="space-row"><div class="lbl"><b>4 px</b>gap interno chip</div><div class="bar-vis" style="width:4px"></div></div>
+          <div class="space-row"><div class="lbl"><b>6 px</b>gap pill / sub-aba</div><div class="bar-vis" style="width:6px"></div></div>
+          <div class="space-row"><div class="lbl"><b>8 px</b>padding tabela th</div><div class="bar-vis" style="width:8px"></div></div>
+          <div class="space-row"><div class="lbl"><b>10 px</b>gap padrão grid</div><div class="bar-vis" style="width:10px"></div></div>
+          <div class="space-row"><div class="lbl"><b>12 px</b>padding card</div><div class="bar-vis" style="width:12px"></div></div>
+          <div class="space-row"><div class="lbl"><b>16 px</b>padding página</div><div class="bar-vis" style="width:16px"></div></div>
+        </div>
+        <div>
+          <h4 style="margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px">Raios de borda</h4>
+          <div class="specs" style="grid-template-columns:repeat(2,1fr)">
+            <div class="spec"><div class="top"><span class="name">Pill</span><span class="cls">999px</span></div><div class="preview solid"><span style="display:inline-block;width:80px;height:22px;background:var(--blue-soft);border-radius:999px"></span></div></div>
+            <div class="spec"><div class="top"><span class="name">Botão pequeno</span><span class="cls">6px</span></div><div class="preview solid"><span style="display:inline-block;width:80px;height:24px;background:var(--blue-soft);border:1px solid var(--blue);border-radius:6px"></span></div></div>
+            <div class="spec"><div class="top"><span class="name">Botão / input</span><span class="cls">7–8px</span></div><div class="preview solid"><span style="display:inline-block;width:120px;height:32px;background:var(--card);border:1px solid var(--line);border-radius:8px"></span></div></div>
+            <div class="spec"><div class="top"><span class="name">Card</span><span class="cls">10px</span></div><div class="preview solid"><span style="display:inline-block;width:120px;height:54px;background:var(--card);border:1px solid var(--line);border-radius:10px"></span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ MARCA -->
+    <section class="ds" id="marca">
+      <header><div><h2>4 · Marca</h2><div class="h-sub">Identificador 28×28 com monograma <b>BI</b>.</div></div></header>
+      <div class="specs">
+        <div class="spec">
+          <div class="top"><span class="name">Brand mark</span><span class="cls">.brand .mark</span></div>
+          <div class="preview solid">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:28px;height:28px;border-radius:7px;background:#0f172a;display:grid;place-items:center;color:#fff;font-weight:800;font-size:12px;letter-spacing:-.5px">BI</div>
+              <div>
+                <div style="font-size:20px;font-weight:700;letter-spacing:-.2px">BI de Suprimentos</div>
+                <div style="font-size:11px;color:var(--muted)">v3.1 · fonte Zoho</div>
+              </div>
+            </div>
+          </div>
+          <div class="desc">Sempre alinhado à esquerda no topo. Cor da marca é o próprio <code>--ink</code>.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ BUSCA -->
+    <section class="ds" id="busca">
+      <header><div><h2>5 · Busca global</h2><div class="h-sub">Campo único no topo · atalho <kbd style="border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:10px;color:var(--muted);background:var(--bg)">⌘K</kbd></div></div></header>
+      <div class="specs">
+        <div class="spec">
+          <div class="top"><span class="name">Search bar</span><span class="cls">.search</span></div>
+          <div class="preview solid">
+            <div class="search">
+              <span style="color:#94a3b8">⌕</span>
+              <input placeholder="Buscar fornecedor, CNPJ, ID, produto, nota fiscal"/>
+              <kbd>⌘K</kbd>
+            </div>
+          </div>
+          <div class="desc">Altura 38px · borda <code>--line</code> · placeholder em <code>#94a3b8</code>.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ BOTÕES -->
+    <section class="ds" id="botoes">
+      <header><div><h2>6 · Botões</h2><div class="h-sub">Hierarquia: <b>primary</b> (azul) · <b>default</b> (card) · <b>ghost</b> (transparente).</div></div></header>
+      <div class="specs">
+        <div class="spec">
+          <div class="top"><span class="name">Default</span><span class="cls">.btn</span></div>
+          <div class="preview solid"><button class="btn">Exportar CSV</button></div>
+          <div class="desc">Ações neutras na barra de topo.</div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">Primary</span><span class="cls">.btn.primary</span></div>
+          <div class="preview solid"><button class="btn primary">Aplicar filtros</button></div>
+          <div class="desc">Ação principal — usar 1 por contexto.</div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">Limpar filtros</span><span class="cls">.filters-clear</span></div>
+          <div class="preview solid"><button style="font-size:11.5px;color:var(--muted);background:transparent;border:0;font-weight:600">Limpar filtros</button></div>
+          <div class="desc">Texto-link · hover vira <code>--red</code>.</div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">Stamp / status</span><span class="cls">.stamp</span></div>
+          <div class="preview solid"><span style="font-size:11px;color:var(--muted)">Atualizado em <b style="color:var(--ink)">27/05/2026 08:14</b> · fonte Zoho · <span style="color:var(--green)">●</span> OK</span></div>
+          <div class="desc">Texto informativo no topo, não interativo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ ABAS -->
+    <section class="ds" id="abas">
+      <header><div><h2>7 · Abas (nav principal)</h2><div class="h-sub">Fundo cinza por padrão · borda preta no hover · preto sólido quando ativa.</div></div></header>
+      <div class="specs">
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">Estados</span><span class="cls">.tab · :hover · .active</span></div>
+          <div class="preview solid">
+            <nav class="tabs">
+              <button class="tab">Inativa</button>
+              <button class="tab" onmouseover="this.style.borderColor='#0f172a'" onmouseout="this.style.borderColor=''">Hover (passe o mouse)</button>
+              <button class="tab active">Ativa</button>
+              <button class="tab">Com contagem<span class="count">12</span></button>
+            </nav>
+          </div>
+          <div class="desc">Container <code>.tabs</code> = card branco · gap 2px · scroll horizontal em telas estreitas.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ SUBTABS -->
+    <section class="ds" id="subtabs">
+      <header><div><h2>8 · Sub-abas</h2><div class="h-sub">Segmented control dentro de um card.</div></div></header>
+      <div class="specs">
+        <div class="spec">
+          <div class="top"><span class="name">Subtabs</span><span class="cls">.subtabs .st</span></div>
+          <div class="preview solid">
+            <div class="subtabs">
+              <button class="st active">Total</button>
+              <button class="st">Impacto cotação</button>
+              <button class="st">Inflação</button>
+            </div>
+          </div>
+          <div class="desc">Pílula interna ao card. Ativa = fundo branco + sombra leve.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ BREADCRUMB -->
+    <section class="ds" id="breadcrumb">
+      <header><div><h2>9 · Breadcrumb · Cascata de categorias</h2><div class="h-sub">Mostra Nível 1 → Nível 5 da árvore CAT.</div></div></header>
+      <div class="specs">
+        <div class="spec">
+          <div class="top"><span class="name">Crumb chain</span><span class="cls">.crumb-chain · .crumb-step</span></div>
+          <div class="preview solid">
+            <div class="crumb-chain">
+              <span class="crumb-step"><span class="lv">N1</span>I · INSUMOS</span>
+              <span class="crumb-sep">›</span>
+              <span class="crumb-step"><span class="lv">N2</span>I2 · PERECÍVEIS</span>
+              <span class="crumb-sep">›</span>
+              <span class="crumb-step"><span class="lv">N3</span>Laticínios</span>
+            </div>
+          </div>
+          <div class="desc">Cada passo = pill azul com prefixo <code>.lv</code> indicando o nível.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ PAGER -->
+    <section class="ds" id="pager">
+      <header><div><h2>10 · Paginação</h2><div class="h-sub">Sempre no rodapé do card de tabela.</div></div></header>
+      <div class="specs">
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">Pager</span><span class="cls">.pager · .ctrl button.active</span></div>
+          <div class="preview solid" style="display:block">
+            <div class="pager">
+              <div class="info">1–50 de 4.288 linhas</div>
+              <div class="ctrl">
+                <button>‹</button>
+                <button class="active">1</button>
+                <button>2</button>
+                <button>3</button>
+                <button>…</button>
+                <button>86</button>
+                <button>›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ PICKERS -->
+    <section class="ds" id="pick">
+      <header><div><h2>11 · Picker de filtro</h2><div class="h-sub">Substitui <code>&lt;select&gt;</code>. Mesma altura em todas as linhas.</div></div></header>
+      <div class="specs">
+        <div class="spec">
+          <div class="top"><span class="name">Padrão</span><span class="cls">.f .pick</span></div>
+          <div class="preview solid">
+            <div class="f"><label>UF</label>
+              <button class="pick"><span class="v">Todas</span><span class="caret">▾</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">Ativo (filtro aplicado)</span><span class="cls">.f .pick.active</span></div>
+          <div class="preview solid">
+            <div class="f"><label>Empresa</label>
+              <button class="pick active"><span class="v">RC · ME · SU</span><span class="caret">▾</span></button>
+            </div>
+          </div>
+          <div class="desc">Fundo <code>--blue-soft</code>, borda e texto <code>--blue</code>.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ APPLIED -->
+    <section class="ds" id="applied">
+      <header><div><h2>12 · Filtros aplicados</h2><div class="h-sub">Tags removíveis no rodapé do bloco de filtros.</div></div></header>
+      <div class="specs">
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">Pill de filtro aplicado</span><span class="cls">.filter-foot .applied .pill</span></div>
+          <div class="preview solid" style="justify-content:flex-start">
+            <span class="pill b" style="height:20px;font-size:10.5px">Empresa: RC · ME · SU <span style="margin-left:4px;opacity:.7">✕</span></span>
+            <span class="pill b" style="height:20px;font-size:10.5px">Região: N · NE · SE <span style="margin-left:4px;opacity:.7">✕</span></span>
+            <span class="pill b" style="height:20px;font-size:10.5px">CAT1: I · INSUMOS <span style="margin-left:4px;opacity:.7">✕</span></span>
+          </div>
+          <div class="desc">Clique remove o filtro. Some quando o estado é vazio.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ TAGBAR -->
+    <section class="ds" id="tagbar">
+      <header><div><h2>13 · Tag bar (filtro rápido sobre tabela)</h2><div class="h-sub">Acima da tabela, segmenta o conjunto exibido.</div></div></header>
+      <div class="specs">
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">Tag</span><span class="cls">.tagbar .tg · .tg.active</span></div>
+          <div class="preview solid" style="justify-content:flex-start">
+            <div class="tagbar" style="padding:0">
+              <span class="tg active">Todos <span class="n">218</span></span>
+              <span class="tg">Sem código <span class="n">42</span></span>
+              <span class="tg">Sem CAT5 <span class="n">86</span></span>
+              <span class="tg">Duplicidade <span class="n">8</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ CARD -->
+    <section class="ds" id="card">
+      <header><div><h2>14 · Card</h2><div class="h-sub">Contêiner padrão de todo bloco de conteúdo.</div></div></header>
+      <div class="specs">
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">Card com header e body</span><span class="cls">.card · .card-h · .card-b</span></div>
+          <div class="preview solid" style="display:block">
+            <div class="card">
+              <div class="card-h"><div><h3>Cobertura por fonte</h3><div class="sub">% de campos críticos preenchidos</div></div><span class="pill ghost">SUPRIMENTOS</span></div>
+              <div class="card-b" style="font-size:12px;color:var(--muted)">Conteúdo do card. Padding 10px 12px.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ KPI -->
+    <section class="ds" id="kpi">
+      <header><div><h2>15 · KPI</h2><div class="h-sub">Bloco compacto com rótulo, valor e delta.</div></div></header>
+      <div class="specs">
+        <div class="spec">
+          <div class="top"><span class="name">KPI neutro</span><span class="cls">.kpi</span></div>
+          <div class="preview solid">
+            <div class="kpi"><div class="lab">Linhas analisadas</div><div class="val">12,4 mi</div><div class="delta"><b>+3%</b> vs período anterior</div></div>
+          </div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">KPI OK</span><span class="cls">.kpi.ok</span></div>
+          <div class="preview solid">
+            <div class="kpi ok"><div class="lab">Fontes OK</div><div class="val">28 / 34</div><div class="delta up"><b>+2</b> esta semana</div></div>
+          </div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">KPI Atenção</span><span class="cls">.kpi.warn</span></div>
+          <div class="preview solid">
+            <div class="kpi warn"><div class="lab">Produtos sem código</div><div class="val">218</div><div class="delta warn"><b>+12</b> a sanear</div></div>
+          </div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">KPI Crítico</span><span class="cls">.kpi.alert</span></div>
+          <div class="preview solid">
+            <div class="kpi alert"><div class="lab">Cotações incompletas</div><div class="val">418</div><div class="delta down"><b>−4%</b> vs mês</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="desc" style="margin-top:10px;font-size:11.5px;color:var(--muted)">Tarja vertical à esquerda (3px) indica severidade. <code>.delta.up/.down/.warn</code> colore só o número.</div>
+    </section>
+
+    <!-- ============================================ TABELA -->
+    <section class="ds" id="tabela">
+      <header><div><h2>16 · Tabela</h2><div class="h-sub">Header sticky · linhas zebradas no hover · números à direita.</div></div></header>
+      <div class="specs">
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">Tabela padrão</span><span class="cls">.table · .num · .nm · .id · .sm</span></div>
+          <div class="preview solid" style="display:block">
+            <table class="table">
+              <thead><tr><th>Fornecedor</th><th>CNPJ</th><th class="num">Linhas</th><th>Curva</th><th>Estado</th></tr></thead>
+              <tbody>
+                <tr><td><div class="nm">Distribuidora Norte</div><div class="sm">RC · ME</div></td><td class="id">12.345.678/0001-00</td><td class="num">2.841.000</td><td><span class="curva AAA">AAA</span></td><td><span class="pill g">OK</span></td></tr>
+                <tr><td><div class="nm">Cooperativa Sul</div><div class="sm">SU</div></td><td class="id">98.765.432/0001-22</td><td class="num">1.978.000</td><td><span class="curva B">B</span></td><td><span class="pill y">ATENÇÃO</span></td></tr>
+                <tr class="expanded"><td><div class="nm">Indústria Central</div><div class="sm">ME</div></td><td class="id">55.222.111/0001-90</td><td class="num">496.000</td><td><span class="curva C">C</span></td><td><span class="pill r">CRÍTICO</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="desc"><code>.expanded</code> = linha-pai em modo aberto (fundo <code>--blue-soft</code>).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ BARRAS -->
+    <section class="ds" id="barras">
+      <header><div><h2>17 · Barras &amp; HBar</h2><div class="h-sub">Barra de progresso para cobertura/distribuição.</div></div></header>
+      <div class="specs">
+        <div class="spec">
+          <div class="top"><span class="name">Bar (padrão azul)</span><span class="cls">.bar</span></div>
+          <div class="preview solid"><span class="bar"><span style="width:72%"></span></span></div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">Bar OK</span><span class="cls">.bar.g</span></div>
+          <div class="preview solid"><span class="bar g"><span style="width:95%"></span></span></div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">Bar Atenção</span><span class="cls">.bar.y</span></div>
+          <div class="preview solid"><span class="bar y"><span style="width:60%"></span></span></div>
+        </div>
+        <div class="spec">
+          <div class="top"><span class="name">Bar Crítico</span><span class="cls">.bar.r</span></div>
+          <div class="preview solid"><span class="bar r"><span style="width:30%"></span></span></div>
+        </div>
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">HBar (linha com rótulo + barra + valor)</span><span class="cls">.hbar</span></div>
+          <div class="preview solid" style="display:block">
+            <div class="hbar"><div class="lab">I · INSUMOS<span class="sub">53% do gasto</span></div><span class="bar"><span style="width:80%"></span></span><div class="v">R$ 4,8 mi</div></div>
+            <div class="hbar"><div class="lab">D · DESCARTÁVEIS<span class="sub">22%</span></div><span class="bar"><span style="width:42%"></span></span><div class="v">R$ 2,0 mi</div></div>
+            <div class="hbar"><div class="lab">A · ADMIN<span class="sub">11%</span></div><span class="bar y"><span style="width:30%"></span></span><div class="v">R$ 1,0 mi</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ MATRIZ -->
+    <section class="ds" id="matriz">
+      <header><div><h2>18 · Matriz / Heatmap</h2><div class="h-sub">Escala azul em 5 passos · <code>warn</code> e <code>alert</code> para excepcionais.</div></div></header>
+      <div class="specs">
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">Heatmap 5 níveis</span><span class="cls">.matrix .cell.s1–s5 · .warn · .alert</span></div>
+          <div class="preview solid">
+            <div class="matrix">
+              <div class="cell s1">1</div>
+              <div class="cell s2">2</div>
+              <div class="cell s3">5</div>
+              <div class="cell s4">9</div>
+              <div class="cell s5">14</div>
+              <div class="cell warn">!</div>
+              <div class="cell alert">0</div>
+            </div>
+          </div>
+          <div class="desc">Tipicamente usado em matriz produto × mês de cotações.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ PILLS -->
+    <section class="ds" id="pills">
+      <header><div><h2>19 · Pills</h2><div class="h-sub">Rótulo curto com cor de status.</div></div></header>
+      <div class="specs">
+        <div class="spec"><div class="top"><span class="name">Info</span><span class="cls">.pill.b</span></div><div class="preview solid"><span class="pill b">SUPRIMENTOS</span></div></div>
+        <div class="spec"><div class="top"><span class="name">OK</span><span class="cls">.pill.g</span></div><div class="preview solid"><span class="pill g">EXPORTADO</span></div></div>
+        <div class="spec"><div class="top"><span class="name">Atenção</span><span class="cls">.pill.y</span></div><div class="preview solid"><span class="pill y">PARCIAL</span></div></div>
+        <div class="spec"><div class="top"><span class="name">Crítico</span><span class="cls">.pill.r</span></div><div class="preview solid"><span class="pill r">PENDENTE</span></div></div>
+        <div class="spec"><div class="top"><span class="name">Neutro</span><span class="cls">.pill.k</span></div><div class="preview solid"><span class="pill k">EXTERNO</span></div></div>
+        <div class="spec"><div class="top"><span class="name">Ghost</span><span class="cls">.pill.ghost</span></div><div class="preview solid"><span class="pill ghost">APURAÇÃO</span></div></div>
+      </div>
+    </section>
+
+    <!-- ============================================ BADGES -->
+    <section class="ds" id="badges">
+      <header><div><h2>20 · Badges de Negócio</h2><div class="h-sub">Identificação fixa de empresa (RC · ME · SU).</div></div></header>
+      <div class="specs">
+        <div class="spec"><div class="top"><span class="name">RC</span><span class="cls">.badge.rc</span></div><div class="preview solid"><span class="badge rc">RC</span></div></div>
+        <div class="spec"><div class="top"><span class="name">ME</span><span class="cls">.badge.me</span></div><div class="preview solid"><span class="badge me">ME</span></div></div>
+        <div class="spec"><div class="top"><span class="name">SU</span><span class="cls">.badge.su</span></div><div class="preview solid"><span class="badge su">SU</span></div></div>
+        <div class="spec"><div class="top"><span class="name">Linha de badges</span><span class="cls">.badge-row</span></div><div class="preview solid"><span class="badge-row"><span class="badge rc">RC</span><span class="badge me">ME</span><span class="badge su">SU</span></span></div></div>
+      </div>
+    </section>
+
+    <!-- ============================================ CURVA -->
+    <section class="ds" id="curva">
+      <header><div><h2>21 · Curva ABC</h2><div class="h-sub">Classificação fornecedor / produto / ID.</div></div></header>
+      <div class="specs">
+        <div class="spec"><div class="top"><span class="name">Alta · A/AA/AAA</span><span class="cls">.curva.AAA</span></div><div class="preview solid"><span class="curva AAA">AAA</span><span class="curva AA">AA</span><span class="curva A">A</span></div></div>
+        <div class="spec"><div class="top"><span class="name">Média · B/BB</span><span class="cls">.curva.B</span></div><div class="preview solid"><span class="curva BB">BB</span><span class="curva B">B</span></div></div>
+        <div class="spec"><div class="top"><span class="name">Baixa · C/CC/CCC</span><span class="cls">.curva.CCC</span></div><div class="preview solid"><span class="curva C">C</span><span class="curva CC">CC</span><span class="curva CCC">CCC</span></div></div>
+      </div>
+    </section>
+
+    <!-- ============================================ DOTS -->
+    <section class="ds" id="dots">
+      <header><div><h2>22 · Status dots</h2><div class="h-sub">Ponto de 8px inline em listas e tabelas.</div></div></header>
+      <div class="specs">
+        <div class="spec"><div class="top"><span class="name">Variações</span><span class="cls">.sdot.g · .y · .r · .b</span></div><div class="preview solid" style="justify-content:flex-start">
+          <span><span class="sdot g"></span>OK</span>
+          <span style="margin-left:14px"><span class="sdot y"></span>Atenção</span>
+          <span style="margin-left:14px"><span class="sdot r"></span>Crítico</span>
+          <span style="margin-left:14px"><span class="sdot b"></span>Info</span>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- ============================================ ACT -->
+    <section class="ds" id="act">
+      <header><div><h2>23 · Botão de ação <code>.act</code></h2><div class="h-sub">Sempre <b>uma palavra</b> · usado dentro de células de tabela.</div></div></header>
+      <div class="specs">
+        <div class="spec">
+          <div class="top"><span class="name">Action button</span><span class="cls">.act</span></div>
+          <div class="preview solid" style="justify-content:flex-start">
+            <button class="act">Padronizar</button>
+            <button class="act">Mapear</button>
+            <button class="act">Conciliar</button>
+            <button class="act">Mesclar</button>
+          </div>
+          <div class="desc">Texto curto + verbo no infinitivo. Não usar frases.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ ALERTS -->
+    <section class="ds" id="alerts">
+      <header><div><h2>24 · Lista de alertas</h2><div class="h-sub">Linha = dot de severidade + mensagem + responsável + ação.</div></div></header>
+      <div class="specs">
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">Alert row</span><span class="cls">.alert-row.r · .y · .b · .g</span></div>
+          <div class="preview solid" style="display:block;padding:0">
+            <div style="background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden">
+              <div class="alert-row r"><span class="dot"></span><div><b>418 cotações sem MIN/MAX</b><div class="who">campo MIN_COT · MAX_COT</div></div><span class="pill r">CRÍTICO</span><button class="act">Reapurar</button></div>
+              <div class="alert-row y"><span class="dot"></span><div><b>218 produtos sem código oficial</b><div class="who">CDPRODUTO_OFICIAL</div></div><span class="pill y">ATENÇÃO</span><button class="act">Padronizar</button></div>
+              <div class="alert-row b"><span class="dot"></span><div><b>8 fornecedores em duplicidade</b><div class="who">CNPJ</div></div><span class="pill b">INFO</span><button class="act">Mesclar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ MONO -->
+    <section class="ds" id="mono">
+      <header><div><h2>25 · Mono · IDs e códigos técnicos</h2><div class="h-sub">Toda string técnica (campo, CNPJ, código de workspace) em <code>.mono</code>.</div></div></header>
+      <div class="specs">
+        <div class="spec" style="grid-column:1/-1">
+          <div class="top"><span class="name">Mono</span><span class="cls">.mono · .id</span></div>
+          <div class="preview solid" style="justify-content:flex-start;flex-direction:column;align-items:flex-start;gap:6px">
+            <span class="mono">NFE · ENTRADA DE NOTAS · NFE - IDEAL/MELHOR/SUPERA</span>
+            <span class="mono">CDFORNECED_OFICIAL · CDPRODUTO_OFICIAL · CAT5</span>
+            <span class="mono">CNPJ 12.345.678/0001-00 · PMP_ID_INF_12</span>
+          </div>
+          <div class="desc">Consolas/Menlo 11.5px · cor <code>#334155</code>.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- footer -->
+    <div style="font-size:11px;color:var(--muted);text-align:center;padding:14px 0 4px">
+      Sistema de design baseado em <b style="color:var(--ink)">BI Suprimentos v3.1.html</b> · Atualize esta página sempre que adicionar um novo componente.
+    </div>
+
+  </main>
+</div>
+</body>
+</html>

@@ -19,8 +19,52 @@ Em uma nova conversa, ler nesta ordem:
 - Se a anotacao ficar longa demais, criar um documento especifico em `docs/` e registrar aqui apenas a decisao central e o caminho.
 - Nao empilhar entradas soltas no fim do arquivo.
 - Registrar tambem descobertas de ambiente, riscos e mudancas de direcao.
+- Qualquer modificacao feita no repositorio deve atualizar este diario no mesmo ciclo de trabalho.
+- O registro deste diario deve ser tecnico, preciso e detalhado: arquivos alterados, motivacao, decisao, impactos, testes e pendencias.
+- Quando um assunto ou frente de trabalho for encerrado, atualizar tambem o `README.md` de forma ampla e generica, para que a retomada futura entenda o estado atual sem precisar reler todos os detalhes tecnicos.
 
 ## Registro Por Data E Assunto
+
+### 2026-05-28
+
+#### Padronizacao do design do BI Suprimentos e governanca documental
+
+- Foi definida a pasta `zoho/design/` como local canonico para os modelos visuais do BI.
+- O arquivo `zoho/design/BI Suprimentos v4.html` passou a ser o modelo padrao de pagina para o BI de Suprimentos.
+- O arquivo `zoho/design/BI Design System.html` passou a ser o sistema de design padrao para todas as novas geracoes de telas, componentes e mockups de BI.
+- Os arquivos historicos de design em `zoho/design/` mantem versoes anteriores para comparacao, mas a referencia operacional principal passa a ser a versao `v4`.
+- O `README.md` foi atualizado com:
+  - regra geral de governanca de documentacao;
+  - referencia ao modelo padrao `BI Suprimentos v4.html`;
+  - referencia ao sistema padrao `BI Design System.html`;
+  - convencao de que novas geracoes de design devem partir dessas referencias, salvo nova decisao registrada neste diario.
+- A regra de atualizacao deste diario foi reforcada:
+  - qualquer modificacao no repositorio deve gerar registro tecnico no diario;
+  - o registro deve conter motivacao, arquivos alterados, decisao, impacto, testes e pendencias quando aplicavel;
+  - ao encerrar uma frente de trabalho, o `README.md` deve ser atualizado em linguagem mais ampla e sintetica.
+
+#### Mapa funcional das 15 abas do BI Suprimentos v4
+
+- Foi criado o documento `zoho/docs/MAPA_ABAS_ELEMENTOS_BI_SUPRIMENTOS_V4.md`.
+- O documento foi extraido do arquivo canonico `zoho/design/BI Suprimentos v4.html`.
+- A nomenclatura das abas foi congelada conforme o design v4:
+  - `Resumo`
+  - `Oportunidades`
+  - `Categorias`
+  - `Filiais`
+  - `Estoque`
+  - `Fornecedor`
+  - `Produtos`
+  - `Cotações`
+  - `Impacto`
+  - `Inflação`
+  - `Fiscal`
+  - `Financeiro`
+  - `Adiantamentos`
+  - `Serviços`
+  - `Dados`
+- Para cada aba, foram listados os KPIs, graficos, cards, relatorios, tabelas, controles internos e, quando aplicavel, as origens Zoho explicitadas no design.
+- O `README.md` foi atualizado para apontar para esse mapa funcional como referencia de composicao do BI v4.
 
 ### 2026-05-21
 

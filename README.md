@@ -63,7 +63,28 @@ Em uma nova retomada, ler nesta ordem:
 4. `docs/ESTUDO_CENARIO_FISCAL_2026_2027.md`
 5. `docs/LEVANTAMENTO_BASES_INICIAIS.md`
 
-## 4. Scripts iniciais
+## 4. Governanca de documentacao
+
+Este repositorio deve preservar continuidade entre conversas, decisoes tecnicas e entregas visuais.
+
+- Toda modificacao relevante deve atualizar `docs/DIARIO_DE_BORDO.md` no mesmo momento em que a alteracao for feita.
+- O diario deve registrar detalhes tecnicos, arquivos alterados, decisoes, riscos, resultados de testes e proximos passos.
+- Quando um assunto, ciclo ou frente de trabalho for concluido, o `README.md` deve ser atualizado de forma ampla e generica, deixando claro o estado atual do projeto para uma nova retomada.
+- O `README.md` nao deve substituir o diario: ele resume a direcao do projeto; o diario preserva o historico tecnico.
+
+## 5. BI Suprimentos e design padrao
+
+A frente de BI de Suprimentos vive dentro de `zoho/` e usa o Zoho Analytics como fonte de dados de referencia.
+
+Referencias canonicas de design:
+
+- `zoho/design/BI Suprimentos v4.html`: modelo padrao de pagina para o BI de Suprimentos.
+- `zoho/design/BI Design System.html`: sistema de design padrao para novas geracoes de telas, mockups e componentes de BI.
+- `zoho/docs/MAPA_ABAS_ELEMENTOS_BI_SUPRIMENTOS_V4.md`: mapa funcional das 15 abas do BI v4, com KPIs, graficos, relatorios e tabelas por guia.
+
+Todo novo design de BI deve partir dessas duas referencias, salvo decisao explicita registrada no diario.
+
+## 6. Scripts iniciais
 
 - `scripts/inventario_fontes.py`: gera um inventario reproduzivel das tres bases e mede cobertura entre cadastro, curva e NFe.
 - `scripts/build_supplier_base.py`: gera base cadastral normalizada, base unificada por CNPJ, relatorio de pendencias e resumo cadastral.
@@ -75,10 +96,12 @@ Em uma nova retomada, ler nesta ordem:
 - `scripts/build_opencnpj_address_export.py`: materializa campos de endereco e contato existentes no cache bruto da `OpenCNPJ` em novo CSV enriquecido.
 - `scripts/build_supplier_audit_panel_v05.py`: gera a versao 05 do painel de auditoria, baseada na versao 04 e adicionando endereco/contato e filtro por UF cadastral.
 
-## 5. Estrutura de dados
+## 7. Estrutura de dados
 
 - `data/`: fontes brutas oficiais do projeto.
 - `docs/`: diario, estudos e plano.
+- `zoho/`: frente de BI Suprimentos, integracao Zoho Analytics, estudos, scripts, testes e materiais de design.
+- `zoho/design/`: referencias canonicas de design do BI; inclui o modelo de pagina e o sistema de design padrao.
 - `output/fase_01_cadastro/`: artefatos da fase cadastral.
   - `01_fornecedores_cadastro_normalizado.csv`
   - `02_fornecedores_cadastro_unificado.csv`
@@ -104,13 +127,13 @@ Em uma nova retomada, ler nesta ordem:
   - `04_painel_auditoria_fornecedores.html`
   - `05_painel_auditoria_fornecedores_endereco.html`
 
-## 6. Convencoes importantes
+## 8. Convencoes importantes
 
 - codigos iniciados por `J` representam fornecedor pessoa juridica e carregam `CNPJ` no restante do codigo.
 - codigos iniciados por `F` representam fornecedor pessoa fisica e carregam `CPF` no restante do codigo.
 - codigos com outros prefixos devem ser tratados como excecao operacional ate melhor classificacao.
 
-## 7. Proximo passo
+## 9. Proximo passo
 
 Com a Fase 4 consolidada, o proximo passo oficial do projeto e transformar a classificacao inicial em regra fiscal operacional:
 
@@ -119,7 +142,7 @@ Com a Fase 4 consolidada, o proximo passo oficial do projeto e transformar a cla
 - definir regra final de `potencial_credito_2027` por regime e qualidade do dado;
 - construir a camada de comparacao economico-tributaria por produto.
 
-## 8. Como enxergar o antes e depois
+## 10. Como enxergar o antes e depois
 
 - Para leitura visual de saneamento e enriquecimento, abrir `output/fase_04_visualizacao/01_antes_depois_visual_fornecedores.xlsx`.
 - Para devolver ao BD uma planilha no mesmo formato do cadastro original, abrir `output/fase_04_visualizacao/02_fornecedores_formato_original_com_campos_gvg.xlsx`.
