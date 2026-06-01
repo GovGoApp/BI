@@ -1,30 +1,49 @@
-# Secrets and local environment files
+# ============================================================
+# Credenciais e arquivos de ambiente
+# ============================================================
 .env
 *.env
 zoho/zoho.env
+**/zoho/zoho.env
+**/zoho.env
 
-# Raw and generated business data
+# ============================================================
+# Dados brutos e outputs gerados (todos os subprojetos)
+# ============================================================
 data/
 output/
+dist/
+**/data/raw/
+**/data/processed/
+**/output/
+**/dist/
 zoho/output/
 
-# Python caches and virtual environments
+# ============================================================
+# Python
+# ============================================================
 __pycache__/
+**/__pycache__/
 *.py[cod]
+*.pyo
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .venv/
 venv/
 
-# Local/editor/system files
+# ============================================================
+# Editor e sistema
+# ============================================================
 .DS_Store
 Thumbs.db
 desktop.ini
 .vscode/
 .idea/
 
-# Logs and temporary files
+# ============================================================
+# Logs e temporários
+# ============================================================
 *.log
 *.tmp
 *.bak
