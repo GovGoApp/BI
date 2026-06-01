@@ -36,6 +36,7 @@ MANIFEST_FILE = RAW_DIR / "manifest.json"
 BATCH_SIZE = 4       # jobs simultâneos
 JOB_INTERVAL = 8    # segundos entre polls
 JOB_MAX_ATTEMPTS = 90
+BAR_WIDTH = 30       # largura da barra de progresso
 
 
 # ---------------------------------------------------------------------------
@@ -79,6 +80,14 @@ def _is_stale(source_id: str, manifest: dict[str, Any], max_age_hours: float) ->
 # Extração em lote
 # ---------------------------------------------------------------------------
 
+def _bar(done: int, total: int) -> str:
+    """Barra de progresso ASCII. Ex: [==========----------] 10/18 (55%)"""
+    pct = done / total if total else 0
+    filled = int(BAR_WIDTH * pct)
+    empty = BAR_WIDTH - filled
+    return f"[{'=' * filled}{'-' * empty}] {done}/{total} ({int(pct * 100)}%)"
+
+
 def _count_csv_rows(path: Path) -> int:
     try:
         with path.open(encoding="utf-8-sig") as f:
@@ -91,6 +100,8 @@ def _extract_batch(
     client: ZohoClient,
     token: str,
     batch: list[dict[str, Any]],
+    global_done: int,
+    global_total: int,
 ) -> dict[str, Any]:
     """Cria jobs para um lote, aguarda todos e baixa. Retorna resultados."""
     results: dict[str, Any] = {}
@@ -104,15 +115,16 @@ def _extract_batch(
         try:
             job_id = client.create_job_sql(sql, token)
             jobs[sid] = job_id
-            print(f"    Job criado: {sid} -> {job_id}")
         except ZohoError as exc:
-            print(f"    ERRO ao criar job {sid}: {exc}")
+            print(f"  ERRO ao criar job {sid}: {exc}")
             results[sid] = {"status": "error", "error": str(exc)}
 
     if not jobs:
         return results
 
-    # 2. Polling de todos os jobs até completarem
+    print(f"  Jobs criados: {list(jobs.keys())}")
+
+    # 2. Polling até todos completarem
     pending = dict(jobs)
     completed: dict[str, str] = {}
     failed: dict[str, str] = {}
@@ -132,35 +144,40 @@ def _extract_batch(
                     failed[sid] = f"jobCode={code}"
                 else:
                     still_pending[sid] = job_id
-            except ZohoError as exc:
+            except ZohoError:
                 still_pending[sid] = job_id
-                if attempt % 5 == 0:
-                    print(f"    Polling {sid}: {exc}")
 
         pending = still_pending
         if pending:
-            print(f"    Aguardando ({attempt}/{JOB_MAX_ATTEMPTS}): {list(pending.keys())}", end="\r", flush=True)
+            done_in_batch = len(jobs) - len(pending)
+            bar_batch = _bar(done_in_batch, len(jobs))
+            bar_global = _bar(global_done, global_total)
+            line = f"  Lote {bar_batch}  |  Total {bar_global}  |  aguardando: {list(pending.keys())}"
+            print(f"{line:<120}", end="\r", flush=True)
             time.sleep(JOB_INTERVAL)
 
     if pending:
         for sid in pending:
             failed[sid] = "timeout"
-    if completed or failed:
-        print()  # limpa linha do \r
+    print()  # limpa linha do \r
 
     # 3. Marcar falhas
     for sid, reason in failed.items():
-        print(f"    FALHOU: {sid} — {reason}")
+        print(f"  FALHOU: {sid} ({reason})")
         results[sid] = {"status": "error", "error": reason}
 
     # 4. Baixar completados
-    for sid, job_id in completed.items():
+    for i, (sid, job_id) in enumerate(completed.items(), 1):
         source = next(s for s in batch if s["id"] == sid)
         out_file = RAW_DIR / f"{sid}.csv"
+        g_done = global_done + i
+        bar_global = _bar(g_done, global_total)
+        print(f"  Baixando {bar_global}  {sid}...", end="\r", flush=True)
         try:
             client.download_job(job_id, out_file, token)
             rows = _count_csv_rows(out_file)
-            print(f"    OK: {sid} -> {out_file.name} ({rows:,} linhas)")
+            size_mb = out_file.stat().st_size / 1_048_576
+            print(f"  {_bar(g_done, global_total)}  OK  {sid:<25} {rows:>8,} linhas  {size_mb:.1f} MB")
             results[sid] = {
                 "status": "ok",
                 "file": f"{sid}.csv",
@@ -169,7 +186,7 @@ def _extract_batch(
                 "zoho_name": source["zoho_name"],
             }
         except ZohoError as exc:
-            print(f"    ERRO ao baixar {sid}: {exc}")
+            print(f"  ERRO ao baixar {sid}: {exc}")
             results[sid] = {"status": "error", "error": str(exc)}
 
     return results
@@ -227,24 +244,28 @@ def main(argv: list[str] | None = None) -> int:
         print("Nenhuma fonte desatualizada. Use --force para forçar.")
         return 0
 
-    print(f"\nExtraindo {len(to_extract)} fontes em lotes de {BATCH_SIZE}...\n")
+    total = len(to_extract)
+    n_lotes = (total + BATCH_SIZE - 1) // BATCH_SIZE
+    print(f"\nExtraindo {total} fontes em {n_lotes} lote(s) de {BATCH_SIZE}...\n")
+    print(f"  {_bar(0, total)}")
+    print()
 
-    # Processar em lotes
     total_ok = 0
     total_err = 0
+    global_done = 0
 
-    for i in range(0, len(to_extract), BATCH_SIZE):
+    for i in range(0, total, BATCH_SIZE):
         batch = to_extract[i:i + BATCH_SIZE]
-        nomes = [s["id"] for s in batch]
-        print(f"  Lote {i // BATCH_SIZE + 1}: {nomes}")
+        lote_num = i // BATCH_SIZE + 1
+        print(f"--- Lote {lote_num}/{n_lotes}: {[s['id'] for s in batch]} ---")
 
-        results = _extract_batch(client, token, batch)
+        results = _extract_batch(client, token, batch, global_done, total)
 
-        # Atualizar manifest
         for sid, result in results.items():
             manifest[sid] = result
             if result["status"] == "ok":
                 total_ok += 1
+                global_done += 1
             else:
                 total_err += 1
 
@@ -252,7 +273,8 @@ def main(argv: list[str] | None = None) -> int:
         print()
 
     # Resumo final
-    print(f"Concluído: {total_ok} OK, {total_err} erro(s).")
+    print(f"  {_bar(total_ok, total)}")
+    print(f"\nConcluido: {total_ok} OK, {total_err} erro(s).")
     print(f"Manifest: {MANIFEST_FILE}")
 
     return 0 if total_err == 0 else 1
