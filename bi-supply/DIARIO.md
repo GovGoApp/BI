@@ -108,8 +108,88 @@ Não migrados por serem prompts para Claude Design (não são documentação do 
 
 5. **Módulo NL-SQL**: baseado no padrão de tool calls com LLM (guia `GUIA_IMPLEMENTACAO_MODO_RELATORIO_NL_SQL.md`). Permite fazer perguntas em português que viram SQL executado no Zoho. Ficará em `nlsql/`.
 
-### Próximos passos (Fase 1)
+### Fase 0 concluída — Próximos passos
 
-- [ ] Reescrever `zoho/client.py` (limpo, baseado no código anterior)
-- [ ] Criar `zoho/catalog.py` — cataloga os views para o NL-SQL
-- [ ] Criar testes em `tests/zoho/`
+- [x] Reescrever `zoho/client.py`
+- [ ] Criar `zoho/catalog.py`
+- [ ] Criar testes de catalog
+
+---
+
+## [2026-06-01] Fase 1 — Passo 1: zoho/client.py
+
+**Commit:** `f94ecaf`
+
+### O que foi feito
+
+Reescrita limpa do cliente Zoho Analytics API v2, portado de `supply/scripts/zoho_analytics_client.py` para `bi-supply/zoho/client.py`.
+
+### Arquivo: `zoho/client.py` (≈270 linhas)
+
+**Estruturas principais:**
+
+```
+load_env_file(path)         ← lê .env e injeta em os.environ
+ZohoConfig                  ← dataclass frozen com credenciais
+  .from_env(require_workspace=True)
+ZohoClient(config, session, timeout)
+  .refresh_token()          ← POST /oauth/v2/token → access_token
+  .exchange_code(...)       ← troca authorization code por refresh_token (static)
+  .get_orgs(token)          ← GET /restapi/v2/orgs
+  .get_workspaces(token)    ← GET /restapi/v2/workspaces
+  .get_views(token, keyword)← GET /restapi/v2/workspaces/{ws}/views
+  .export_view(...)         ← exportação síncrona (views pequenas)
+  .create_job_view(...)     ← cria job bulk assíncrono por view_id
+  .create_job_sql(...)      ← cria job bulk assíncrono por SQL SELECT
+  .job_status(job_id, token)← consulta status do job
+  .wait_job(job_id, token, interval, max_attempts) ← polling com progresso
+  .download_job(job_id, out, token) ← baixa o arquivo do job concluído
+ZohoError(RuntimeError)     ← erro da API ou resposta inesperada
+```
+
+**Melhorias em relação ao código anterior:**
+
+| Antes | Depois |
+|---|---|
+| `from_env()` + `from_env_for_discovery()` (dois métodos) | `from_env(require_workspace=False)` (um método com flag) |
+| `session.request("GET", ...)` para tudo | `session.get(...)` / `session.post(...)` — mais idiomático |
+| Nenhum feedback durante polling | Imprime progresso: `Aguardando job ... tentativa N/60` |
+| `views` mostrava só primeiros 20 | `--limit N` (padrão 50, `--limit 0` = todas) |
+| Nome `ZohoAnalyticsError` | `ZohoError` — mais curto |
+
+**CLI disponível:**
+
+```powershell
+python zoho/client.py --env-file zoho/zoho.env token
+python zoho/client.py --env-file zoho/zoho.env orgs
+python zoho/client.py --env-file zoho/zoho.env workspaces
+python zoho/client.py --env-file zoho/zoho.env views [--keyword NFE] [--limit 0]
+python zoho/client.py --env-file zoho/zoho.env exchange-code --code CODIGO
+python zoho/client.py --env-file zoho/zoho.env export-view --view-id ID --out arquivo.csv [--async --wait]
+python zoho/client.py --env-file zoho/zoho.env export-sql --sql "select..." --out arquivo.csv --wait
+python zoho/client.py --env-file zoho/zoho.env job-status --job-id ID
+python zoho/client.py --env-file zoho/zoho.env download-job --job-id ID --out arquivo.csv
+```
+
+### Arquivo: `tests/zoho/test_client.py` (≈230 linhas)
+
+**23 testes unitários — todos passando — sem chamadas reais à API.**
+
+Organização:
+
+| Classe | Testes | O que cobre |
+|---|---|---|
+| `TestZohoConfig` | 5 | `load_env_file`, `from_env` com e sem workspace, URLs customizadas |
+| `TestZohoClientAuth` | 3 | `refresh_token`, `exchange_code`, erro sem access_token |
+| `TestZohoClientDiscovery` | 4 | `get_orgs`, `get_workspaces`, `get_views` com e sem keyword |
+| `TestZohoClientBulk` | 8 | `create_job_view`, `create_job_sql`, `job_status`, `wait_job` (sucesso/falha/timeout), `download_job` |
+| `TestZohoClientErros` | 3 | failure response, HTTP 4xx, jobId ausente |
+
+**Infraestrutura de teste:**
+- `FakeResponse` — simula `requests.Response` com `status_code`, `content`, `json()`
+- `FakeSession` — devolve respostas pré-configuradas em sequência, registra todas as chamadas em `session.calls` para assertivas de URL e headers
+
+### Próximos passos
+
+- [ ] Criar `zoho/catalog.py`
+- [ ] Criar testes de catalog
