@@ -189,7 +189,90 @@ Organização:
 - `FakeResponse` — simula `requests.Response` com `status_code`, `content`, `json()`
 - `FakeSession` — devolve respostas pré-configuradas em sequência, registra todas as chamadas em `session.calls` para assertivas de URL e headers
 
-### Próximos passos
+### Próximos passos da Fase 1
 
 - [ ] Criar `zoho/catalog.py`
 - [ ] Criar testes de catalog
+
+---
+
+## [2026-06-01] Fase 1 — Passo 2: inventário completo e perfil de fontes
+
+**Commits:** a registrar
+
+### O que foi feito
+
+Geração ao vivo — diretamente do Zoho Analytics — de dois documentos reconstruídos do zero:
+- `docs/zoho/INVENTARIO_WORKSPACES.md` — todos os 10 workspaces e 561 views em UTF-8 limpo
+- `docs/dados/PERFIL_FONTES.md` — 51/53 fontes do SUPRIMENTOS com colunas, tipos inferidos e amostra de 5 linhas
+
+Arquivos de dados gerados (gitignored):
+- `data/raw/zoho_inventory.json` — inventário bruto JSON
+- `data/raw/suprimentos_profile.json` — perfil JSON
+- `data/raw/samples/{fonte}.csv` — amostra CSV de cada fonte
+
+### Problema corrigido
+
+`INVENTARIO_WORKSPACES.md` anterior (de 27/05) tinha caracteres corrompidos (`TOP DEFLA�O`).
+Causa: arquivo gerado em Windows-1252. Novo documento usa `open(..., encoding="utf-8")` explicitamente.
+
+### Arquivos criados
+
+**`zoho/inventario.py`** — script utilitário (rodar uma vez):
+- `get_all_workspaces()` — itera todos os workspaces via API, coleta views de cada um
+- `profile_view()` — executa `select * from "VIEW" limit 5` via Bulk API assíncrona
+- `build_inventario_md()` — gera o markdown do inventário
+- `build_perfil_md()` — gera o markdown do perfil com colunas e tipos inferidos
+- `infer_type()` — infere tipo (inteiro/decimal/texto/vazio) a partir dos valores de amostra
+
+**`zoho/client.py`** — atualização pequena:
+- `get_views()` agora aceita `workspace_id` opcional — permite listar views de qualquer workspace
+
+### Resultado do profiling (53 fontes)
+
+| Resultado | Fontes |
+|---|---:|
+| OK | 51 |
+| Erro (sem amostra) | 2 |
+
+Erros: `ADIANTAMENTO_NFE` e `TODAS - CONTAS A PAGAR` — a investigar.
+
+### Descobertas principais da análise
+
+**1. QueryTables consolidadas adicionam enrichment — não são só UNION:**
+
+| Fonte | Cols | Extra (não existe na por-empresa) |
+|---|---:|---|
+| `NFE - IDEAL/MELHOR/SUPERA` | 25 | — |
+| `NFE` | 63 | CURVA_*, PMP_*, IMP_*, INF_*, FI.* |
+| `COT - IDEAL/MELHOR/SUPERA` | 25 | — |
+| `COT` | 32 | CURVA_PROD, CURVA_FORN, CURVA_ID |
+| `NF COM ITENS - IDEAL/ME/SU` | 29 | — |
+| `NF COM ITENS - CONSOLIDADO` | 47 | Mais dimensões de produto e filial |
+
+**2. Redundâncias confirmadas e descartadas:**
+
+| Descartar | Usar em vez |
+|---|---|
+| `NFE - IDEAL/MELHOR/SUPERA` | `NFE` |
+| `COT - IDEAL/MELHOR/SUPERA` | `COT` |
+| `NF COM ITENS - IDEAL/ME/SU` | `NF COM ITENS - CONSOLIDADO` |
+| `CURVA PROD - IDEAL/MELHOR/SUPERA` | `CURVA PROD - TODAS` |
+| `AD_v1`, `AD_v2` (11 cols) | `AD_v3` (16 cols, tem UF/filial/cat/status) |
+| `PMP_ID`, `PMP_ID_INF` | `PMP_ID_INF_12` (22 cols) |
+| `PMP_PROD`, `PMP_PROD_INF` | `PMP_PROD_INF_12` (21 cols) |
+| `CP_SALDO_2025`, `CP_SALDO_2026` | `CP_SALDO_2026_v2` |
+| `ENTRADA DE NOTAS - [TODAS]` (42 cols) | `NFE` (63 cols, superconjunto) |
+| `CURVA FORN - TODAS` (6 cols, sem nome) | `CURVA ABC FORN - TOTAL` (7 cols, tem `RAZAO_SOCIAL`) |
+| `FORN_CP_25_26` (1 col, corrompida) | — (descartar) |
+| `TODAS - CONTAS A PAGAR` (erro) | `CP` |
+| `FILIAIS/FILIAIS_DRO/FILIAIS_NEW` | `FILIAIS_SUPPLY` |
+| `[RC] COTAÇÃO DE PREÇOS - OLD` | — (obsoleta) |
+
+**3. Lista golden — 19 fontes para o BI:**
+
+NFE · NF COM ITENS - CONSOLIDADO · COT · COT_MIN_FORN · NUM_COT ·
+CURVA ABC FORN - TOTAL · CURVA ID - TODAS · CURVA PROD - TODAS ·
+INFLAÇÃO · PMP_ID_INF_12 · PMP_PROD_INF_12 ·
+CP · CP_MOV · CP_SEMANA · CP_SALDO_2026_v2 ·
+AD_v3 · FILIAIS_SUPPLY · TAB_PROD · FAT_SUP

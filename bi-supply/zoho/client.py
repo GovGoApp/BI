@@ -178,17 +178,25 @@ class ZohoClient:
         )
         return self._json(resp, "Não foi possível listar workspaces")
 
-    def get_views(self, token: str, keyword: str | None = None) -> dict[str, Any]:
+    def get_views(
+        self,
+        token: str,
+        keyword: str | None = None,
+        workspace_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Lista views de um workspace. Usa workspace_id do config se não informado."""
+        ws = workspace_id or self.config.workspace_id
         params: dict[str, str] = {}
         if keyword:
             params["CONFIG"] = json.dumps({"keyword": keyword})
+        headers = {"Authorization": f"Zoho-oauthtoken {token}", "ZANALYTICS-ORGID": self.config.org_id}
         resp = self._session.get(
-            self._url(f"restapi/v2/workspaces/{self.config.workspace_id}/views"),
-            headers=self._headers(token),
+            self._url(f"restapi/v2/workspaces/{ws}/views"),
+            headers=headers,
             params=params or None,
             timeout=self._timeout,
         )
-        return self._json(resp, "Não foi possível listar views")
+        return self._json(resp, f"Não foi possível listar views do workspace {ws}")
 
     # ---- Exportação síncrona (views pequenas) ----
 
