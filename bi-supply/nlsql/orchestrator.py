@@ -1,13 +1,13 @@
-"""Orquestrador NL-SQL usando Claude API com tool use.
+"""Orquestrador NL-SQL usando OpenAI Responses API com function calling.
 
 Fluxo:
   1. Usuário faz pergunta em português
-  2. Claude chama search_schema para descobrir tabelas relevantes
-  3. Claude chama describe_table para ver colunas e exemplos
-  4. Claude gera SQL e chama run_readonly_query
+  2. Modelo chama search_schema para descobrir tabelas relevantes
+  3. Modelo chama describe_table para ver colunas e exemplos
+  4. Modelo gera SQL e chama run_readonly_query
   5. Resultado tabular é retornado
 
-Requer: ANTHROPIC_API_KEY no ambiente ou em nlsql/.env
+Requer: OPENAI_API_KEY e OPENAI_MODEL em nlsql/.env
 """
 
 from __future__ import annotations
@@ -23,10 +23,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from nlsql.adapter import run_query
-from nlsql.guard import SQLGuardError
-from zoho.catalog import search_schema, describe_table, list_tables
+from zoho.catalog import search_schema, describe_table
 
-# ── Carrega .env da pasta nlsql se existir ───────────────────────────────────
+# ── Carregar nlsql/.env ──────────────────────────────────────────────────────
 _NLSQL_ENV = ROOT / "nlsql" / ".env"
 if _NLSQL_ENV.exists():
     for line in _NLSQL_ENV.read_text(encoding="utf-8").splitlines():
@@ -35,97 +34,107 @@ if _NLSQL_ENV.exists():
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
 
-SYSTEM = """Você é um assistente de análise de dados de suprimentos.
+INSTRUCTIONS = """Você é um assistente de análise de dados de suprimentos.
 
-Seu objetivo é responder perguntas do usuário consultando o banco de dados Zoho Analytics
-do workspace SUPRIMENTOS, que contém dados de compras, fornecedores, cotações,
-preços e contas a pagar de uma empresa de food service.
+Seu objetivo é responder perguntas consultando o Zoho Analytics (workspace SUPRIMENTOS),
+que contém dados de compras, fornecedores, cotações, preços e contas a pagar
+de uma empresa de food service (hospitais, escolas, presídios, restaurantes).
 
-Conceitos importantes do domínio:
-- ID: chave analítica que combina empresa + UF + produto (ex: RCPEI201203000)
-- IMP_COT: impacto de cotação — (preço pago − menor cotação) × quantidade. Positivo = pagamos mais que o mínimo.
+Conceitos do domínio:
+- ID: chave analítica empresa+UF+produto (ex: RCPEI201203000)
+- IMP_COT: (preço pago − menor cotação) × quantidade. Positivo = oportunidade de economia.
 - PMP: Preço Médio Ponderado histórico
-- INF: variação do PMP ao longo do tempo (inflação do produto)
-- Curva ABC: AAA/AA/A são os mais relevantes em volume; CCC são a cauda longa
-- NMEMP: empresa (RC = Ideal/RC, ME = Melhor, SU = Supera)
-- CAT1 a CAT5: hierarquia de categorias (I=Insumos, D=Despesas, A=Ativos)
+- INF: variação do PMP no tempo (inflação do produto)
+- Curva ABC: AAA/AA/A = mais relevantes por volume; CCC = cauda longa
+- NMEMP: RC (Ideal/RC) | ME (Melhor) | SU (Supera)
+- CAT1..CAT5: hierarquia de categorias (I=Insumos, D=Despesas, A=Ativos)
+- TOTAL: valor total comprado em reais
 
 Fluxo obrigatório:
-1. Use search_schema para encontrar tabelas relevantes
-2. Use describe_table para confirmar colunas e exemplos
-3. Se ambíguo, peça esclarecimento
-4. Gere uma única query SELECT com aliases claros
+1. Chame search_schema para encontrar tabelas relevantes
+2. Chame describe_table para confirmar colunas e exemplos
+3. Se ambíguo, peça esclarecimento antes de executar
+4. Gere uma única query SELECT com aliases claros em português quando possível
 5. Chame run_readonly_query
-6. Resuma o resultado de forma objetiva
+6. Resuma o resultado de forma direta e objetiva
 
-Regras:
-- Nunca invente tabelas ou colunas não confirmadas
-- Sempre use LIMIT (máximo 500)
-- Use aspas duplas nos nomes de tabelas e colunas do Zoho
-- Prefira somas e agrupamentos sobre listagens brutas
-- Se a pergunta puder ter mais de uma interpretação, peça esclarecimento
+Regras SQL (dialeto Zoho Analytics):
+- Nomes de tabelas e colunas entre aspas duplas: "NFE", "TOTAL"
+- Sempre inclua LIMIT
+- Use SUM(), COUNT(), AVG() para agregações
+- Prefira agregações sobre listagens brutas
+- Nunca invente tabelas ou colunas não confirmadas pelas ferramentas
 """
 
 TOOLS = [
     {
+        "type": "function",
         "name": "search_schema",
         "description": (
             "Busca tabelas e colunas relevantes no catálogo do workspace SUPRIMENTOS. "
             "Use antes de escrever SQL quando as tabelas relevantes não são claras."
         ),
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Termos de busca relacionados à pergunta. Ex: cotacao preco fornecedor",
+                    "description": "Termos relacionados à pergunta. Ex: cotacao preco fornecedor",
                 }
             },
             "required": ["query"],
+            "additionalProperties": False,
         },
+        "strict": True,
     },
     {
+        "type": "function",
         "name": "describe_table",
         "description": (
             "Retorna colunas, tipos e exemplos de valores de uma tabela específica. "
-            "Use após search_schema para confirmar quais colunas usar."
+            "Use após search_schema para confirmar quais colunas usar no SQL."
         ),
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "name": {
                     "type": "string",
-                    "description": "Nome exato da tabela no catálogo (ex: NFE, COT, CP)",
+                    "description": "Nome exato da tabela (ex: NFE, COT, CP, AD_v3)",
                 }
             },
             "required": ["name"],
+            "additionalProperties": False,
         },
+        "strict": True,
     },
     {
+        "type": "function",
         "name": "run_readonly_query",
         "description": (
             "Valida e executa uma query SELECT no Zoho Analytics. "
-            "Use somente SELECT ou WITH ... SELECT. Nunca DDL ou DML. "
-            "Inclua LIMIT."
+            "Use somente SELECT ou WITH ... SELECT. Inclua LIMIT. "
+            "Nomes de tabelas e colunas entre aspas duplas."
         ),
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "sql": {
                     "type": "string",
-                    "description": "Query SQL somente leitura no dialeto Zoho Analytics.",
+                    "description": 'Query SQL somente leitura. Ex: SELECT "NMEMP", sum("TOTAL") FROM "NFE" GROUP BY "NMEMP" LIMIT 10',
                 }
             },
             "required": ["sql"],
+            "additionalProperties": False,
         },
+        "strict": True,
     },
 ]
 
 
 def _call_tool(name: str, args: dict) -> str:
-    """Executa uma tool call e retorna o resultado como JSON string."""
+    """Executa uma tool call e retorna resultado como JSON string."""
     if name == "search_schema":
         results = search_schema(args["query"], top_n=5)
         return json.dumps(
@@ -142,119 +151,111 @@ def _call_tool(name: str, args: dict) -> str:
                  "columns": info["columns"]},
                 ensure_ascii=False,
             )
-        except KeyError as e:
-            return json.dumps({"error": str(e)})
+        except KeyError as exc:
+            return json.dumps({"error": str(exc)})
 
     if name == "run_readonly_query":
         result = run_query(args["sql"])
-        # Envia ao modelo só uma amostra pequena para não desperdiçar tokens
-        sample = result.copy()
+        # Envia amostra pequena ao modelo para não desperdiçar tokens
+        sample = {k: v for k, v in result.items() if k != "rows"}
         if result.get("rows"):
             sample["rows"] = result["rows"][:5]
-            sample["note"] = f"Mostrando 5 de {result['row_count']} linhas para o modelo. Resultado completo disponível."
+            sample["note"] = f"Amostra de 5/{result['row_count']} linhas enviada ao modelo."
         return json.dumps(sample, ensure_ascii=False, default=str)
 
     return json.dumps({"error": f"Tool desconhecida: {name}"})
 
 
 def ask(question: str, verbose: bool = False) -> dict[str, Any]:
-    """Faz uma pergunta em linguagem natural e retorna o resultado.
+    """Faz uma pergunta em linguagem natural e retorna resultado.
 
     Returns:
         {
-          "answer": str,           # resposta em texto
-          "table": dict | None,    # resultado tabular completo (não truncado)
-          "sql_used": str | None,  # SQL executado
-          "tool_calls": int,       # quantas tool calls foram feitas
+          "answer": str,
+          "table": dict | None,
+          "sql_used": str | None,
+          "tool_calls": int,
         }
     """
     try:
-        import anthropic
+        from openai import OpenAI
     except ImportError:
         return {
-            "answer": "Dependência 'anthropic' não instalada. Execute: pip install anthropic",
+            "answer": "Dependência 'openai' não instalada. Execute: pip install openai",
             "table": None, "sql_used": None, "tool_calls": 0,
         }
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
         return {
-            "answer": "ANTHROPIC_API_KEY não configurada. Adicione em nlsql/.env ou no ambiente.",
+            "answer": "OPENAI_API_KEY não configurada. Adicione em nlsql/.env",
             "table": None, "sql_used": None, "tool_calls": 0,
         }
 
-    client = anthropic.Anthropic(api_key=api_key)
-    messages = [{"role": "user", "content": question}]
+    client = OpenAI(api_key=api_key)
     last_table: dict | None = None
     last_sql: str | None = None
     tool_call_count = 0
 
+    # Formato Chat Completions — compatível com openai >= 1.0
+    messages: list = [
+        {"role": "system", "content": INSTRUCTIONS},
+        {"role": "user", "content": question},
+    ]
+
+    # Converter tools para formato Chat Completions
+    chat_tools = [
+        {"type": "function", "function": {
+            "name": t["name"],
+            "description": t["description"],
+            "parameters": t["parameters"],
+        }}
+        for t in TOOLS
+    ]
+
     while True:
-        response = client.messages.create(
+        response = client.chat.completions.create(
             model=MODEL,
-            max_tokens=4096,
-            system=SYSTEM,
-            tools=TOOLS,
             messages=messages,
+            tools=chat_tools,
+            tool_choice="auto",
         )
 
-        if verbose:
-            print(f"  [stop_reason: {response.stop_reason}]", flush=True)
+        msg = response.choices[0].message
+        messages.append(msg)
 
-        # Adicionar resposta do assistente ao histórico
-        messages.append({"role": "assistant", "content": response.content})
+        if verbose and msg.tool_calls:
+            print(f"  [tools: {[tc.function.name for tc in msg.tool_calls]}]", flush=True)
 
-        # Se parou sem tool_use, chegamos na resposta final
-        if response.stop_reason == "end_turn":
-            answer = ""
-            for block in response.content:
-                if hasattr(block, "text"):
-                    answer += block.text
+        # Sem tool calls = resposta final
+        if not msg.tool_calls:
             return {
-                "answer": answer,
+                "answer": msg.content or "",
                 "table": last_table,
                 "sql_used": last_sql,
                 "tool_calls": tool_call_count,
             }
 
-        # Processar tool calls
-        if response.stop_reason == "tool_use":
-            tool_results = []
-            for block in response.content:
-                if block.type != "tool_use":
-                    continue
-                tool_call_count += 1
-                tool_name = block.name
-                tool_args = block.input
+        # Processar cada tool call
+        for tc in msg.tool_calls:
+            tool_call_count += 1
+            args = json.loads(tc.function.arguments)
+            result_str = _call_tool(tc.function.name, args)
 
-                if verbose:
-                    print(f"  [tool: {tool_name}({list(tool_args.keys())})]", flush=True)
+            # Capturar resultado completo da query para retornar ao caller
+            if tc.function.name == "run_readonly_query":
+                try:
+                    result_data = json.loads(result_str)
+                    if result_data.get("ok"):
+                        last_sql = result_data.get("sql_used")
+                        full = run_query(args["sql"])
+                        if full.get("ok"):
+                            last_table = full
+                except Exception:
+                    pass
 
-                result_str = _call_tool(tool_name, tool_args)
-
-                # Capturar resultado da query para retornar ao caller
-                if tool_name == "run_readonly_query":
-                    try:
-                        result_data = json.loads(result_str)
-                        if result_data.get("ok"):
-                            last_sql = result_data.get("sql_used")
-                            # Buscar resultado completo para o caller
-                            full_result = run_query(tool_args["sql"])
-                            if full_result.get("ok"):
-                                last_table = full_result
-                    except Exception:
-                        pass
-
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": result_str,
-                })
-
-            messages.append({"role": "user", "content": tool_results})
-            continue
-
-        # Stop reason inesperado
-        break
-
-    return {"answer": "Resposta não obtida.", "table": None, "sql_used": None, "tool_calls": tool_call_count}
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc.id,
+                "content": result_str,
+            })
