@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-import build_supplier_audit_panel_v05 as v05
+import fornies.scripts.build_supplier_audit_panel_v05 as v05
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]

@@ -14,7 +14,7 @@ SCRIPT_DIR = BASE_DIR / "scripts"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-import build_supplier_panel_v08 as v08  # noqa: E402
+import fornies.scripts.build_supplier_panel_v08 as v08  # noqa: E402
 
 
 OUT_DIR = BASE_DIR / "output" / "08_regime_fiscal"

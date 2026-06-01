@@ -6,9 +6,9 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
-import build_supplier_audit_panel_v05 as v05
-import build_supplier_audit_panel_v06 as v06
-import build_supplier_audit_panel_v06b as v06b
+import fornies.scripts.build_supplier_audit_panel_v05 as v05
+import fornies.scripts.build_supplier_audit_panel_v06 as v06
+import fornies.scripts.build_supplier_audit_panel_v06b as v06b
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]

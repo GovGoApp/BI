@@ -15,7 +15,7 @@ from openpyxl import load_workbook
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-import build_supplier_audit_panel_v05 as v05
+import fornies.scripts.build_supplier_audit_panel_v05 as v05
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
