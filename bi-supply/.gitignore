@@ -1,0 +1,8 @@
+zoho/zoho.env
+data/raw/
+data/processed/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+.env
