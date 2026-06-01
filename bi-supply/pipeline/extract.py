@@ -13,7 +13,6 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import sys
 import time
@@ -33,9 +32,10 @@ SOURCES_FILE = ROOT / "pipeline" / "sources.yml"
 RAW_DIR = ROOT / "data" / "raw"
 MANIFEST_FILE = RAW_DIR / "manifest.json"
 
-BATCH_SIZE = 4       # jobs simultâneos
+BATCH_SIZE = 2       # jobs simultâneos (Zoho limita ~4 concurrent; 2 é seguro)
 JOB_INTERVAL = 8    # segundos entre polls
 JOB_MAX_ATTEMPTS = 90
+JOB_RETRY_WAIT = 40  # segundos de espera antes de retry em LIMIT_EXCEEDED
 BAR_WIDTH = 30       # largura da barra de progresso
 
 
@@ -89,9 +89,10 @@ def _bar(done: int, total: int) -> str:
 
 
 def _count_csv_rows(path: Path) -> int:
+    """Conta linhas contando '\n' no binário — muito mais rápido que csv.reader."""
     try:
-        with path.open(encoding="utf-8-sig") as f:
-            return sum(1 for _ in csv.reader(f)) - 1  # subtrai cabeçalho
+        with path.open("rb") as f:
+            return f.read().count(b"\n") - 1  # subtrai cabeçalho
     except Exception:
         return -1
 
@@ -106,18 +107,25 @@ def _extract_batch(
     """Cria jobs para um lote, aguarda todos e baixa. Retorna resultados."""
     results: dict[str, Any] = {}
 
-    # 1. Criar todos os jobs
+    # 1. Criar todos os jobs (com retry automático em LIMIT_EXCEEDED)
     jobs: dict[str, str] = {}  # source_id -> job_id
     for source in batch:
         sid = source["id"]
         zoho_name = source["zoho_name"]
         sql = f'select * from "{zoho_name}"'
-        try:
-            job_id = client.create_job_sql(sql, token)
-            jobs[sid] = job_id
-        except ZohoError as exc:
-            print(f"  ERRO ao criar job {sid}: {exc}")
-            results[sid] = {"status": "error", "error": str(exc)}
+        for tentativa in range(1, 4):  # até 3 tentativas
+            try:
+                job_id = client.create_job_sql(sql, token)
+                jobs[sid] = job_id
+                break
+            except ZohoError as exc:
+                if "ASYNC_EXPORT_LIMIT_EXCEEDED" in str(exc) and tentativa < 3:
+                    print(f"  Limite de jobs atingido. Aguardando {JOB_RETRY_WAIT}s antes de tentar {sid} novamente...")
+                    time.sleep(JOB_RETRY_WAIT)
+                else:
+                    print(f"  ERRO ao criar job {sid}: {exc}")
+                    results[sid] = {"status": "error", "error": str(exc)}
+                    break
 
     if not jobs:
         return results
