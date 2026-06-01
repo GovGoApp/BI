@@ -240,9 +240,30 @@ python pipeline/extract.py --env-file zoho/zoho.env --source filiais
 2. **Deploy futuro no Render** com cron job — a lógica incremental já está preparada
 3. O `sources.yml` é a única fonte de verdade sobre o que extrair — nomes de fontes não estão hardcoded no script
 
+### Estratégia de atualização dos dados
+
+Decisão registrada em 2026-06-01.
+
+As 18 fontes foram classificadas em 4 grupos com frequências diferentes:
+
+| Grupo | Fontes | max_age_hours | Motivo |
+|---|---|---:|---|
+| Transacionais | `nfe`, `nf_com_itens`, `cot` | 24h | Novas linhas chegam todo dia |
+| Status mutável | `cp`, `cp_*`, `ad_v3`, `cot_min_forn`, `num_cot` | 24h | Linhas mudam de ABERTO→PAGO, PENDENTE→CONCILIADO |
+| Recalculadas | `inflacao`, `pmp_*`, `curva_*` | 24h | O Zoho recalcula rankings/PMP — não existe delta |
+| Dimensões estáticas | `filiais`, `tab_prod` | 168h | Raramente mudam — atualização semanal |
+
+**Estratégia adotada: full replace com frequências diferenciadas.**
+
+Incremental não vale a pena agora porque:
+1. Os grupos "status mutável" e "recalculadas" precisam de full replace de qualquer forma
+2. NFE com 177 MB é rápido de baixar diariamente
+3. Incremental adicionaria complexidade (rastrear última data, merge de arquivos, tratar correções retroativas)
+4. Para Render + cron, ~500 MB/dia é totalmente viável
+
 ### Próximos passos
 
-- [ ] Rodar extração completa das 18 fontes
+- [x] Rodar extração completa das 18 fontes
 - [ ] Criar `pipeline/transform.py`
 
 ---

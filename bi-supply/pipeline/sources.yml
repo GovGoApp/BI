@@ -1,8 +1,15 @@
 # Fontes de dados — workspace SUPRIMENTOS
-# Cada entrada define o que extrair do Zoho e onde salvar em data/raw/
+# Estratégia de atualização: full replace com frequências diferenciadas
 #
-# max_age_hours: horas antes de considerar o dado desatualizado (padrão: 24)
-# Para forçar atualização de tudo: python pipeline/extract.py --force
+# GRUPOS:
+#   Transacionais (append): nfe, nf_com_itens, cot          → 24h
+#   Status mutável:         cp, cp_*, ad_v3, cot_min, num_cot → 24h
+#   Recalculadas:           inflacao, pmp_*, curva_*          → 24h
+#   Dimensões estáticas:    filiais, tab_prod                → 168h (semanal)
+#
+# Uso:
+#   python pipeline/extract.py --env-file zoho/zoho.env           # só o desatualizado
+#   python pipeline/extract.py --env-file zoho/zoho.env --force   # tudo
 
 defaults:
   max_age_hours: 24
@@ -10,101 +17,114 @@ defaults:
 
 sources:
 
-  # ── Compras / Notas Fiscais ─────────────────────────────────────────────
+  # ── Transacionais (novas linhas chegam todo dia) ─────────────────────────
   - id: nfe
     zoho_name: "NFE"
+    max_age_hours: 24
     description: "Fato principal de compras — 63 colunas com curvas, PMP, IMP, INF"
     abas: [resumo, oportunidades, categorias, filiais, fornecedor, produtos, impacto, inflacao, servicos]
 
   - id: nf_com_itens
     zoho_name: "NF COM ITENS - CONSOLIDADO"
+    max_age_hours: 24
     description: "Notas com itens — detalhe por nota, chave, datas"
     abas: [cotacoes]
 
-  # ── Cotações ────────────────────────────────────────────────────────────
   - id: cot
     zoho_name: "COT"
+    max_age_hours: 24
     description: "Cotações de preços com curvas ABC embutidas"
     abas: [cotacoes, oportunidades]
 
+  # ── Status mutável (linhas existentes mudam de estado) ───────────────────
   - id: cot_min_forn
     zoho_name: "COT_MIN_FORN"
+    max_age_hours: 24
     description: "Menor cotação por fornecedor e produto"
     abas: [cotacoes, oportunidades]
 
   - id: num_cot
     zoho_name: "NUM_COT"
+    max_age_hours: 24
     description: "Contagem de cotações por produto e período"
     abas: [cotacoes]
 
-  # ── Curvas ABC ──────────────────────────────────────────────────────────
-  - id: curva_forn
-    zoho_name: "CURVA ABC FORN - TOTAL"
-    description: "Curva ABC de fornecedores com razão social"
-    abas: [resumo, fornecedor]
-
-  - id: curva_id
-    zoho_name: "CURVA ID - TODAS"
-    description: "Curva ABC por ID (empresa + UF + produto)"
-    abas: [oportunidades, impacto]
-
-  - id: curva_prod
-    zoho_name: "CURVA PROD - TODAS"
-    description: "Curva ABC por produto com nome oficial"
-    abas: [produtos, categorias]
-
-  # ── Preço Médio / Inflação ───────────────────────────────────────────────
-  - id: inflacao
-    zoho_name: "INFLAÇÃO"
-    description: "Série de variação de PMP por produto, ID, categoria e UF"
-    abas: [inflacao]
-
-  - id: pmp_id_inf_12
-    zoho_name: "PMP_ID_INF_12"
-    description: "PMP + inflação 12 meses por ID — versão mais completa (22 cols)"
-    abas: [inflacao, produtos]
-
-  - id: pmp_prod_inf_12
-    zoho_name: "PMP_PROD_INF_12"
-    description: "PMP + inflação 12 meses por produto (21 cols)"
-    abas: [inflacao, produtos]
-
-  # ── Contas a Pagar ──────────────────────────────────────────────────────
   - id: cp
     zoho_name: "CP"
-    description: "Contas a pagar completas — 49 colunas com datas, valores e status"
+    max_age_hours: 24
+    description: "Contas a pagar — 49 colunas, status muda de ABERTO para PAGO"
     abas: [financeiro, fornecedor]
 
   - id: cp_mov
     zoho_name: "CP_MOV"
+    max_age_hours: 24
     description: "Movimentos de CP — entradas e saídas por semana"
     abas: [financeiro]
 
   - id: cp_semana
     zoho_name: "CP_SEMANA"
+    max_age_hours: 24
     description: "Saldo semanal de CP com valores de vencimento"
     abas: [financeiro]
 
   - id: cp_saldo_2026
     zoho_name: "CP_SALDO_2026_v2"
+    max_age_hours: 24
     description: "Saldo 2026 por fornecedor e semana — versão agregada"
     abas: [financeiro]
 
-  # ── Adiantamentos ───────────────────────────────────────────────────────
   - id: ad_v3
     zoho_name: "AD_v3"
-    description: "Adiantamentos — versão mais completa com UF, filial, categoria e status"
+    max_age_hours: 24
+    description: "Adiantamentos — status muda de PENDENTE para CONCILIADO"
     abas: [adiantamentos]
 
-  # ── Dimensões ───────────────────────────────────────────────────────────
+  # ── Recalculadas pelo Zoho (full replace — não existe delta) ─────────────
+  - id: curva_forn
+    zoho_name: "CURVA ABC FORN - TOTAL"
+    max_age_hours: 24
+    description: "Curva ABC de fornecedores — ranking recalculado com cada nova compra"
+    abas: [resumo, fornecedor]
+
+  - id: curva_id
+    zoho_name: "CURVA ID - TODAS"
+    max_age_hours: 24
+    description: "Curva ABC por ID — ranking recalculado"
+    abas: [oportunidades, impacto]
+
+  - id: curva_prod
+    zoho_name: "CURVA PROD - TODAS"
+    max_age_hours: 24
+    description: "Curva ABC por produto — ranking recalculado"
+    abas: [produtos, categorias]
+
+  - id: inflacao
+    zoho_name: "INFLAÇÃO"
+    max_age_hours: 24
+    description: "Variação de PMP — série recalculada mensalmente pelo Zoho"
+    abas: [inflacao]
+
+  - id: pmp_id_inf_12
+    zoho_name: "PMP_ID_INF_12"
+    max_age_hours: 24
+    description: "PMP + inflação 12 meses por ID — recalculado mensalmente"
+    abas: [inflacao, produtos]
+
+  - id: pmp_prod_inf_12
+    zoho_name: "PMP_PROD_INF_12"
+    max_age_hours: 24
+    description: "PMP + inflação 12 meses por produto — recalculado mensalmente"
+    abas: [inflacao, produtos]
+
+  # ── Dimensões estáticas (raramente mudam) ────────────────────────────────
   - id: filiais
     zoho_name: "FILIAIS_SUPPLY"
+    max_age_hours: 168
     description: "Dimensão de filiais — empresa, UF, negócio, região, sigla"
     abas: [todas]
-    max_age_hours: 168  # atualiza semanalmente (168h = 7 dias)
 
   - id: tab_prod
     zoho_name: "TAB_PROD"
-    description: "Tabela de referência de produtos — código e nome padronizado"
+    max_age_hours: 168
+    description: "Tabela de referência de produtos — raramente muda"
     abas: [todas]
-    max_age_hours: 168  # atualiza semanalmente
