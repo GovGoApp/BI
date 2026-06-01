@@ -1,4 +1,6 @@
 zoho/zoho.env
+nlsql/.env
+nlsql/favorites.json
 data/raw/
 data/processed/
 dist/
