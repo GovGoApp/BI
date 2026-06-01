@@ -1,0 +1,236 @@
+[
+  {
+    "id": "6ba58939",
+    "question": "Quais os 5 fornecedores com maior spend total?",
+    "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend FROM \"NFE\" GROUP BY \"FANTASIA_OFICIAL\" ORDER BY spend DESC LIMIT 5",
+    "columns": [
+      "fornecedor",
+      "spend"
+    ],
+    "row_count": 5,
+    "elapsed_ms": 8389,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T21:59:20.318697+00:00"
+  },
+  {
+    "id": "efe65ce4",
+    "question": "Quanto foi comprado por categoria CAT2 em 2025, ordenado do maior para o menor?",
+    "sql": "SELECT * FROM (SELECT \"CAT2\", SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"ANO\" = 2025 GROUP BY \"CAT2\" ORDER BY spend DESC) AS _report_query LIMIT 500",
+    "columns": [
+      "CAT2",
+      "spend"
+    ],
+    "row_count": 20,
+    "elapsed_ms": 9156,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T21:59:44.325018+00:00"
+  },
+  {
+    "id": "0d910df1",
+    "question": "Quais produtos AAA nao tiveram nenhuma cotacao? Mostre nome, UF e spend total",
+    "sql": "SELECT \"NMPRODUTO_OFICIAL\" AS produto, \"UF\", SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"PRE_MIN_COT\" = 0 AND \"CURVA_ID\" = 'AAA' GROUP BY \"NMPRODUTO_OFICIAL\", \"UF\" ORDER BY spend DESC LIMIT 500",
+    "columns": [],
+    "row_count": 0,
+    "elapsed_ms": 8468,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:00:06.675488+00:00"
+  },
+  {
+    "id": "4cc6f533",
+    "question": "Quais produtos AAA nao tiveram nenhuma cotacao? Mostre nome, UF e spend total",
+    "sql": "SELECT \"NMPRODUTO_OFICIAL\" AS produto, \"UF\", SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"PRE_MIN_COT\" = 0 AND \"CURVA_ID\" = 'AAA' GROUP BY \"NMPRODUTO_OFICIAL\", \"UF\" ORDER BY spend DESC LIMIT 500",
+    "columns": [],
+    "row_count": 0,
+    "elapsed_ms": 8686,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:00:29.286289+00:00"
+  },
+  {
+    "id": "274b228e",
+    "question": "Mostre produtos com curva AAA onde PRE_MIN_COT e zero, agrupando por produto e UF com total",
+    "sql": "SELECT \"NMPRODUTO_OFICIAL\" AS produto, \"UF\", SUM(\"TOTAL\") AS total FROM \"NFE\" WHERE \"PRE_MIN_COT\" = 0 AND \"CURVA_ID\" = 'AAA' GROUP BY \"NMPRODUTO_OFICIAL\", \"UF\" ORDER BY total DESC LIMIT 500",
+    "columns": [],
+    "row_count": 0,
+    "elapsed_ms": 8375,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:00:39.819932+00:00"
+  },
+  {
+    "id": "d52e0e97",
+    "question": "Quais produtos AAA nao tiveram nenhuma cotacao? Mostre nome, UF e spend total",
+    "sql": "SELECT \"NMPRODUTO_OFICIAL\" AS produto, \"UF\", SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"PRE_MIN_COT\" = '' AND \"CURVA_ID\" = 'AAA' GROUP BY \"NMPRODUTO_OFICIAL\", \"UF\" ORDER BY spend DESC LIMIT 500",
+    "columns": [],
+    "row_count": 0,
+    "elapsed_ms": 8875,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:04:55.556722+00:00"
+  },
+  {
+    "id": "b11938ef",
+    "question": "Qual o impacto de cotacao total por UF? Ordene do maior para o menor",
+    "sql": "SELECT * FROM (SELECT \"UF\", SUM(\"IMP_COT\") AS impacto_total FROM \"NFE\" GROUP BY \"UF\" ORDER BY impacto_total DESC) AS _report_query LIMIT 500",
+    "columns": [
+      "UF",
+      "impacto_total"
+    ],
+    "row_count": 11,
+    "elapsed_ms": 8000,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:05:05.672129+00:00"
+  },
+  {
+    "id": "7b71fdad",
+    "question": "Mostre o CP em aberto por fornecedor, com valor e quantidade de titulos",
+    "sql": "SELECT \"NMFANTFORN\" AS fornecedor, SUM(\"VRATUAPAG\") AS cp_aberto, COUNT(*) AS titulos FROM \"CP\" WHERE \"STATUSPAG\" = 'ABERTO' GROUP BY \"NMFANTFORN\" ORDER BY cp_aberto DESC LIMIT 500",
+    "columns": [],
+    "row_count": 0,
+    "elapsed_ms": 8078,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:07:56.739844+00:00"
+  },
+  {
+    "id": "4fc25f12",
+    "question": "Qual a inflacao media por categoria CAT2 no NFE? Use INF_ID_PMP",
+    "sql": "SELECT * FROM (SELECT \"CAT2\", AVG(\"INF_ID_PMP\") AS inflacao_media FROM \"NFE\" GROUP BY \"CAT2\" ORDER BY inflacao_media DESC) AS _report_query LIMIT 500",
+    "columns": [],
+    "row_count": 0,
+    "elapsed_ms": 610,
+    "status": "error",
+    "error": "Não foi possível renovar o access token. HTTP 400: {\"error_description\":\"You have made too many requests continuously. Please try again after some time.\",\"error\":\"Access Denied\",\"status\":\"failure\"}",
+    "saved": false,
+    "created_at": "2026-06-01T22:07:58.461368+00:00"
+  },
+  {
+    "id": "e18162e5",
+    "question": "Quais produtos AAA nao tiveram cotacao? Mostre nome, UF e spend total",
+    "sql": "SELECT \"NMPRODUTO_OFICIAL\" AS produto, \"UF\", SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"PRE_MIN_COT\" IS NULL AND \"CURVA_ID\" = 'AAA' GROUP BY \"NMPRODUTO_OFICIAL\", \"UF\" ORDER BY spend DESC LIMIT 500",
+    "columns": [],
+    "row_count": 0,
+    "elapsed_ms": 719,
+    "status": "error",
+    "error": "Não foi possível renovar o access token. HTTP 400: {\"error_description\":\"You have made too many requests continuously. Please try again after some time.\",\"error\":\"Access Denied\",\"status\":\"failure\"}",
+    "saved": false,
+    "created_at": "2026-06-01T22:09:47.366898+00:00"
+  },
+  {
+    "id": "49d661c5",
+    "question": "CP em aberto por fornecedor, com valor total e quantidade de titulos",
+    "sql": "SELECT \"NMFANTFORN\" AS fornecedor, SUM(\"VRATUAPAG\") AS cp_aberto, COUNT(*) AS titulos FROM \"CP\" WHERE \"STATUSPAG\" = 'Em Aberto' GROUP BY \"NMFANTFORN\" ORDER BY cp_aberto DESC LIMIT 500",
+    "columns": [
+      "fornecedor",
+      "cp_aberto",
+      "titulos"
+    ],
+    "row_count": 500,
+    "elapsed_ms": 8452,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:10:10.426773+00:00"
+  },
+  {
+    "id": "ef5a8c5c",
+    "question": "Inflacao media por categoria CAT2 usando INF_ID_PMP do NFE",
+    "sql": "SELECT * FROM (SELECT \"CAT2\", AVG(\"INF_ID_PMP\") AS inflacao_media FROM \"NFE\" GROUP BY \"CAT2\" ORDER BY inflacao_media DESC) AS _report_query LIMIT 500",
+    "columns": [
+      "CAT2",
+      "inflacao_media"
+    ],
+    "row_count": 21,
+    "elapsed_ms": 8312,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:10:33.007971+00:00"
+  },
+  {
+    "id": "38bc0b00",
+    "question": "Evolucao de compras mensais em 2025",
+    "sql": "SELECT * FROM (SELECT \"MESANO\", SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"ANO\" = 2025 GROUP BY \"MESANO\" ORDER BY \"MESANO\") AS _report_query LIMIT 500",
+    "columns": [
+      "MESANO",
+      "spend"
+    ],
+    "row_count": 12,
+    "elapsed_ms": 8390,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:11:04.377462+00:00"
+  },
+  {
+    "id": "7a804703",
+    "question": "Quais os adiantamentos pendentes por fornecedor? Mostre valor e status",
+    "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"VALOR_FINAL\") AS valor, \"STATUS_CONCILIACAO\" AS status FROM \"AD_v3\" WHERE \"STATUS_CONCILIACAO\" = '?' GROUP BY \"FANTASIA_OFICIAL\", \"STATUS_CONCILIACAO\" ORDER BY valor DESC LIMIT 500",
+    "columns": [],
+    "row_count": 0,
+    "elapsed_ms": 7922,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:11:25.842134+00:00"
+  },
+  {
+    "id": "fb2fb800",
+    "question": "Quais produtos AAA nao tiveram cotacao? Mostre nome, UF e spend total",
+    "sql": "SELECT \"NMPRODUTO_OFICIAL\" AS produto, \"UF\", SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"PRE_MIN_COT\" IS NULL AND \"CURVA_ID\" = 'AAA' GROUP BY \"NMPRODUTO_OFICIAL\", \"UF\" ORDER BY spend DESC LIMIT 500",
+    "columns": [
+      "produto",
+      "UF",
+      "spend"
+    ],
+    "row_count": 93,
+    "elapsed_ms": 8313,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:12:24.093062+00:00"
+  },
+  {
+    "id": "d36290e2",
+    "question": "Adiantamentos pendentes por fornecedor com valor total",
+    "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"VALOR_FINAL\") AS valor_total FROM \"AD_v3\" WHERE \"STATUS_CONCILIACAO\" = 'ADIANTAMENTO ?' GROUP BY \"FANTASIA_OFICIAL\" ORDER BY valor_total DESC LIMIT 500",
+    "columns": [
+      "fornecedor",
+      "valor_total"
+    ],
+    "row_count": 500,
+    "elapsed_ms": 8234,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:12:46.366197+00:00"
+  },
+  {
+    "id": "31bd0391",
+    "question": "Quantas cotacoes por produto em media por UF? Mostre UF, media e total de produtos",
+    "sql": "SELECT \"UF\", AVG(\"QTD_COT\") AS media_cotacoes, COUNT(DISTINCT \"ID\") AS total_produtos FROM \"NUM_COT\" GROUP BY \"UF\" ORDER BY media_cotacoes DESC LIMIT 500",
+    "columns": [
+      "UF",
+      "media_cotacoes",
+      "total_produtos"
+    ],
+    "row_count": 11,
+    "elapsed_ms": 8045,
+    "status": "ok",
+    "error": null,
+    "saved": false,
+    "created_at": "2026-06-01T22:13:09.683667+00:00"
+  }
+]

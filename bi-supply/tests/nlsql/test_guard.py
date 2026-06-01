@@ -81,10 +81,15 @@ class TestGuard(unittest.TestCase):
         with self.assertRaises(SQLGuardError):
             validate("SELECT * FROM x; DROP TABLE y")
 
-    def test_bloqueia_insert_no_comentario_aparente(self):
-        # O guard não usa regex de comentário — INSERT como substring bloqueia
+    def test_permite_insert_dentro_de_string_literal(self):
+        # INSERT dentro de string literal é mascarado antes da checagem — deve passar
+        sql = validate("SELECT * FROM \"NFE\" WHERE \"NMPRODUTO_OFICIAL\" = 'INSERT NUTRI'")
+        self.assertIn("SELECT", sql.upper())
+
+    def test_bloqueia_insert_fora_de_string(self):
+        # INSERT fora de string (como comando real) deve ser bloqueado
         with self.assertRaises(SQLGuardError):
-            validate("SELECT * FROM x WHERE col = 'INSERT INTO y VALUES (1)'")
+            validate("INSERT INTO tabela VALUES (1)")
 
 
 if __name__ == "__main__":
