@@ -1,386 +1,315 @@
-# Análise de Dados e Recomendações de KPIs — BI de Suprimentos
+# Análise de KPIs — BI de Suprimentos
+## Metodologia A (dados reais) + Metodologia B (benchmarks de mercado)
 
-Gerado em: 2026-06-01 | Base: dados reais extraídos do Zoho (Jun/2026)
-
----
-
-## Contexto dos dados
-
-| Métrica | Valor |
-|---|---:|
-| Total de compras no período | R$ 1.037.722.004 |
-| Período coberto | 2024, 2025, 2026 (parcial) |
-| Linhas de NFE | 239.904 |
-| Fornecedores com compras | 3.326 |
-| Empresas | RC (92%), SU (4,5%), ME (3,5%) |
+Gerado em: 2026-06-01 | Base: 239.904 linhas de NFE + 17 fontes Zoho
 
 ---
 
-## Descobertas críticas nos dados
+## CONTEXTO: O QUE OS DADOS REPRESENTAM
 
-### 1. D5 Serviços distorce o total
+**Total no período (2024–2026 parcial):** R$ 1.037.722.004
 
-D5 - SERVIÇOS representa **44,9% do gasto total (R$ 465M)**. No entanto, ao detalhar os produtos, os maiores valores são:
-- `DEVOLUCAO DE EMPRESTIMO` → R$ 87,6M
-- `MUTUO` → R$ 79,1M
-- `MUTUO MM` → R$ 35,4M
-- `ADIANTAMENTO COMPRA A VISTA` → R$ 50,5M
-- `ICMS A PAGAR` → R$ 13,6M
-- `PARCELAMENTO ESTADUAL/FEDERAL` → R$ 24,9M
-
-**Esses são lançamentos financeiros e fiscais dentro do sistema de suprimentos**, não compras operacionais. O gasto real de suprimentos (insumos + materiais + serviços operacionais) é mais próximo de **R$ 550-600M**.
-
-**Implicação para o BI:** criar filtro que separa "Suprimentos Operacional" de "Lançamentos Financeiros/Fiscais" nos KPIs principais.
-
-### 2. Cobertura de cotação crítica
-
-**64,3% das linhas de compra não têm cotação registrada** (PRE_MIN_COT = 0). Apenas 35,7% das compras passaram por processo de cotação. E dentre as que têm cotação:
-- 57,2% têm apenas **1 cotação** (sem concorrência real)
-- 32,2% têm 2-3 cotações
-- 10,7% têm 4 ou mais
-
-**Média geral: 1,9 cotações por produto/mês** — muito abaixo do ideal (mínimo 3).
-
-### 3. Oportunidade real de R$ 17,9M
-
-Em compras que tinham cotação disponível, o sistema comprou **acima do menor preço cotado** em 16,3% das linhas, gerando R$ 17,9M de "impacto positivo" — dinheiro que poderia ter sido poupado comprando no menor preço disponível.
-
-Os produtos com maior oportunidade concentram-se em **proteínas** (carnes, frango) e **panificação** — alta frequência de compra, alta variação de preço.
-
-### 4. Cauda longa de fornecedores
-
-- **76 fornecedores** (A+ curva) = **53,6% do spend**
-- **2.483 fornecedores CCC** = apenas **7,3% do spend** — enorme complexidade operacional para pouco valor
-
-Oportunidade de consolidação: reduzir fornecedores CCC sem impacto relevante no abastecimento.
-
-### 5. CP com R$ 23,6M acima de 120 dias
-
-R$ 106,3M em títulos em aberto. O aging mostra R$ 23,6M com mais de 120 dias de atraso — risco de relacionamento com fornecedores críticos.
-
----
-
-## Recomendações de KPIs por aba
-
----
-
-### ABA: RESUMO
-
-Visão executiva. Responde: "como estamos em suprimentos hoje?"
-
-#### KPIs principais (barra de topo)
-
-| KPI | Fórmula | Valor atual | Alerta |
-|---|---|---|---|
-| Total Comprado (operacional) | sum(TOTAL) excl. D5 financeiro | ~R$ 572M | — |
-| Crescimento YoY | (2025 - 2024) / 2024 | +36,8% | Verde |
-| Fornecedores Ativos | count distinct CDFORNECED com TOTAL > 0 | 3.326 | — |
-| % Compras com Cotação | linhas com PRE_MIN_COT > 0 / total | 35,7% | Vermelho |
-| Oportunidade IMP_COT | sum(IMP_COT) onde IMP_COT > 0 | R$ 17,9M | Amarelo |
-| CP em Aberto | sum(VRATUAPAG) status ABERTO | R$ 106,3M | — |
-| AD Pendente | sum(VALOR_FINAL) status != CONCILIADO | R$ 44M | Amarelo |
-| CP Crítico +120d | sum(VRATUAPAG) faixa VE+120 | R$ 23,6M | Vermelho |
-
-#### Gráficos e tabelas
-
-| Elemento | Tipo | Fonte | Insight |
-|---|---|---|---|
-| Evolução de compras mensal | Linha | NFE por MESANO | Sazonalidade: pico em Mai/25 (R$ 63M vs Jan/25 R$ 22M) |
-| Spend por CAT1 | Donut | NFE por CAT1 (filtrar financeiro) | I vs D vs A |
-| Spend por tipo de negócio | Barra horizontal | NFE por FI.NEGOCIO | MERENDA 20%, CD 16%, HOSPITAL 16% |
-| Top 5 UFs | Barra | NFE por UF | SP 52%, PE 22%, MA 11% |
-| Top 10 fornecedores | Tabela | NFE + CURVA_FORN | Com curva ABC e % spend |
-| Alertas executivos | Lista | Regras | Ver seção alertas abaixo |
-
-#### Alertas recomendados
-
-- 🔴 "64,3% das compras sem cotação"
-- 🔴 "R$ 23,6M em CP com +120 dias de atraso"
-- 🟡 "R$ 17,9M de oportunidade de cotação identificada"
-- 🟡 "R$ 44M em adiantamentos sem status definido"
-- 🟡 "Maio/25 com volume 2,8x acima de Janeiro/25"
-
----
-
-### ABA: OPORTUNIDADES
-
-Responde: "onde podemos economizar comprando melhor?"
-
-#### KPIs
-
-| KPI | Valor atual | Prioridade |
-|---|---|---|
-| Oportunidade total (IMP_COT > 0) | R$ 17,9M | Alta |
-| % linhas compradas acima do mínimo | 16,3% | Alta |
-| % linhas com apenas 1 cotação | 57,2% | Alta |
-| Média de cotações por produto | 1,9 | Média |
-| Fornecedores que mais ganham por não ser o mais barato | calcular de COT_MIN_FORN | Alta |
-
-#### Top oportunidades reais (dados reais)
-
-| ID | Produto | Oportunidade |
-|---|---|---:|
-| RCPEI201104000 | CARNE MOIDA 1ª | R$ 1.454.625 |
-| RCPEI201203000 | FILE PEITO FRANGO | R$ 1.172.193 |
-| RCPEI104113000 | PAO SEDINHA 50GR | R$ 1.116.411 |
-| RCPEI104202040 | BOLO INGLES BACIA 50GR | R$ 623.264 |
-| RCSPI201104020 | PATINHO MOIDO | R$ 502.722 |
-
-**Padrão:** proteínas (carnes, frango) + panificação dominam as oportunidades. Alta frequência de compra + alta variação de preço entre fornecedores.
-
-#### Elementos da aba
-
-- Tabela principal: ID × produto × UF × fornecedor atual × fornecedor mais barato × oportunidade R$ × curva ID
-- Gráfico: oportunidade por CAT2
-- Gráfico: oportunidade por UF
-- Filtro: curva ID (focar em AAA/AA/A)
-- KPI: "se comprar sempre no mais barato" → economia estimada
-
----
-
-### ABA: COTAÇÕES
-
-Responde: "como está nosso processo de cotação?"
-
-#### KPIs
-
-| KPI | Valor | Benchmark mercado |
-|---|---|---|
-| % produtos com cotação | 35,7% | > 80% ideal |
-| Média cotações/produto | 1,9 | ≥ 3 recomendado |
-| % com monopolio (1 cot) | 57,2% | < 20% ideal |
-| % comprado no menor preço | 83,7% das cotadas | > 95% ideal |
-
-#### Elementos
-
-- Gráfico: distribuição 0 / 1 / 2-3 / 4+ cotações ao longo dos meses
-- Gráfico: cobertura de cotação por curva ABC (AAA sem cotação = risco máximo)
-- Tabela: produtos curva A sem cotação nos últimos 3 meses
-- Tabela: RELATÓRIO DE COTAÇÕES (produto × fornecedor × preço por mês)
-- Tabela: MIN COTAÇÃO por fornecedor (quem é o mais barato e com que frequência)
-- Alerta: produtos AAA/AA com apenas 1 cotação
-
----
-
-### ABA: IMPACTO
-
-Responde: "quanto perdemos por comprar acima do menor preço?"
-
-#### KPIs
-
-| KPI | Valor |
-|---|---|
-| Impacto positivo acumulado (oportunidade perdida) | R$ 17,9M |
-| Impacto negativo acumulado (economizado) | R$ 33,0M |
-| Saldo líquido | -R$ 15,1M (economizamos mais do que perdemos) |
-| % linhas acima do mínimo | 16,3% |
-
-**Observação importante:** o saldo negativo de R$ 33M significa que em muitos casos compramos ABAIXO da média histórica. Isso é positivo — mas os R$ 17,9M de oportunidade identificada ainda é relevante.
-
----
-
-### ABA: INFLAÇÃO
-
-Responde: "quais categorias e produtos estão subindo de preço?"
-
-**Nota sobre os dados:** as variações percentuais extremas em D2 (+10.852%) e D5 (+6.180%) são artefatos — serviços e despesas financeiras não têm PMP estável. Focar em INSUMOS para análise de inflação real.
-
-#### Inflação real relevante
-
-| CAT2 | Variação PMP | Relevância |
-|---|---|---|
-| I3 - HORTIFRUTI | +201% | Alta — volume R$ 96M |
-| I5 - LIMPEZA | +74,5% | Média — volume R$ 9M |
-| I0 - NUTRICIONAIS | +340% | Verificar — pode ser mix |
-| I6 - GÁS | -102,6% | Deflação ou mudança de fornecedor |
-
-#### Elementos
-
-- Gráfico: variação % PMP por categoria ao longo de 12 meses
-- Gráfico: top 10 produtos com maior inflação (curva A)
-- Gráfico: top 10 produtos com deflação (oportunidade de renegociação)
-- Tabela: produto × PMP mês a mês × variação % × curva ID
-
----
-
-### ABA: FORNECEDOR (360)
-
-Responde: "quem são nossos fornecedores e qual é o risco de cada um?"
-
-#### KPIs de cabeçalho
-
-| KPI | Valor |
-|---|---|
-| Fornecedores ativos | 3.326 |
-| Fornecedores AAA+AA+A (críticos) | 76 |
-| % spend nos críticos | 53,6% |
-| Fornecedores CCC (cauda) | 2.483 |
-| % spend na cauda CCC | 7,3% |
-
-#### Painel por fornecedor (ao selecionar)
-
-- Total comprado (histórico + YTD)
-- Curva ABC + posição no ranking
-- Categorias fornecidas (CAT2)
-- UFs atendidas
-- Série histórica de PMP (12 meses)
-- Impacto de cotação (comprou pelo mais barato deste fornecedor?)
-- Títulos CP em aberto + aging
-- Status adiantamentos
-
-#### Elementos gerais
-
-- Tabela ranking: fornecedor × curva × spend × % total × UFs × categorias
-- Gráfico: spend por fornecedor (treemap ou barra, top 20)
-- Filtro curva ABC
-- Alerta: fornecedores AAA com CP vencido +30 dias
-
----
-
-### ABA: PRODUTOS
-
-Responde: "o que compramos e como evoluem os preços?"
-
-**Nota:** os "produtos" com maior spend são lançamentos financeiros (MUTUO, DEVOLUCAO DE EMPRESTIMO). Filtrar categoria ≠ D5 financeiro para análise real.
-
-#### Top produtos operacionais reais
-
-| Produto | Spend | Categoria |
-|---|---|---|
-| FILE PEITO FRANGO | R$ 34,5M | I2 - PERECÍVEIS |
-| CARNE MOIDA 1ª | R$ 23,5M | I2 - PERECÍVEIS |
-| LEITE EM PO INTEGRAL | R$ 20,3M | I1 - ESTOCÁVEIS |
-| MAO DE OBRA TERCEIRIZADO | R$ 24,4M | D5 - SERVIÇOS |
-| TRANSPORTE DE INSUMOS | R$ 22,5M | D5 - SERVIÇOS |
-
-#### KPIs
-
-- Total de IDs únicos: 13.059
-- IDs curva AAA+AA+A: 279 (2,1% dos IDs = concentração de valor)
-- IDs curva CCC: 10.020 (76,7% dos IDs)
-
-#### Elementos
-
-- Tabela: produto × IDs × curva × PMP atual × variação 12m × cotações
-- Gráfico: PMP de um produto ao longo de 12 meses (série temporal)
-- Gráfico: top produtos por inflação
-
----
-
-### ABA: FINANCEIRO (CP)
-
-Responde: "qual nossa exposição financeira em contas a pagar?"
-
-#### KPIs
-
-| KPI | Valor |
-|---|---|
-| CP em aberto total | R$ 106,3M |
-| Títulos em aberto | 5.835 |
-| CP crítico (+120 dias) | R$ 23,6M |
-| CP a vencer em 15 dias | R$ 17M |
-| CP 7 dias vencido | R$ 15M |
-
-#### Aging (dados reais)
-
-| Faixa | Valor |
-|---|---:|
-| Vencido +120 dias | R$ 23.631.395 |
-| A vencer em 15 dias | R$ 16.956.094 |
-| Vencido 7 dias | R$ 15.083.796 |
-| Vencido 120 dias | R$ 9.304.667 |
-| A vencer hoje | R$ 8.962.879 |
-| A vencer em 7 dias | R$ 8.705.668 |
-| Vencido 60 dias | R$ 7.815.116 |
-
-#### Elementos
-
-- Gráfico aging: barras por faixa (cor: verde/amarelo/vermelho)
-- Tabela: fornecedor × CP em aberto × maior título × dias vencido × curva ABC
-- Alerta: fornecedores AAA com títulos vencidos +30 dias
-
----
-
-### ABA: ADIANTAMENTOS
-
-Responde: "quais adiantamentos precisam ser conciliados?"
-
-#### KPIs
-
-| KPI | Valor |
-|---|---|
-| AD com status indeterminado | R$ 44,0M (3.455 reg.) |
-| AD conciliados | R$ 16,3M (1.572 reg.) |
-| Total sob gestão | R$ 60,3M |
-
-**Alerta crítico:** R$ 44M em adiantamentos sem STATUS_CONCILIACAO definido ("?") — precisam ser investigados. Representa 73% do total de adiantamentos.
-
----
-
-### ABA: CATEGORIAS
-
-Responde: "como se distribuem as compras por categoria?"
-
-#### Elementos
-
-- Filtros em cascata: CAT1 → CAT2 → CAT3 → CAT4 → CAT5 (ordem I→D→A)
-- KPI: total comprado na seleção
-- KPI: fornecedores na categoria
-- KPI: % com cotação
-- Gráfico: evolução mensal da categoria selecionada
-- Tabela: top produtos da categoria × spend × variação de preço
-
----
-
-### ABA: FILIAIS
-
-Responde: "como se distribuem as compras por filial e tipo de negócio?"
-
-#### Por tipo de negócio (dados reais)
-
-| Negócio | Spend | % |
+| Empresa | Spend | % |
 |---|---:|---|
-| MATRIZ | R$ 410,9M | 39,6% |
-| MERENDA | R$ 205,2M | 19,8% |
-| CD | R$ 170,1M | 16,4% |
-| HOSPITAL | R$ 161,2M | 15,5% |
-| COZINHA | R$ 22,4M | 2,2% |
+| RC | R$ 954.674.892 | 92% |
+| SU | R$ 46.958.763 | 4,5% |
+| ME | R$ 36.088.350 | 3,5% |
 
-**Nota:** MATRIZ com 39,6% provavelmente inclui as transações financeiras e lançamentos centralizados.
+**Alerta de dados crítico:** D5 SERVIÇOS (R$ 465M, 44,9%) inclui lançamentos financeiros — MUTUO (R$ 79M), DEVOLUCAO DE EMPRESTIMO (R$ 87M), ICMS A PAGAR (R$ 13M), PARCELAMENTOS (R$ 24M). O spend **operacional real** de suprimentos é ~R$ 572M. Qualquer KPI de spend total precisa filtrar esses lançamentos.
 
 ---
 
-### ABA: FISCAL
+## ACHADOS CRÍTICOS — DADOS REAIS
 
-Responde: "qual é o risco fiscal por fornecedor em relação à Reforma 2027?"
+### ACHADO 1 — Hortifruti e Perecíveis: o processo de cotação não funciona
 
-Dados vêm do projeto de fornecedores (não do Zoho), cruzados com spend do NFE.
+**I3 Hortifruti: 63,1% das compras COM cotação são realizadas ACIMA do menor preço disponível.**
+**I2 Perecíveis: 60,3% acima do mínimo cotado.**
 
-#### KPIs a construir (após integração)
+Isso significa: quando existe cotação, ainda assim compramos do mais caro na maioria das vezes nessas categorias.
 
-- % spend com fornecedores Simples Nacional / MEI
-- % spend com fornecedores com regime indeterminado
-- Impacto estimado de perda de crédito CBS/IBS por fornecedor/categoria
+| CAT2 | % acima do mínimo | Perda apurada |
+|---|---:|---:|
+| I3 - HORTIFRUTI | 63,1% | R$ 1.486.617 |
+| I2 - PERECÍVEIS | 60,3% | R$ 9.067.236 |
+| I1 - ESTOCÁVEIS | 49,3% | R$ 5.465.726 |
+| I4 - DESCARTÁVEIS | 33,0% | R$ 1.337.637 |
+| I5 - LIMPEZA | 27,5% | R$ 321.566 |
+
+**Hipótese:** perecíveis têm urgência de entrega, logística regional e disponibilidade limitada — o preço perde para a conveniência. Isso precisa de decisão de negócio: aceitar ou criar processo de cotação prévia com compromisso de entrega.
 
 ---
 
-## Resumo das prioridades de implementação
+### ACHADO 2 — 16 produtos AAA comprados sem nenhuma cotação
 
-### Alta prioridade (dados disponíveis, impacto alto)
+Esses produtos estão na curva AAA (top de spend) e nunca apareceram no sistema de cotações:
 
-1. **Oportunidade de cotação**: R$17,9M identificados, lista exata de produtos e fornecedores
-2. **Cobertura de cotação**: 64,3% sem cotação — KPI mais crítico do processo de compras
-3. **CP aging**: R$23,6M +120 dias — risco financeiro imediato
-4. **Concentração de fornecedores**: 76 fornecedores = 53,6% do spend
+| Produto | UF | Spend anual est. |
+|---|---|---:|
+| BANANA NANICA T.120 | MA | R$ 3.577.240 |
+| MACA NACIONAL T.180 | PE | R$ 3.446.039 |
+| MELAO | PE | R$ 3.402.910 |
+| BANANA PRATA | PE | R$ 2.826.299 |
+| GAS GLP BOTIJAO P45 | SP | R$ 2.511.393 |
+| MELANCIA | PE | R$ 2.415.338 |
+| ABACAXI PEROLA | PE | R$ 1.876.981 |
+| TANGERINA CRAVO T.10 | PE | R$ 1.633.781 |
+| OVO DE GALINHA BRANCO MED | PE | R$ 1.626.336 |
+| LARANJA PERA T.10 | PE | R$ 1.533.453 |
 
-### Média prioridade (dados disponíveis, análise adicional necessária)
+**R$ 25M+** em produtos AAA sem nenhuma cotação registrada. Todos são frutas/hortifrutis ou gás — compras recorrentes e de alto volume tratadas como se fossem compras emergenciais.
 
-5. **Inflação em hortifruti** (+201%) e nutricionais — necessita validação do cálculo
-6. **Adiantamentos R$44M** sem status — investigar com área financeira
-7. **Separação D5 financeiro** do spend operacional — filtro crítico para KPIs
+---
 
-### Para discussão com o negócio
+### ACHADO 3 — 97 produtos AAA/AA/A com apenas 1 cotação (R$ 123M em risco)
 
-8. **MATRIZ 39,6%**: o que são esses lançamentos centralizados?
-9. **Pico de Maio/25 (R$63M)**: qual foi o evento?
-10. **Sazonalidade**: por que Janeiro é sempre o mês mais baixo?
+Produtos de alto valor onde só existe 1 fornecedor cotando. Sem concorrência = sem pressão de preço:
+
+| CAT2 | IDs afetados | Spend em risco |
+|---|---:|---:|
+| I2 - PERECÍVEIS | 24 | R$ 55.379.275 |
+| I1 - ESTOCÁVEIS | 47 | R$ 47.942.841 |
+| I3 - HORTIFRUTI | 8 | R$ 6.191.734 |
+| I0 - NUTRICIONAIS | 6 | R$ 5.539.021 |
+| I4 - DESCARTÁVEIS | 10 | R$ 4.508.763 |
+| I6 - GÁS | 2 | R$ 3.356.873 |
+
+---
+
+### ACHADO 4 — Eficiência de cotação varia fortemente por UF
+
+MA tem cobertura de cotação de apenas 19,3% — quase metade do que SP (35,3%). PI tem o maior percentual de compras acima do mínimo (6,56% do spend vs 1,27% em SP):
+
+| UF | Spend | % com cotação | IMP_COT | IMP/Spend |
+|---|---:|---:|---:|---:|
+| SP | R$ 540M | 35,3% | R$ 6,9M | 1,27% |
+| PE | R$ 229M | 36,0% | R$ 6,6M | **2,89%** |
+| MA | R$ 117M | **19,3%** | R$ 1,2M | 1,01% |
+| ES | R$ 46M | 34,5% | R$ 816K | 1,77% |
+| RN | R$ 40M | 34,1% | R$ 185K | 0,46% |
+| PI | R$ 12M | 44,3% | R$ 845K | **6,56%** |
+
+PI tem pouco volume mas a pior eficiência proporcional — compras bem acima do mínimo com cotação disponível. PE compra proporcionalmente 2x pior que SP.
+
+---
+
+### ACHADO 5 — PE concentra produtos exclusivos sem alternativa geográfica
+
+PE compra R$ 8,7M em sucos néctar de um único fornecedor local. Nenhuma outra UF compra esses produtos:
+
+| Produto | Spend PE |
+|---|---:|
+| SUCO NECTAR CAJU | R$ 2.116.581 |
+| SUCO NECTAR MANGA | R$ 1.561.285 |
+| SUCO NECTAR ACEROLA | R$ 1.448.890 |
+| SUCO NECTAR TANGERINA | R$ 1.312.283 |
+| SUCO NECTAR GOIABA | R$ 1.268.331 |
+
+Além disso: BISCOITO COOKIES FONTE FIBRAS CACAU (R$ 1,2M) — produto regional específico. Risco de abastecimento e preço sem benchmark comparativo.
+
+---
+
+### ACHADO 6 — Alta rotatividade de fornecedores (41% ao ano)
+
+| Ano | Fornecedores ativos |
+|---|---:|
+| 2024 | 1.689 |
+| 2025 | 2.088 (+24%) |
+| 2026 | 1.709 |
+
+**1.106 novos fornecedores** entraram em 2025 que não existiam em 2024.
+**707 fornecedores** de 2024 não aparecem mais em 2025.
+
+Rotatividade de 41% na base ativa. Isso indica instabilidade na base de fornecedores ou processo de homologação fraco. Do ponto de vista de procurement: alta rotatividade → perda de poder de negociação, falta de relacionamento de longo prazo, risco de qualidade.
+
+---
+
+### ACHADO 7 — Variação de preço do mesmo produto entre unidades de negócio
+
+Produtos idênticos sendo comprados a preços completamente diferentes por tipo de negócio:
+
+| Produto | Variação | Negócios |
+|---|---|---|
+| SACO BOBINA PICOTADA 40X60 | 76.785% | COZINHA: R$15,71 | ESCOLA: R$65,93 | _MATRIZ: R$40,31 |
+| PAPEL TOALHA INTERFOLHA | 35.907% | ESCOLA: R$5,21/un | HOSPITAL: R$0,02/un |
+| ASSISTÊNCIA MÉDICA | 12.240% | MERENDA: R$18.080/item | COZINHA: R$233/item |
+
+As variações extremas podem ter explicação de unidade de medida (compra por caixa vs unidade), mas precisam de investigação. O produto "ASSISTÊNCIA MÉDICA" com preço 78x maior em MERENDA vs COZINHA é especialmente suspeito.
+
+---
+
+### ACHADO 8 — Oportunidade de consolidação: CCC comprando onde existe AAA/A
+
+Produtos que compramos de fornecedores CCC, mas para os quais já existem fornecedores AAA/A ativos:
+
+| Produto | Spend CCC | Spend AAA/A disponível |
+|---|---:|---:|
+| MACA NACIONAL T.180 | R$ 159.601 | R$ 3.659.491 |
+| ABACAXI PEROLA | R$ 116.435 | R$ 2.314.097 |
+| QUEIJO MUSSARELA FATIADO | R$ 89.664 | R$ 1.564.133 |
+| CENOURA | R$ 152.842 | R$ 1.333.012 |
+| CEBOLA | R$ 181.275 | R$ 967.328 |
+| ÁGUA MINERAL | R$ 188.775 | R$ 432.184 |
+
+---
+
+### ACHADO 9 — CP mistura obrigações financeiras com fornecedores reais
+
+Os maiores "CP vencidos" nos fornecedores de curva AAA são instituições financeiras e obrigações fiscais, não fornecedores de suprimentos:
+
+- LANA CRED: R$ 345M "vencido" (empréstimos/mútuo)
+- SPERO PARTICIPACOES: R$ 68M
+- C6 BANK: R$ 66M
+- SECRETARIA DA RECEITA FEDERAL: R$ 16M
+
+O CP precisa ser filtrado por tipo de conta (`CDTPCTPAGAR`) para separar:
+- **CP operacional** (fornecedores de bens e serviços)
+- **CP financeiro** (empréstimos, parcelamentos, impostos)
+
+Misturar os dois distorce completamente o aging e o risco de relacionamento com fornecedores.
+
+---
+
+## BENCHMARKS DE MERCADO — O QUE OS DADOS INDICAM
+
+| KPI | Nossa realidade | Benchmark mínimo | World-class | Situação |
+|---|---|---|---|---|
+| **Spend com cotação (SUM proxy)** | 35,7% | 70% | 91,5% | 🔴 Crítico |
+| **Cotações por produto** | 1,9 média | 3+ | 3-5 | 🔴 Abaixo |
+| **% comprado no menor preço** | 83,7% das cotadas | 95% | 98%+ | 🟡 Atenção |
+| **Maverick spend proxy** | 64,3% sem cotação | <10% | <5% | 🔴 Crítico |
+| **Rotatividade de fornecedores** | 41%/ano | <15% | <10% | 🔴 Muito alta |
+| **I2/I3 compra acima do mínimo** | 60-63% | <20% | <10% | 🔴 Crítico |
+
+---
+
+## KPIs RECOMENDADOS POR ABA
+
+### RESUMO (nível executivo)
+
+**KPIs de topo — 8 cards:**
+
+| KPI | Fórmula | Valor atual |
+|---|---|---|
+| Spend Operacional | sum(TOTAL) excl. D5 financeiro | ~R$ 572M |
+| Crescimento YoY | (2025/2024) - 1 | +36,8% |
+| SUM % | linhas com PRE_MIN_COT > 0 / total | 35,7% 🔴 |
+| Oportunidade cotação | sum(IMP_COT > 0) | R$ 17,9M |
+| Fornecedores críticos sem cotação | IDs AAA/AA/A com QTD_COT = 0 | 16 |
+| CP operacional em aberto | CP filtrado por tipo operacional | a calcular |
+| AD pendente | sum VALOR_FINAL onde status = '?' | R$ 44M |
+| Novos fornecedores YTD | distinct CDFORNECED 2026 não vistos antes | calcular |
+
+**Gráficos:**
+- Evolução mensal de spend (com destaque em picos anormais)
+- Spend por CAT1 — excluindo D5 financeiro
+- Top 5 UFs com eficiência de cotação (% com cotação + IMP/Spend)
+- Distribuição fornecedores por curva ABC
+- Alertas críticos: IDs AAA sem cotação, CP crítico +30d operacional
+
+---
+
+### OPORTUNIDADES
+
+**KPIs focados:**
+- Oportunidade total IMP_COT: R$ 17,9M
+- Top 3 categorias para focar: I2 Perecíveis (R$ 9M), I1 Estocáveis (R$ 5,5M), I3 Hortifruti (R$ 1,5M)
+- 97 produtos AAA/AA/A com apenas 1 cotação → R$ 123M sem competição
+- 16 produtos AAA com zero cotação → R$ 25M+ sem qualquer processo
+
+**Tabela principal:**
+ID × produto × CAT2 × UF × fornecedor atual × fornecedor mais barato × % acima do mínimo × oportunidade R$ × curva ID × situação (SEM COT / MONO-COT / ACIMA DO MÍNIMO)
+
+---
+
+### COTAÇÕES
+
+**KPIs específicos:**
+- % cobertura por CAT2 (gráfico de calor: categoria × mês)
+- % mono-cotação por CAT2 — focar I1 e I2
+- Eficiência por UF (tabela A4 acima)
+- Série temporal: cobertura de cotação mensal (está melhorando ou piorando?)
+- Produtos AAA/AA com 0 cotação nos últimos 3 meses (lista acionável)
+
+---
+
+### IMPACTO
+
+**Separado de inflação:**
+- IMP_COT: diferença entre preço pago e menor preço cotado
+- Ranqueado por CAT2, por UF, por produto
+- Série temporal: oportunidade está crescendo ou diminuindo?
+- Quais fornecedores aparecem mais como "mais barato não escolhido"?
+
+---
+
+### INFLAÇÃO
+
+**Focar em INSUMOS (excluir D5 e D6 que distorcem):**
+- I3 Hortifruti: +201% variação de PMP — real e relevante
+- I5 Limpeza: +74,5%
+- Série 12 meses por produto (PMP_ID_INF_12)
+- Top 10 com inflação positiva × Top 10 com deflação (oportunidade de renegociação)
+- Alerta: produtos AAA com inflação > 15% no último trimestre
+
+---
+
+### FORNECEDOR 360
+
+**KPIs específicos do achado:**
+- Separar fornecedores operacionais de financeiros/fiscais (filtro por tipo)
+- Rotatividade: quantos fornecedores entraram/saíram por categoria
+- Dependência: IDs com apenas 1 fornecedor ativo (sem backup de abastecimento)
+- Fornecedores CCC ativos onde existe alternativa AAA/A para o mesmo produto
+
+---
+
+### FINANCEIRO (CP)
+
+**Separar CP operacional de financeiro/fiscal:**
+- Criar filtro por CDTPCTPAGAR para isolar fornecedores de bens/serviços
+- Aging só do CP operacional
+- Fornecedores AAA/AA/A de suprimentos com CP vencido > 30 dias (risco de ruptura)
+- CP a vencer nos próximos 7, 15, 30 dias (mapa de caixa)
+
+---
+
+### ADIANTAMENTOS
+
+- R$ 44M com STATUS_CONCILIACAO indefinido ('?') → lista para ação imediata
+- Por fornecedor: quem tem mais AD pendente
+- Por categoria: onde AD é mais comum
+- Tempo médio entre pagamento do AD e entrada da nota
+
+---
+
+### CATEGORIAS
+
+**Filtros em cascata + análises específicas:**
+- Ao selecionar uma categoria: mostrar IMP_COT, cobertura de cotação, inflação, top fornecedores
+- Alertas por categoria: "I2 tem 60% de compras acima do mínimo" aparece ao abrir Perecíveis
+- Comparativo de preço entre UFs para o mesmo produto na categoria
+
+---
+
+### FILIAIS
+
+**Além do óbvio:**
+- % de spend com cotação por filial (quais filiais têm processo melhor)
+- IMP_COT por filial (quais filiais pagam mais caro proporcionalmente)
+- Produtos comprados por uma única filial sem benchmark comparativo
+- Rotatividade de fornecedores por tipo de negócio
+
+---
+
+## PERGUNTAS PARA O NEGÓCIO (a responder antes de definir filtros)
+
+1. **D5 financeiro:** como separar D5 operacional (serviços prestados) de D5 financeiro (MUTUO, DEVOLUÇÃO)? Existe um campo `CDTPCTPAGAR` ou `CAT3` que faça essa distinção?
+
+2. **CP:** qual o critério para separar CP de fornecedor de bens/serviços de CP de obrigações financeiras (empréstimos, impostos)?
+
+3. **Pico de Maio/25 (R$ 63M):** foi um evento específico? Compra sazonal? Estoque?
+
+4. **MATRIZ 39,6%:** o que compõe esse tipo de negócio — são lançamentos consolidados ou uma unidade operacional?
+
+5. **Variação de preço entre negócios:** os preços extremamente diferentes para o mesmo produto são questões de unidade de medida ou refletem pagamentos reais diferentes?
