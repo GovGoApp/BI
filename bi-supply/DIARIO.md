@@ -189,10 +189,61 @@ Organização:
 - `FakeResponse` — simula `requests.Response` com `status_code`, `content`, `json()`
 - `FakeSession` — devolve respostas pré-configuradas em sequência, registra todas as chamadas em `session.calls` para assertivas de URL e headers
 
-### Próximos passos da Fase 1
+### Fase 1 concluída
 
-- [ ] Criar `zoho/catalog.py`
-- [ ] Criar testes de catalog
+- [x] Reescrever `zoho/client.py`
+- [x] Criar `zoho/inventario.py`
+- [x] Criar `zoho/catalog.py` + 20 testes
+- [x] 43 testes totais passando
+
+---
+
+## [2026-06-01] Fase 2 — Passo 1: pipeline/extract.py
+
+**Commit:** a registrar
+
+### O que foi feito
+
+Criação do pipeline de extração de dados do Zoho para `data/raw/`.
+
+### Arquivos criados
+
+**`pipeline/sources.yml`** — declara as 18 fontes a extrair:
+- `id`: identificador local (ex: `nfe`, `cot`, `cp`)
+- `zoho_name`: nome exato no Zoho (ex: `NFE`, `INFLACAO`)
+- `description`: o que a fonte representa
+- `abas`: quais abas do dashboard consomem essa fonte
+- `max_age_hours`: frequência de atualização (padrão 24h; dimensões como FILIAIS usam 168h = 7 dias)
+
+**`pipeline/extract.py`** — script de extração:
+- Lê `sources.yml` e `data/raw/manifest.json`
+- Pula fontes com extração recente — **lógica incremental** com `max_age_hours`
+- `--force`: ignora cache e baixa tudo
+- `--source ID`: extrai só uma fonte específica
+- `--max-age N`: override do tempo de cache
+- Processa em lotes de 4 jobs simultâneos via Bulk API assíncrona
+- Grava `data/raw/manifest.json` com status, linhas e timestamp de cada extração
+
+### Teste executado
+
+```
+python pipeline/extract.py --env-file zoho/zoho.env --source filiais
+  -> 101 linhas, 12 colunas, manifest atualizado
+
+python pipeline/extract.py --env-file zoho/zoho.env --source filiais
+  -> "Pulando 1 fontes atualizadas: filiais" (cache funcionando)
+```
+
+### Decisões de arquitetura
+
+1. **Opção A (manual)** por agora — sem agendamento automático
+2. **Deploy futuro no Render** com cron job — a lógica incremental já está preparada
+3. O `sources.yml` é a única fonte de verdade sobre o que extrair — nomes de fontes não estão hardcoded no script
+
+### Próximos passos
+
+- [ ] Rodar extração completa das 18 fontes
+- [ ] Criar `pipeline/transform.py`
 
 ---
 
