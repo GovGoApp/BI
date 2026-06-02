@@ -1306,6 +1306,29 @@ function _applyF(){
     });
   }
 
+  // Rebuild CAT_VAL/CAT_INF para a aba categorias (usa var, não const)
+  if(typeof CAT_VAL!=='undefined'){
+    const hier=_BDF('CATEGORIA_R01_HIERARQUIA')||[];
+    const cv={};
+    hier.forEach(r=>{
+      ['cat1','cat2','cat3','cat4','cat5'].forEach(k=>{
+        const v=r[k]; if(!v) return;
+        const code=v.split(' - ')[0].trim().split(' ')[0];
+        if(code) cv[code]=Math.round(((cv[code]||0)+(parseFloat(r.spend)||0)/1e6)*10)/10;
+      });
+    });
+    CAT_VAL=cv;
+  }
+  if(typeof CAT_INF!=='undefined'){
+    const inf=_BDF('INFLACAO_R04_POR_CAT')||[];
+    const ci={};
+    inf.forEach(r=>{
+      const code=(r.cat2||'').split(' - ')[0].trim().split(' ')[0];
+      if(code) ci[code]=parseFloat(r.inflacao_media_pct)||0;
+    });
+    CAT_INF=ci;
+  }
+
   // Re-renderizar aba
   const pk=document.querySelector('.tab.active[data-page]')?.dataset.page;
   if(pk){
@@ -1624,7 +1647,7 @@ def replace_mock_arrays(html, indexes):
             if code: cat_val[code] = round(cat_val.get(code, 0) + float(r.get("spend",0) or 0)/1e6, 1)
     if cat_val:
         html = re.sub(r"const CAT_VAL\s*=\s*\{[\s\S]*?\};",
-                      f"const CAT_VAL = {json.dumps(cat_val, ensure_ascii=False)};", html, count=1)
+                      f"var CAT_VAL = {json.dumps(cat_val, ensure_ascii=False)};", html, count=1)
 
     cat_inf_data = load_elem_data("10_inflacao", "10_inflacao_r04_por_categoria.csv") or []
     cat_inf = {}
@@ -1633,7 +1656,7 @@ def replace_mock_arrays(html, indexes):
         if code: cat_inf[code] = round(float(r.get("inflacao_media_pct",0) or 0), 1)
     if cat_inf:
         html = re.sub(r"const CAT_INF\s*=\s*\{[\s\S]*?\};",
-                      f"const CAT_INF = {json.dumps(cat_inf, ensure_ascii=False)};", html, count=1)
+                      f"var CAT_INF = {json.dumps(cat_inf, ensure_ascii=False)};", html, count=1)
 
     return html
 
