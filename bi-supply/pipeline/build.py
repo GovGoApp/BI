@@ -63,6 +63,39 @@ def load_elem_data(aba_folder, dados_file, tipo="T"):
 
 # ── Carrega todos os indexes ──────────────────────────────────────────────────
 
+RAW = ROOT / "data" / "raw"
+
+def load_dim_categorias():
+    """Carrega hierarquia completa de categorias sem limite de linhas."""
+    p = PROC / "03_categoria" / "03_categoria_r01_hierarquia.csv"
+    if not p.exists():
+        return []
+    rows = rc(p)
+    # Somente colunas de categoria (exclui métricas)
+    return [{k: r.get(k,"") for k in ("cat1","cat2","cat3","cat4","cat5")} for r in rows]
+
+def load_dim_produtos():
+    """Carrega lista completa de produtos com nome e cat2 a partir do raw pmp_id_inf_12."""
+    p = RAW / "pmp_id_inf_12.csv"
+    if not p.exists():
+        # fallback: usar processado sem limite
+        pp = PROC / "07_produto" / "07_produto_r01_tabela_principal.csv"
+        if not pp.exists():
+            return []
+        rows = rc(pp)
+        return [{"cdproduto": r.get("cdproduto",""), "produto": r.get("produto",""),
+                 "cat2": r.get("cat2","")} for r in rows if r.get("cdproduto")]
+    rows = rc(p)
+    seen = set(); result = []
+    for r in rows:
+        cd = r.get("CDPRODUTO_OFICIAL","").strip().lstrip("﻿")
+        nm = r.get("NMPRODUTO_OFICIAL","").strip()
+        c2 = r.get("CAT2","")
+        if cd and nm and cd not in seen:
+            seen.add(cd)
+            result.append({"cdproduto": cd, "produto": nm, "cat2": c2})
+    return result
+
 def load_all_indexes():
     indexes = {}
     for p in sorted(PROC.iterdir()):
@@ -143,6 +176,14 @@ def build_js_injection(indexes):
     abas_js = json.dumps(abas_index, ensure_ascii=False, separators=(",", ":"))
     lines.append(f"const ABAS_INDEX = {abas_js};")
     lines.append("")
+
+    # Dimensões completas para os filtros (sem limite de linhas)
+    dim_cats = load_dim_categorias()
+    dim_prods = load_dim_produtos()
+    lines.append(f"window._BI_DATA['DIM_CATEGORIAS'] = {json.dumps(dim_cats, ensure_ascii=False, separators=(',',':'))};")
+    lines.append(f"window._BI_DATA['DIM_PRODUTOS']   = {json.dumps(dim_prods, ensure_ascii=False, separators=(',',':'))};")
+    lines.append("")
+    print(f"  Dimensões: {len(dim_cats)} categorias · {len(dim_prods)} produtos")
 
     return "\n".join(lines)
 
@@ -999,11 +1040,11 @@ let _vc2=null; // Set de cat2 válidos derivado da hierarquia (null = sem filtro
 
 function _loadF(){ try{ const s=localStorage.getItem(_LS); if(s) _F=Object.assign(_F0(),JSON.parse(s)); }catch(e){} }
 
-// Pré-computa cat2 válidos a partir da hierarquia, cruzando todos os níveis ativos
+// Pré-computa cat2 válidos a partir da hierarquia completa, cruzando todos os níveis ativos
 function _computeVC2(){
   const active=['cat1','cat2','cat3','cat4','cat5'].some(k=>_F[k].length>0);
   if(!active){ _vc2=null; return; }
-  let h=_BD('CATEGORIA_R01_HIERARQUIA');
+  let h=_BD('DIM_CATEGORIAS')||_BD('CATEGORIA_R01_HIERARQUIA');
   ['cat1','cat2','cat3','cat4','cat5'].forEach(k=>{ if(_F[k].length) h=h.filter(r=>_F[k].includes(r[k])); });
   _vc2=new Set(h.map(r=>r.cat2).filter(Boolean));
 }
@@ -1131,24 +1172,18 @@ const _OPTS={
     if(_F.abc_forn.length) d=d.filter(r=>_F.abc_forn.includes(r.curva));
     return _uniq(d,'fornecedor').sort().slice(0,300);
   },
-  cat1:       ()=>_uniq(_BD('CATEGORIA_R01_HIERARQUIA'),'cat1').filter(Boolean).sort(),
-  cat2:       ()=>{let d=_BD('CATEGORIA_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));return _uniq(d,'cat2').filter(Boolean).sort();},
-  cat3:       ()=>{let d=_BD('CATEGORIA_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));return _uniq(d,'cat3').filter(Boolean).sort();},
-  cat4:       ()=>{let d=_BD('CATEGORIA_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));if(_F.cat3.length)d=d.filter(r=>_F.cat3.includes(r.cat3));return _uniq(d,'cat4').filter(Boolean).sort();},
-  cat5:       ()=>{let d=_BD('CATEGORIA_R01_HIERARQUIA');['cat1','cat2','cat3','cat4'].forEach(k=>{if(_F[k].length)d=d.filter(r=>_F[k].includes(r[k]));});return _uniq(d,'cat5').filter(Boolean).sort();},
+  cat1:       ()=>_uniq(_BD('DIM_CATEGORIAS'),'cat1').filter(Boolean).sort(),
+  cat2:       ()=>{let d=_BD('DIM_CATEGORIAS');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));return _uniq(d,'cat2').filter(Boolean).sort();},
+  cat3:       ()=>{let d=_BD('DIM_CATEGORIAS');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));return _uniq(d,'cat3').filter(Boolean).sort();},
+  cat4:       ()=>{let d=_BD('DIM_CATEGORIAS');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));if(_F.cat3.length)d=d.filter(r=>_F.cat3.includes(r.cat3));return _uniq(d,'cat4').filter(Boolean).sort();},
+  cat5:       ()=>{let d=_BD('DIM_CATEGORIAS');['cat1','cat2','cat3','cat4'].forEach(k=>{if(_F[k].length)d=d.filter(r=>_F[k].includes(r[k]));});return _uniq(d,'cat5').filter(Boolean).sort();},
   produto:    ()=>{
-    let d=_BD('PRODUTO_R01_TABELA');
+    // Usa DIM_PRODUTOS (lista completa) filtrada pelo _vc2 já computado
+    let d=_BD('DIM_PRODUTOS');
     if(_F.abc_prod.length) d=d.filter(r=>_F.abc_prod.includes(r.curva_prod||r.curva_id));
     if(_F.abc_id.length)   d=d.filter(r=>_F.abc_id.includes(r.curva_id));
-    // Filtro de categoria: deriva cat2 válidos da hierarquia (cobre cat1-5 mesmo sem essas colunas no produto)
-    const catActive=['cat1','cat2','cat3','cat4','cat5'].some(k=>_F[k].length>0);
-    if(catActive){
-      let h=_BD('CATEGORIA_R01_HIERARQUIA');
-      ['cat1','cat2','cat3','cat4','cat5'].forEach(k=>{ if(_F[k].length) h=h.filter(r=>_F[k].includes(r[k])); });
-      const vc2=new Set(h.map(r=>r.cat2).filter(Boolean));
-      d=d.filter(r=>vc2.has(r.cat2));
-    }
-    return [...new Set(d.map(r=>`${r.cdproduto} - ${r.produto}`).filter(Boolean))].sort().slice(0,300);
+    if(_vc2!==null) d=d.filter(r=>_vc2.has(r.cat2));
+    return [...new Set(d.map(r=>`${r.cdproduto} - ${r.produto}`).filter(Boolean))].sort().slice(0,500);
   },
   id:         ()=>[],
   abc_prod:   ()=>_ABC,
