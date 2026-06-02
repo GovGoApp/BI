@@ -12,13 +12,18 @@ python pipeline/transform.py
 if errorlevel 1 goto erro
 
 echo.
+echo [2b/3] Regenerando indexes (apos transform)...
+python pipeline/generate_indexes.py
+if errorlevel 1 goto erro
+
+echo.
 echo [3/3] Gerando dashboard...
 python pipeline/build.py
 if errorlevel 1 goto erro
 
 echo.
 echo Dashboard gerado em: dist\index.html
-start dist\index.html
+echo Abrir: dist\index.html
 goto fim
 
 :erro
