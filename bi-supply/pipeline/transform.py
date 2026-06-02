@@ -1100,6 +1100,7 @@ def main():
     aba_adiantamento(ad,lk)
     aba_servico(nfe,lk)
     aba_dados(nfe,lk)
+    complete_missing_datasets(nfe,cp,cot,cot_min,num_cot,inf_raw,pmp12,lk)
     outputs=list(OUT.rglob("*.csv"))+list(OUT.rglob("*.json"))
     total_kb=sum(p.stat().st_size for p in outputs)/1024
     manifest={"generated_at":datetime.now(timezone.utc).isoformat(),"total_files":len(outputs),"total_kb":round(total_kb,1),"abas":{}}
@@ -1110,6 +1111,480 @@ def main():
         files=manifest["abas"][aba]
         kb=sum((OUT/aba/f).stat().st_size for f in files if (OUT/aba/f).exists())/1024
         print(f"  {aba:<28} {len(files):>3} arqs  {kb:>7.1f} KB")
+
+
+# ── COMPLEMENTO: datasets faltantes identificados em RELATORIO_COBERTURA_DADOS ──
+
+
+def _update_json(folder, name, updates: dict):
+    """Lê JSON existente, mescla updates e salva."""
+    p = OUT / folder / name
+    data = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+    data.update(updates)
+    p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+# ── 01_resumo: adicionar ids_unicos ao kpis ───────────────────────────────────
+
+def _fix_resumo_kpis(nfe):
+    ids_u = len({r.get("ID","") for r in nfe if r.get("ID","")})
+    prods_u = len({r.get("CDPRODUTO_OFICIAL","") for r in nfe if r.get("CDPRODUTO_OFICIAL","")})
+    _update_json("01_resumo", "01_resumo_k00_kpis.json", {
+        "ids_unicos": ids_u,
+        "produtos_unicos": prods_u,
+    })
+
+
+# ── 02_oportunidade: matriz prioridade + por tipo ────────────────────────────
+
+def _oportunidade_extras(nfe, num_cot):
+    F = "02_oportunidade"
+
+    id_num = {r.get("ID",""):int(flt(r.get("QTD_COT","0"))) for r in num_cot}
+
+    # r04 matriz prioridade (impacto × esforço 3×3)
+    matrix: dict[str, dict] = {
+        "alto_baixo":  {"label":"Alto impacto / Fácil",     "count":0, "valor":0.0},
+        "alto_medio":  {"label":"Alto impacto / Médio",     "count":0, "valor":0.0},
+        "alto_alto":   {"label":"Alto impacto / Difícil",   "count":0, "valor":0.0},
+        "medio_baixo": {"label":"Médio / Fácil",            "count":0, "valor":0.0},
+        "medio_medio": {"label":"Médio / Médio",            "count":0, "valor":0.0},
+        "medio_alto":  {"label":"Médio / Difícil",          "count":0, "valor":0.0},
+        "baixo_baixo": {"label":"Baixo / Fácil",            "count":0, "valor":0.0},
+        "baixo_medio": {"label":"Baixo / Médio",            "count":0, "valor":0.0},
+        "baixo_alto":  {"label":"Baixo / Difícil",          "count":0, "valor":0.0},
+    }
+    id_acc: dict[str, dict] = defaultdict(lambda: {"imp":0.0,"curva":""})
+    for r in nfe:
+        id_ = r.get("ID",""); imp = flt(r.get("IMP_COT",""))
+        if imp > 0: id_acc[id_]["imp"] += imp
+        id_acc[id_]["curva"] = r.get("CURVA_ID","")
+
+    for id_, d in id_acc.items():
+        curv = d["curva"]; imp = d["imp"]
+        if curv in ("AAA","AA","A"):   il = "alto"
+        elif curv in ("B","BB"):       il = "medio"
+        else:                          il = "baixo"
+        n_cot = id_num.get(id_, 0)
+        if n_cot >= 2:   es = "baixo"
+        elif n_cot == 1: es = "medio"
+        else:            es = "alto"
+        key = f"{il}_{es}"
+        if key in matrix:
+            matrix[key]["count"] += 1
+            matrix[key]["valor"] += imp
+
+    sj(F, "02_oportunidade_r04_matriz_prioridade.json",
+       [{**v, "key":k, "valor":r2(v["valor"])} for k,v in matrix.items()])
+
+    # r05 por tipo de oportunidade
+    tipo_data: dict[str, dict] = defaultdict(lambda: {"count":0,"valor":0.0})
+    for r in nfe:
+        id_  = r.get("ID","")
+        imp  = flt(r.get("IMP_COT",""))
+        sem_cot = r.get("PRE_MIN_COT","").strip() in ("","0")
+        curv = r.get("CURVA_ID","")
+        n_cot = id_num.get(id_, 0)
+
+        if sem_cot and curv in ("AAA","AA","A"):
+            tipo_data["Sem cotação AAA/A"]["count"] += 1
+            tipo_data["Sem cotação AAA/A"]["valor"] += flt(r["TOTAL"])
+        elif n_cot == 1 and curv in ("AAA","AA","A"):
+            tipo_data["Monopólio de cotação"]["count"] += 1
+            tipo_data["Monopólio de cotação"]["valor"] += flt(r["TOTAL"])
+        elif imp > 0:
+            tipo_data["Acima do menor preço"]["count"] += 1
+            tipo_data["Acima do menor preço"]["valor"] += imp
+
+    sc(F, "02_oportunidade_r05_por_tipo.csv", sorted(
+        [{"tipo":k,"ids_afetados":d["count"],"valor":r2(d["valor"])} for k,d in tipo_data.items()],
+        key=lambda x: -x["valor"]))
+
+    # KPI faltante: fornecedores que nunca são o mais barato
+    forn_baratos = {r.get("FORNE_FANTASIA","").split(" - ")[0].strip()
+                    for r in [] }  # placeholder — precisa do cot_min
+    _update_json(F, "02_oportunidade_k00_kpis.json", {
+        "forn_nunca_mais_barato": "ver 08_cotacao_r05_min_cotacao_fornecedor"
+    })
+
+
+# ── 03_categoria: top fornecedor + top produto por categoria ─────────────────
+
+def _categoria_extras(nfe, ps):
+    F = "03_categoria"
+
+    # r04 top fornecedores por CAT2
+    cat_forn: dict[tuple, float] = defaultdict(float)
+    cat_forn_nm: dict[tuple, str] = {}
+    for r in nfe:
+        cat2 = r.get("CAT2",""); cd = r.get("CDFORNECED_OFICIAL") or r.get("CDFORNECED","")
+        nm   = r.get("FANTASIA_OFICIAL","") or r.get("NMFANTFORN","")
+        cat_forn[(cat2,cd)] += flt(r["TOTAL"])
+        cat_forn_nm[(cat2,cd)] = nm
+    sc(F, "03_categoria_r04_top_fornecedor.csv", sorted(
+        [{"cat2":k[0],"cdforneced":k[1],"fornecedor":cat_forn_nm[k],"spend":r2(v)}
+         for k,v in cat_forn.items() if k[0].strip()],
+        key=lambda x:(x["cat2"],-x["spend"])))
+
+    # r05 top produtos por CAT2 com PMP e inflação
+    cat_prod: dict[tuple, dict] = defaultdict(lambda: {
+        "spend":0.0,"imp":0.0,"nm":"","curva_id":"","pmp_atual":0.0,"var_pmp":0.0
+    })
+    for r in nfe:
+        cat2 = r.get("CAT2",""); cd = r.get("CDPRODUTO_OFICIAL","")
+        if not cd: continue
+        d = cat_prod[(cat2,cd)]
+        d["spend"] += flt(r["TOTAL"]); d["nm"] = r.get("NMPRODUTO_OFICIAL","")
+        d["curva_id"] = r.get("CURVA_ID","")
+        imp = flt(r.get("IMP_COT",""))
+        if imp > 0: d["imp"] += imp
+        pmp0 = flt(r.get("PMP_PROD",""))
+        if pmp0 > 0: d["pmp_atual"] = pmp0
+
+    for (cat2,cd), d in cat_prod.items():
+        p = ps.get(cd)
+        if p and p["pmps"][0] > 0 and p["pmps"][12] > 0:
+            d["var_pmp"] = round((p["pmps"][0]-p["pmps"][12])/p["pmps"][12]*100,2)
+
+    sc(F, "03_categoria_r05_top_produto.csv", sorted(
+        [{"cat2":k[0],"cdproduto":k[1],"produto":d["nm"],"curva_id":d["curva_id"],
+          "spend":r2(d["spend"]),"imp_cot":r2(d["imp"]),
+          "pmp_atual":r2(d["pmp_atual"]),"var_pmp_pct":d["var_pmp"]}
+         for k,d in cat_prod.items() if k[0].strip()],
+        key=lambda x:(x["cat2"],-x["spend"])))
+
+
+# ── 04_filial: por fornecedor + fix KPIs ─────────────────────────────────────
+
+def _filial_extras(nfe, lk):
+    F = "04_filial"; tg = lk["tg"]
+
+    # r05 filial × fornecedor (top 5 por filial)
+    fil_forn: dict[tuple, float] = defaultdict(float)
+    fil_forn_nm: dict[tuple, str] = {}
+    for r in nfe:
+        fil = str(r.get("CDFILIAL","")).strip(); cd = r.get("CDFORNECED_OFICIAL") or r.get("CDFORNECED","")
+        nm  = r.get("FANTASIA_OFICIAL","") or r.get("NMFANTFORN","")
+        if fil: fil_forn[(fil,cd)] += flt(r["TOTAL"]); fil_forn_nm[(fil,cd)] = nm
+    sc(F, "04_filial_r05_por_fornecedor.csv", sorted(
+        [{"cdfilial":k[0],"cdforneced":k[1],"fornecedor":fil_forn_nm[k],"spend":r2(v)}
+         for k,v in fil_forn.items()],
+        key=lambda x:(x["cdfilial"],-x["spend"])))
+
+    # Fix KPIs — adicionar maior_uf e maior_negocio
+    by_uf: dict[str,float] = defaultdict(float)
+    by_neg: dict[str,float] = defaultdict(float)
+    for r in nfe:
+        by_uf[r.get("UF","")]  += flt(r["TOTAL"])
+        by_neg[r.get("FI.NEGOCIO","")] += flt(r["TOTAL"])
+    maior_uf  = max(by_uf.items(), key=lambda x:x[1], default=("",0))
+    maior_neg = max(by_neg.items(), key=lambda x:x[1], default=("",0))
+    _update_json(F, "04_filial_k00_kpis.json", {
+        "maior_uf": maior_uf[0],
+        "maior_uf_spend": r2(maior_uf[1]),
+        "maior_negocio": maior_neg[0],
+        "maior_negocio_spend": r2(maior_neg[1]),
+    })
+
+
+# ── 06_fornecedor: produto por fornecedor ─────────────────────────────────────
+
+def _fornecedor_extras(nfe, lk):
+    F = "06_fornecedor"
+    # r03 top 10 produtos por fornecedor
+    forn_prod: dict[tuple, float] = defaultdict(float)
+    forn_prod_nm: dict[tuple, str] = {}
+    for r in nfe:
+        cd  = r.get("CDFORNECED_OFICIAL") or r.get("CDFORNECED","")
+        cdp = r.get("CDPRODUTO_OFICIAL",""); nm = r.get("NMPRODUTO_OFICIAL","")
+        if cd and cdp:
+            forn_prod[(cd,cdp)] += flt(r["TOTAL"])
+            forn_prod_nm[(cd,cdp)] = nm
+    sc(F, "06_fornecedor_r03_produto_por_forn.csv", sorted(
+        [{"cdforneced":k[0],"cdproduto":k[1],"produto":forn_prod_nm[k],"spend":r2(v)}
+         for k,v in forn_prod.items()],
+        key=lambda x:(x["cdforneced"],-x["spend"])))
+
+
+# ── 07_produto: fix KPIs faltantes ───────────────────────────────────────────
+
+def _produto_fix_kpis(nfe, num_cot, inflacao_r, ps):
+    F = "07_produto"
+    ids_nfe  = {r.get("ID","") for r in nfe if r.get("ID","")}
+    ids_cot  = {r.get("ID","") for r in num_cot if r.get("ID","")}
+    ids_sc   = len(ids_nfe - ids_cot)
+
+    ids_gt10 = sum(
+        1 for d in ps.values()
+        if len([p for p in d["pmps"] if p>0])>=2
+        and abs((lambda pp:(pp[0]-pp[-1])/pp[-1]*100 if pp[-1] else 0)(
+            [p for p in d["pmps"] if p>0]))>10
+    )
+    pmp_vals = [d["pmps"][0] for d in ps.values() if d["pmps"][0]>0]
+    pmp_m    = round(sum(pmp_vals)/len(pmp_vals),2) if pmp_vals else 0
+
+    inf_vals = [flt(r.get("PERC_INF_ID_PMP","")) for r in inflacao_r
+                if flt(r.get("PERC_INF_ID_PMP",""))!=0]
+    inf_m    = round(sum(inf_vals)/len(inf_vals),2) if inf_vals else 0
+
+    _update_json(F, "07_produto_k00_kpis.json", {
+        "ids_sem_cotacao_12m": ids_sc,
+        "ids_variacao_pmp_gt10pct": ids_gt10,
+        "pmp_medio_cesta": pmp_m,
+        "inflacao_media_cesta": inf_m,
+    })
+
+
+# ── 08_cotacao: 4 datasets faltantes ─────────────────────────────────────────
+
+def _cotacao_extras(cot, cot_min, num_cot):
+    F = "08_cotacao"
+
+    # r07 consulta de preços cotados (COT agrupado por ID+forn+mês recente)
+    cr: dict[tuple, dict] = defaultdict(lambda: {"mn":float("inf"),"ms":0.0,"mc":0,"mx":0.0,"curva_forn":"","curva_id":""})
+    for r in cot:
+        k  = (r.get("ID",""), r.get("CDFORNECED",""), r.get("MESANO",""))
+        v  = flt(r.get("PRECOUNIT_EST",""))
+        if v <= 0: continue
+        d  = cr[k]; d["mn"]=min(d["mn"],v); d["ms"]+=v; d["mc"]+=1; d["mx"]=max(d["mx"],v)
+        d["curva_forn"] = r.get("CURVA_FORN",""); d["curva_id"] = r.get("CURVA_ID","")
+    forn_nm = {r.get("CDFORNECED",""):r.get("NMRAZSOCFORN","") or r.get("NMFANTFORN","") for r in cot}
+    prod_nm = {r.get("ID",""):r.get("NMPRODUTO_EST","") for r in cot}
+    sc(F, "08_cotacao_r07_consulta_precos.csv", sorted(
+        [{"id":k[0],"produto":prod_nm.get(k[0],""),"cdforneced":k[1],
+          "fornecedor":forn_nm.get(k[1],""),"mesano":k[2],
+          "preco_min":r2(d["mn"]) if d["mn"]!=float("inf") else 0,
+          "preco_med":r2(d["ms"]/d["mc"]) if d["mc"] else 0,
+          "preco_max":r2(d["mx"]),"n_cotacoes":d["mc"],
+          "curva_forn":d["curva_forn"],"curva_id":d["curva_id"]}
+         for k,d in cr.items() if k[0].strip()],
+        key=lambda x:(x["mesano"],x["id"]))[:3000])
+
+    # r08 cotações por produto (resumo por ID)
+    id_cot: dict[str, dict] = defaultdict(lambda: {
+        "n_meses":0,"min_global":float("inf"),"med_s":0.0,"med_n":0,"max_global":0.0,
+        "nm":"","cat2":"","curva_id":"","curva_forn":"","forn_min":""
+    })
+    for r in cot:
+        id_ = r.get("ID",""); v = flt(r.get("PRECOUNIT_EST",""))
+        if not id_ or v <= 0: continue
+        d = id_cot[id_]
+        d["min_global"] = min(d["min_global"],v); d["med_s"]+=v; d["med_n"]+=1
+        d["max_global"] = max(d["max_global"],v)
+        d["nm"]    = r.get("NMPRODUTO_EST",""); d["cat2"] = r.get("CAT2","")
+        d["curva_id"]   = r.get("CURVA_ID",""); d["curva_forn"] = r.get("CURVA_FORN","")
+    for r in cot_min:
+        id_ = r.get("ID","")
+        if id_ and r.get("PRIORIDADE","") == "1":
+            id_cot[id_]["forn_min"] = r.get("FORNE_FANTASIA","")
+    # contar meses distintos por ID
+    id_meses: dict[str,set] = defaultdict(set)
+    for r in cot:
+        if r.get("ID","") and flt(r.get("PRECOUNIT_EST",""))>0:
+            id_meses[r.get("ID","")].add(r.get("MESANO",""))
+    for id_,d in id_cot.items():
+        d["n_meses"] = len(id_meses.get(id_,set()))
+    sc(F, "08_cotacao_r08_cotacao_por_produto.csv", sorted(
+        [{"id":k,"produto":d["nm"],"cat2":d["cat2"],"curva_id":d["curva_id"],
+          "n_meses_cotados":d["n_meses"],
+          "preco_min_global":r2(d["min_global"]) if d["min_global"]!=float("inf") else 0,
+          "preco_med_global":r2(d["med_s"]/d["med_n"]) if d["med_n"] else 0,
+          "preco_max_global":r2(d["max_global"]),
+          "fornecedor_mais_barato":d["forn_min"]}
+         for k,d in id_cot.items()],
+        key=lambda x:-x["n_meses_cotados"])[:1000])
+
+    # r09 matriz produto × mês (# cotações e MIN por mês — top 200 IDs por volume)
+    # Identificar top 100 IDs por n_meses_cotados
+    top_ids = [x[0] for x in sorted(id_cot.items(), key=lambda x:-x[1]["n_meses"])[:100]]
+    # Coletar meses disponíveis
+    all_mes = sorted({r.get("MESANO","") for r in num_cot if r.get("MESANO","")})[-12:]
+    id_mes_data: dict[tuple, dict] = {}
+    for r in num_cot:
+        id_ = r.get("ID",""); mes = r.get("MESANO","")
+        if id_ in top_ids and mes in all_mes:
+            id_mes_data[(id_,mes)] = {
+                "qtd": int(flt(r.get("QTD_COT","0"))),
+                "min": r2(flt(r.get("MIN_COT","0")))
+            }
+    # Montar wide format
+    matriz_rows = []
+    for id_ in top_ids:
+        row = {"id":id_,"produto":id_cot[id_]["nm"],"curva_id":id_cot[id_]["curva_id"]}
+        for mes in all_mes:
+            d2 = id_mes_data.get((id_,mes),{"qtd":0,"min":0})
+            col = mes.replace("/","_")
+            row[f"{col}_qtd"] = d2["qtd"]
+            row[f"{col}_min"] = d2["min"]
+        matriz_rows.append(row)
+    sc(F, "08_cotacao_r09_matriz_produto_mes.csv", matriz_rows)
+
+    # r10 MIN cotação com ≤ 3 concorrentes
+    id_forn_count: dict[str,set] = defaultdict(set)
+    for r in cot:
+        id_ = r.get("ID",""); cd = r.get("CDFORNECED","")
+        if id_ and cd: id_forn_count[id_].add(cd)
+
+    min_data: dict[str, dict] = {}
+    for r in cot_min:
+        id_ = r.get("ID","")
+        if not id_: continue
+        v = flt(r.get("PRECOUNIT_COT",""))
+        if r.get("PRIORIDADE","") == "1" or id_ not in min_data:
+            n_conc = len(id_forn_count.get(id_,set()))
+            if n_conc <= 3:
+                min_data[id_] = {
+                    "id": id_,
+                    "fornecedor_min": r.get("FORNE_FANTASIA",""),
+                    "preco_min": r2(v),
+                    "n_concorrentes": n_conc,
+                    "curva_id": r.get("CURVA_ID",""),
+                    "curva_forn": r.get("CURVA_FORN",""),
+                    "mesano": r.get("MESANO",""),
+                }
+    prod_nm2 = {r.get("ID",""):r.get("NMPRODUTO_EST","") for r in cot_min}
+    for id_,d in min_data.items():
+        d["produto"] = prod_nm2.get(id_,"")
+    sc(F, "08_cotacao_r10_min_cot_baixa_concorrencia.csv", sorted(
+        [{"id":k,"produto":d["produto"],"fornecedor_mais_barato":d["fornecedor_min"],
+          "preco_min":d["preco_min"],"n_concorrentes":d["n_concorrentes"],
+          "curva_id":d["curva_id"],"mesano":d["mesano"]}
+         for k,d in min_data.items()],
+        key=lambda x:(x["curva_id"],-x["preco_min"]))[:500])
+
+
+# ── 09_impacto: produto × MIN COT ────────────────────────────────────────────
+
+def _impacto_extras(nfe, cot_min):
+    F = "09_impacto"
+    # r05 PRODUTOS por ID − MIN COT
+    id_pmc: dict[str, dict] = defaultdict(lambda: {
+        "spend":0.0,"imp":0.0,"nm":"","cat2":"","curva_id":"","pre_min":0.0,"forn_min":"","n_linhas":0
+    })
+    for r in nfe:
+        id_ = r.get("ID","")
+        if not id_: continue
+        d = id_pmc[id_]; d["spend"]+=flt(r["TOTAL"]); d["n_linhas"]+=1
+        d["nm"]       = r.get("NMPRODUTO_OFICIAL",""); d["cat2"] = r.get("CAT2","")
+        d["curva_id"] = r.get("CURVA_ID","")
+        if flt(r.get("PRE_MIN_COT","")) > 0:
+            d["pre_min"] = flt(r.get("PRE_MIN_COT",""))
+            d["forn_min"]= r.get("FORN_MIN_COT","")
+        imp = flt(r.get("IMP_COT",""))
+        if imp > 0: d["imp"] += imp
+
+    sc(F, "09_impacto_r05_produto_min_cot.csv", sorted(
+        [{"id":k,"produto":d["nm"],"cat2":d["cat2"],"curva_id":d["curva_id"],
+          "spend":r2(d["spend"]),"imp_cot":r2(d["imp"]),
+          "pre_min_cot":r2(d["pre_min"]),"forn_min_cot":d["forn_min"],
+          "n_linhas":d["n_linhas"]}
+         for k,d in id_pmc.items() if d["pre_min"]>0 or d["imp"]>0],
+        key=lambda x:-x["imp_cot"])[:500])
+
+
+# ── 10_inflacao: por fornecedor + produto × categoria ────────────────────────
+
+def _inflacao_extras(nfe, inflacao_r):
+    F = "10_inflacao"
+
+    # r07 inflação por fornecedor (via NFE INF_PROD_PMP)
+    forn_inf: dict[str, dict] = defaultdict(lambda: {
+        "spend":0.0,"inf_s":0.0,"inf_n":0,"nm":""
+    })
+    for r in nfe:
+        cd = r.get("CDFORNECED_OFICIAL") or r.get("CDFORNECED","")
+        if not cd: continue
+        d = forn_inf[cd]; d["spend"] += flt(r["TOTAL"])
+        d["nm"] = r.get("FANTASIA_OFICIAL","") or r.get("NMFANTFORN","")
+        inf = flt(r.get("INF_PROD_PMP",""))
+        if inf!=0: d["inf_s"]+=inf; d["inf_n"]+=1
+    sc(F, "10_inflacao_r07_por_fornecedor.csv", sorted(
+        [{"cdforneced":k,"fornecedor":d["nm"],"spend":r2(d["spend"]),
+          "inflacao_media_pct":round(d["inf_s"]/d["inf_n"],2) if d["inf_n"] else 0.0}
+         for k,d in forn_inf.items() if d["spend"]>100_000],
+        key=lambda x:-abs(x["inflacao_media_pct"]))[:100])
+
+    # r08 produto × categoria (inflação cruzada — da fonte INFLAÇÃO)
+    prod_cat: dict[tuple, dict] = defaultdict(lambda: {
+        "spend":0.0,"inf_s":0.0,"inf_n":0,"exp_r":0.0,"nm":""
+    })
+    for r in inflacao_r:
+        cat = r.get("CAT2",""); id_ = r.get("ID","")
+        if not id_ or not cat: continue
+        d = prod_cat[(cat, id_)]; d["nm"] = r.get("NMPRODUTO_EST","")
+        d["spend"] += flt(r.get("TOTAL",""))
+        d["exp_r"] += flt(r.get("SOMA_INF_ID_PMP",""))
+        p = flt(r.get("PERC_INF_ID_PMP",""))
+        if p!=0: d["inf_s"]+=p; d["inf_n"]+=1
+    sc(F, "10_inflacao_r08_produto_por_cat.csv", sorted(
+        [{"cat2":k[0],"id":k[1],"produto":d["nm"],
+          "inflacao_media_pct":round(d["inf_s"]/d["inf_n"],2) if d["inf_n"] else 0.0,
+          "exposicao_rs":r2(d["exp_r"]),"spend":r2(d["spend"])}
+         for k,d in prod_cat.items() if k[0].strip()],
+        key=lambda x:(x["cat2"],-abs(x["inflacao_media_pct"])))[:500])
+
+
+# ── 14_servico: detalhe por CAT5 + fix KPIs ──────────────────────────────────
+
+def _servico_extras(nfe):
+    F = "14_servico"
+    fin = {"MUTUO","DEVOLUCAO","EMPRESTIMO","ICMS","PARCELAMENTO"}
+    def is_fin(r): nm=(r.get("NMPRODUTO_OFICIAL","") or "").upper(); return any(f in nm for f in fin)
+    d5 = [r for r in nfe if r.get("CAT2","").startswith("D5") and not is_fin(r)]
+    tot = sum(flt(r["TOTAL"]) for r in d5)
+
+    # r05 por CAT5
+    bc5: dict[str, dict] = defaultdict(lambda: {"spend":0.0,"forn":"","cat3":"","cat4":""})
+    for r in d5:
+        cat5 = r.get("CAT5","")
+        if not cat5.strip(): continue
+        bc5[cat5]["spend"] += flt(r["TOTAL"])
+        bc5[cat5]["cat3"]   = r.get("CAT3","")
+        bc5[cat5]["cat4"]   = r.get("CAT4","")
+    sc(F, "14_servico_r05_por_cat5.csv", sorted(
+        [{"cat5":k,"cat3":d["cat3"],"cat4":d["cat4"],
+          "spend":r2(d["spend"]),"pct":pct(d["spend"],tot)}
+         for k,d in bc5.items() if k.strip()],
+        key=lambda x:-x["spend"])[:50])
+
+    # Fix KPIs — adicionar variação mensal e maior categoria
+    by_mes: dict[str,float] = defaultdict(float)
+    for r in d5: by_mes[r.get("MESANO","")]+=flt(r["TOTAL"])
+    meses = sorted(by_mes.items())
+    var_m = 0.0
+    if len(meses) >= 2:
+        ant = meses[-2][1]; atu = meses[-1][1]
+        var_m = round((atu-ant)/ant*100,2) if ant else 0
+    by_cat: dict[str,float] = defaultdict(float)
+    for r in d5: by_cat[r.get("CAT3","") or r.get("CAT2","")]+=flt(r["TOTAL"])
+    maior_cat = max(by_cat.items(), key=lambda x:x[1], default=("",0))
+    _update_json(F, "14_servico_k00_kpis.json", {
+        "variacao_mensal_pct": var_m,
+        "maior_categoria": maior_cat[0],
+        "maior_categoria_spend": r2(maior_cat[1]),
+    })
+
+
+# ── função principal de complemento ──────────────────────────────────────────
+
+def complete_missing_datasets(nfe, cp, cot, cot_min, num_cot, inflacao_r, pmp12, lk):
+    """Gera todos os datasets faltantes identificados no RELATORIO_COBERTURA_DADOS."""
+    print("\nComplementando datasets faltantes...")
+    ps = lk["ps"]  # série PMP por ID
+
+    _fix_resumo_kpis(nfe)
+    _oportunidade_extras(nfe, num_cot)
+    _categoria_extras(nfe, ps)
+    _filial_extras(nfe, lk)
+    _fornecedor_extras(nfe, lk)
+    _produto_fix_kpis(nfe, num_cot, inflacao_r, ps)
+    _cotacao_extras(cot, cot_min, num_cot)
+    _impacto_extras(nfe, cot_min)
+    _inflacao_extras(nfe, inflacao_r)
+    _servico_extras(nfe)
+
+    n = sum(1 for _ in OUT.rglob("*.csv")) + sum(1 for _ in OUT.rglob("*.json"))
+    print(f"  Total após complemento: {n} arquivos")
 
 if __name__=="__main__":
     main()
