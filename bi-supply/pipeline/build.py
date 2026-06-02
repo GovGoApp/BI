@@ -65,6 +65,30 @@ def load_elem_data(aba_folder, dados_file, tipo="T"):
 
 RAW = ROOT / "data" / "raw"
 
+def load_dim_filiais():
+    """Carrega todas as filiais com nome, negocio, uf, empresa — sem limite de linhas."""
+    p = PROC / "04_filial" / "04_filial_r01_ranking.csv"
+    if not p.exists():
+        return []
+    return [{"nome": r.get("nome",""), "negocio": r.get("negocio",""),
+             "uf": r.get("uf",""), "empresa": r.get("empresa","")}
+            for r in rc(p) if r.get("nome")]
+
+def load_dim_fornecedores():
+    """Carrega lista completa de fornecedores com curva ABC do raw Zoho."""
+    p = RAW / "curva_forn.csv"
+    if not p.exists():
+        # fallback: usar processado sem limite
+        pp = PROC / "06_fornecedor" / "06_fornecedor_r01_tabela_principal.csv"
+        if not pp.exists():
+            return []
+        return [{"fornecedor": r.get("fornecedor",""), "curva": r.get("curva","")}
+                for r in rc(pp) if r.get("fornecedor")]
+    rows = rc(p)
+    return [{"fornecedor": r.get("RAZAO_SOCIAL","").strip(),
+             "curva":      r.get("CURVA","").strip()}
+            for r in rows if r.get("RAZAO_SOCIAL","").strip()]
+
 def load_dim_categorias():
     """Carrega hierarquia completa de categorias sem limite de linhas."""
     p = PROC / "03_categoria" / "03_categoria_r01_hierarquia.csv"
@@ -178,12 +202,16 @@ def build_js_injection(indexes):
     lines.append("")
 
     # Dimensões completas para os filtros (sem limite de linhas)
-    dim_cats = load_dim_categorias()
+    dim_cats  = load_dim_categorias()
     dim_prods = load_dim_produtos()
-    lines.append(f"window._BI_DATA['DIM_CATEGORIAS'] = {json.dumps(dim_cats, ensure_ascii=False, separators=(',',':'))};")
+    dim_filia = load_dim_filiais()
+    dim_forns = load_dim_fornecedores()
+    lines.append(f"window._BI_DATA['DIM_CATEGORIAS'] = {json.dumps(dim_cats,  ensure_ascii=False, separators=(',',':'))};")
     lines.append(f"window._BI_DATA['DIM_PRODUTOS']   = {json.dumps(dim_prods, ensure_ascii=False, separators=(',',':'))};")
+    lines.append(f"window._BI_DATA['DIM_FILIAIS']    = {json.dumps(dim_filia, ensure_ascii=False, separators=(',',':'))};")
+    lines.append(f"window._BI_DATA['DIM_FORNECEDORES']= {json.dumps(dim_forns,ensure_ascii=False, separators=(',',':'))};")
     lines.append("")
-    print(f"  Dimensões: {len(dim_cats)} categorias · {len(dim_prods)} produtos")
+    print(f"  Dimensões: {len(dim_cats)} cat · {len(dim_prods)} prod · {len(dim_filia)} filiais · {len(dim_forns)} fornecedores")
 
     return "\n".join(lines)
 
@@ -1024,6 +1052,7 @@ const _REGS = {
   S:  ['PR','RS','SC'],
 };
 const _ABC  = ['AAA','AA','A','B','BB','C','CC','CCC'];
+const _EMPS = ['RC','ME','PV']; // RC=Ideal, ME=Melhor, PV=Pomme Vita
 const _SCP  = ['Em Aberto','Baixado'];
 const _SAD  = ['ADIANTAMENTO CONCILIADO','ADIANTAMENTO PENDENTE','ADIANTAMENTO ?'];
 
@@ -1141,24 +1170,20 @@ const _KC={
 
 // ── Opções dos filtros ────────────────────────────────────────────────────────
 const _OPTS={
-  empresa:    ()=>{
-    const a=_uniq(_BD('ADIANTAMENTO_R02_EMP'),'empresa');
-    const b=_uniq(_BD('RESUMO_R08_POR_FILIAL'),'empresa');
-    return [...new Set([...a,...b])].filter(Boolean).sort();
-  },
-  negocio:    ()=>_uniq(_BD('FILIAL_R01_RANKING'),'negocio').sort(),
+  empresa:    ()=>_EMPS,
+  negocio:    ()=>_uniq(_BD('DIM_FILIAIS'),'negocio').filter(Boolean).sort(),
   regiao:     ()=>Object.keys(_REGS),
   uf:         ()=>{
-    let u=_F.regiao.length?_F.regiao.flatMap(r=>_REGS[r]||[]):_uniq(_BD('FILIAL_R01_RANKING'),'uf');
-    return [...new Set(u)].sort();
+    let u=_F.regiao.length?_F.regiao.flatMap(r=>_REGS[r]||[]):_uniq(_BD('DIM_FILIAIS'),'uf');
+    return [...new Set(u)].filter(Boolean).sort();
   },
   filial:     ()=>{
-    let d=_BD('FILIAL_R01_RANKING');
+    let d=_BD('DIM_FILIAIS');
     const eu=_effUfs();
     if(eu.length) d=d.filter(r=>eu.includes(r.uf));
     if(_F.negocio.length) d=d.filter(r=>_F.negocio.includes(r.negocio));
     if(_F.empresa.length) d=d.filter(r=>_F.empresa.includes(r.empresa));
-    return _uniq(d,'nome').sort();
+    return _uniq(d,'nome').filter(Boolean).sort();
   },
   ano:        ()=>['2024','2025','2026'],
   periodo:    ()=>{
@@ -1168,9 +1193,9 @@ const _OPTS={
   },
   abc_forn:   ()=>_ABC,
   fornecedor: ()=>{
-    let d=_BD('FORNECEDOR_R01_TABELA');
+    let d=_BD('DIM_FORNECEDORES');
     if(_F.abc_forn.length) d=d.filter(r=>_F.abc_forn.includes(r.curva));
-    return _uniq(d,'fornecedor').sort().slice(0,300);
+    return _uniq(d,'fornecedor').filter(Boolean).sort().slice(0,500);
   },
   cat1:       ()=>_uniq(_BD('DIM_CATEGORIAS'),'cat1').filter(Boolean).sort(),
   cat2:       ()=>{let d=_BD('DIM_CATEGORIAS');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));return _uniq(d,'cat2').filter(Boolean).sort();},
