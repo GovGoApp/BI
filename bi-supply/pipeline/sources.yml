@@ -116,6 +116,13 @@ sources:
     description: "PMP + inflação 12 meses por produto — recalculado mensalmente"
     abas: [inflacao, produtos]
 
+  # ── Resultado gerencial ──────────────────────────────────────────────────
+  - id: fat_sup
+    zoho_name: "FAT_SUP"
+    max_age_hours: 24
+    description: "Faturamento vs suprimentos — SUP, CMV, FAT por empresa e período. Habilita ratio Compra/CMV."
+    abas: [resumo, filial]
+
   # ── Dimensões estáticas (raramente mudam) ────────────────────────────────
   - id: filiais
     zoho_name: "FILIAIS_SUPPLY"
