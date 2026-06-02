@@ -1934,6 +1934,14 @@ async function _submit(){
   _S.running=false; _updateSend();
 
   const am=_S.msgs.find(m=>m.id===aid);
+
+  // Falha de rede — servidor não está rodando
+  if(!res.ok && (String(res.error||'').includes('fetch')||String(res.error||'').includes('Failed')||String(res.error||'').includes('Network'))) {
+    _closeTab(tabId);
+    if(am){ am.text='⚠️ Servidor NL-SQL não está respondendo.\n\nInicie com:\npython nlsql/server.py'; am.st='error'; }
+    _renderMsgs(); return;
+  }
+
   if(res.ok&&res.report){
     const r=res.report;
     _S.chatId=res.chat?.id||_S.chatId;
@@ -2078,6 +2086,7 @@ window._RL = {
   export_:  id => { const r=_S.reports[id]; if(r?.id) window.open(`${_RL}/export/${r.id}`,'_blank'); },
   fav:      async id => { const r=_S.reports[id]; if(!r) return; const res=await _api('POST',`/favorites/${r.id}`); if(res.ok){r.saved=res.saved;_renderContent();} },
   histMode: m => { _S.histMode=m; _renderHist(); },
+  refreshHist: async () => { const r=await _api('GET','/history'); if(r.ok){_S.history=r.history||[];_S.chats=r.chats||[];_renderHist();} },
   histOpen: async (id,type) => {
     if(type==='chat'){ const c=_S.chats.find(c=>c.id===id); if(c){_S.chatId=c.id;_S.msgs=c.messages||[];_S.sideMode='chat';_renderSide();} return; }
     let r=_S.history.find(h=>h.id===id);
@@ -2089,7 +2098,12 @@ window._RL = {
     _renderTabs(); _renderContent();
   },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
-  showPrompt: async () => { if(!_S.promptContent){ const r=await _api('GET','/prompt'); if(r.ok){_S.promptContent=r.content;_S.promptUpdatedAt=r.updatedAt;} } _S.activeId='__prompt'; _renderTabs(); _renderContent(); },
+  showPrompt: async () => {
+    const r=await _api('GET','/prompt');
+    if(r.ok){_S.promptContent=r.content;_S.promptUpdatedAt=r.updatedAt;}
+    else _S.promptContent='# Servidor NL-SQL não está respondendo.\n# Inicie com: python nlsql/server.py\n\n# Quando o servidor estiver rodando, o prompt aparecerá aqui.';
+    _S.activeId='__prompt'; _renderTabs(); _renderContent();
+  },
 };
 
 // ── Init ────────────────────────────────────────────────────────────────────
@@ -2097,7 +2111,12 @@ async function _init(){
   const first=!_S.inited; _S.inited=true;
   if(first){ const r=await _api('GET','/history'); if(r.ok){_S.history=r.history||[];_S.chats=r.chats||[];} }
   document.querySelectorAll('.rel-mode-btn').forEach(b=>{
-    b.addEventListener('click',()=>{ _S.sideMode=b.dataset.mode; _renderSide(); });
+    b.addEventListener('click',()=>{
+      _S.sideMode=b.dataset.mode;
+      _renderSide();
+      // Ao abrir Histórico, sempre tenta carregar do servidor
+      if(b.dataset.mode==='history') window._RL.refreshHist();
+    });
   });
   _renderSide(); _renderTabs(); _renderContent();
 }
