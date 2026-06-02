@@ -89,6 +89,23 @@ def load_dim_fornecedores():
              "curva":      r.get("CURVA","").strip()}
             for r in rows if r.get("RAZAO_SOCIAL","").strip()]
 
+def load_dim_ids():
+    """Carrega IDs únicos com nome produto e curva (apenas os com curva_id definida)."""
+    p = RAW / "pmp_id_inf_12.csv"
+    if not p.exists():
+        return []
+    rows = rc(p)
+    seen = set(); result = []
+    for r in rows:
+        id_val  = (r.get("﻿ID","") or r.get("ID","")).strip()
+        curva   = r.get("CURVA_ID","").strip()
+        produto = r.get("NMPRODUTO_OFICIAL","").strip()
+        cat2    = r.get("CAT2","").strip()
+        if id_val and curva and id_val not in seen:
+            seen.add(id_val)
+            result.append({"id": id_val, "produto": produto, "cat2": cat2, "curva_id": curva})
+    return result
+
 def load_dim_categorias():
     """Carrega hierarquia completa de categorias sem limite de linhas."""
     p = PROC / "03_categoria" / "03_categoria_r01_hierarquia.csv"
@@ -206,12 +223,14 @@ def build_js_injection(indexes):
     dim_prods = load_dim_produtos()
     dim_filia = load_dim_filiais()
     dim_forns = load_dim_fornecedores()
-    lines.append(f"window._BI_DATA['DIM_CATEGORIAS'] = {json.dumps(dim_cats,  ensure_ascii=False, separators=(',',':'))};")
-    lines.append(f"window._BI_DATA['DIM_PRODUTOS']   = {json.dumps(dim_prods, ensure_ascii=False, separators=(',',':'))};")
-    lines.append(f"window._BI_DATA['DIM_FILIAIS']    = {json.dumps(dim_filia, ensure_ascii=False, separators=(',',':'))};")
-    lines.append(f"window._BI_DATA['DIM_FORNECEDORES']= {json.dumps(dim_forns,ensure_ascii=False, separators=(',',':'))};")
+    dim_ids   = load_dim_ids()
+    lines.append(f"window._BI_DATA['DIM_CATEGORIAS']  = {json.dumps(dim_cats,  ensure_ascii=False, separators=(',',':'))};")
+    lines.append(f"window._BI_DATA['DIM_PRODUTOS']    = {json.dumps(dim_prods, ensure_ascii=False, separators=(',',':'))};")
+    lines.append(f"window._BI_DATA['DIM_FILIAIS']     = {json.dumps(dim_filia, ensure_ascii=False, separators=(',',':'))};")
+    lines.append(f"window._BI_DATA['DIM_FORNECEDORES']= {json.dumps(dim_forns, ensure_ascii=False, separators=(',',':'))};")
+    lines.append(f"window._BI_DATA['DIM_IDS']         = {json.dumps(dim_ids,   ensure_ascii=False, separators=(',',':'))};")
     lines.append("")
-    print(f"  Dimensões: {len(dim_cats)} cat · {len(dim_prods)} prod · {len(dim_filia)} filiais · {len(dim_forns)} fornecedores")
+    print(f"  Dimensões: {len(dim_cats)} cat · {len(dim_prods)} prod · {len(dim_filia)} filiais · {len(dim_forns)} forn · {len(dim_ids)} IDs")
 
     return "\n".join(lines)
 
@@ -991,7 +1010,7 @@ else _init();
 FILTER_CSS = """
 /* ── Filtros BI — gerado por build.py ── */
 .filters .row   { grid-template-columns: repeat(9,  minmax(0,1fr)) !important; }
-.filters .row2  { grid-template-columns: repeat(12, minmax(0,1fr)) !important; }
+.filters .row2  { grid-template-columns: repeat(13, minmax(0,1fr)) !important; }
 @media (max-width:1200px){
   .filters .row  { grid-template-columns: repeat(5, minmax(0,1fr)) !important; }
   .filters .row2 { grid-template-columns: repeat(7, minmax(0,1fr)) !important; }
@@ -1108,8 +1127,13 @@ function _pred(r){
   if (_F.produto.length) {
     const sI=new Set(_F.produto.map(v=>v.split(' - ')[0]));
     const sN=new Set(_F.produto.map(v=>v.split(' - ').slice(1).join(' - ')));
-    const ri=String(r.cdproduto||r.id||''), rn=String(r.produto||'');
+    const ri=String(r.cdproduto||''), rn=String(r.produto||'');
     if ((ri||rn) && !sI.has(ri) && !sN.has(rn)) return false;
+  }
+  if (_F.id.length) {
+    const sI=new Set(_F.id.map(v=>v.split(' - ')[0]));
+    const ri=String(r.id||'');
+    if (ri && !sI.has(ri)) return false;
   }
   if (_F.abc_forn.length  && r.curva      && !_F.abc_forn.includes(r.curva))      return false;
   if (_F.abc_prod.length  && r.curva_prod && !_F.abc_prod.includes(r.curva_prod)) return false;
@@ -1210,7 +1234,21 @@ const _OPTS={
     if(_vc2!==null) d=d.filter(r=>_vc2.has(r.cat2));
     return [...new Set(d.map(r=>`${r.cdproduto} - ${r.produto}`).filter(Boolean))].sort().slice(0,500);
   },
-  id:         ()=>[],
+  id:         ()=>{
+    let d=_BD('DIM_IDS');
+    if(_vc2!==null) d=d.filter(r=>_vc2.has(r.cat2));
+    if(_F.abc_id.length) d=d.filter(r=>_F.abc_id.includes(r.curva_id));
+    // Filtrar por produto selecionado (nome)
+    if(_F.produto.length){
+      const sN=new Set(_F.produto.map(v=>v.split(' - ').slice(1).join(' - ')));
+      d=d.filter(r=>sN.has(r.produto));
+    }
+    // Filtrar por empresa (2 primeiros chars do ID) e UF (chars 2-4)
+    if(_F.empresa.length) d=d.filter(r=>_F.empresa.includes(r.id.slice(0,2)));
+    const eu=_effUfs();
+    if(eu.length) d=d.filter(r=>eu.includes(r.id.slice(2,4)));
+    return [...new Set(d.map(r=>`${r.id} - ${r.produto}`).filter(Boolean))].sort().slice(0,500);
+  },
   abc_prod:   ()=>_ABC,
   abc_id:     ()=>_ABC,
   status_cot: ()=>['Com cotação','Sem cotação','Mono-cotação'],
@@ -1223,12 +1261,13 @@ const _OPTS={
 const _CASC={
   regiao:['uf','filial'], empresa:['filial'], negocio:['filial'], uf:['filial'],
   ano:['periodo'],
-  cat1:['cat2','cat3','cat4','cat5','produto'],
-  cat2:['cat3','cat4','cat5','produto'],
-  cat3:['cat4','cat5','produto'],
-  cat4:['cat5','produto'],
-  cat5:['produto'],
-  abc_forn:['fornecedor'], abc_prod:['produto'], abc_id:['produto'],
+  cat1:['cat2','cat3','cat4','cat5','produto','id'],
+  cat2:['cat3','cat4','cat5','produto','id'],
+  cat3:['cat4','cat5','produto','id'],
+  cat4:['cat5','produto','id'],
+  cat5:['produto','id'],
+  produto:['id'],
+  abc_forn:['fornecedor'], abc_prod:['produto','id'], abc_id:['id'],
 };
 
 function _cascade(fk){
@@ -1471,6 +1510,7 @@ def replace_filter_html(html):
       <div class="f"><label>CAT 4</label><button class="pick" data-fk="cat4"><span class="v">Todas</span><span class="caret">▾</span></button></div>
       <div class="f"><label>CAT 5</label><button class="pick" data-fk="cat5"><span class="v">Todas</span><span class="caret">▾</span></button></div>
       <div class="f"><label>Produto</label><button class="pick" data-fk="produto"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>ID</label><button class="pick" data-fk="id"><span class="v">Todos</span><span class="caret">▾</span></button></div>
       <div class="f"><label>ABC produto</label><button class="pick" data-fk="abc_prod"><span class="v">Todos</span><span class="caret">▾</span></button></div>
       <div class="f"><label>ABC ID</label><button class="pick" data-fk="abc_id"><span class="v">Todos</span><span class="caret">▾</span></button></div>
       <div class="f"><label>Status cotação</label><button class="pick" data-fk="status_cot"><span class="v">Todos</span><span class="caret">▾</span></button></div>
