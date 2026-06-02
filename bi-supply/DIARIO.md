@@ -9,6 +9,75 @@ Registro técnico de todas as alterações do projeto, ordenado do mais recente 
 
 ---
 
+## [2026-06-02] Passo 10 — Aba Relatório (NL-SQL com UI completa)
+
+**Commit:** `d2cd9c8`
+
+### O que foi feito
+
+Implementação completa da Aba Relatório, inspirada no GovGo v2 (`src/features/relatorios/RelatoriosWorkspace.jsx` + `src/backend/reports/api/service.py`), adaptada para Zoho Analytics.
+
+### Backend: `nlsql/server.py` (Flask)
+
+Servidor leve em `http://localhost:5001`. Reutiliza `nlsql/orchestrator.py` (NL→SQL via OpenAI) e `nlsql/adapter.py` (execução via Zoho Bulk API).
+
+**Endpoints:**
+
+| Endpoint | Função |
+|---|---|
+| `POST /run` | Pergunta → SQL → Zoho → título IA → salva no histórico |
+| `POST /generate-sql` | NL → SQL sem executar |
+| `POST /execute` | Executa SQL diretamente |
+| `GET /history` | Lista histórico + chats |
+| `DELETE /history/:id` | Soft delete (preserva registro) |
+| `POST /favorites/:id` | Toggle favorito |
+| `GET/POST /chats` | Lista/cria chats |
+| `GET /prompt` | Lê `bi_suprimentos_sql.md` |
+| `POST /prompt` | Grava prompt (backup automático em `.backup.md`) |
+| `POST /prompt/reset` | Restaura backup |
+| `GET /export/:id` | Download CSV |
+
+**Storage:** `nlsql/history.json` · `nlsql/chats.json` (JSON local, sem banco)
+
+**Chat contextual:** últimas 6 mensagens do chat passadas como contexto para o LLM → permite follow-up ("agora por UF", "o mesmo por mês")
+
+### Frontend: RELATORIO_CSS + RELATORIO_JS (injetados via build.py)
+
+**Layout:**
+- Sidebar 300px: abas Chats / Histórico / Favoritos com lista navegável
+- Main: topbar + abas (Chat · Resultado · Assistente) + área de resultado + input
+
+**Auto-detecção de resultado:**
+- ≤4 linhas + coluna numérica → **KPIs** com `.rel-kpi`
+- qualquer outra coisa → **Tabela paginada** (10 linhas/página)
+
+**Funcionalidades:**
+- Enter para enviar, Shift+Enter para nova linha
+- Status visual: spinner (rodando) · chip verde (ok) · chip vermelho (erro)
+- Mensagens de chat com referência clicável ao resultado
+- Copy SQL, Export CSV, Toggle favorito por resultado
+- "Adicionar ao BI" → injeta elemento gerado no grid da aba ativa como tipo T ou KPI
+
+**Editor de Prompt (aba "Assistente"):**
+- Exibe conteúdo atual do `bi_suprimentos_sql.md` em textarea editável
+- Salvar → `POST /prompt` → backup automático → grava arquivo
+- Restaurar → `POST /prompt/reset` → restaura backup
+- Timestamp da última modificação visível
+
+### Para usar
+
+```
+# Terminal 1: iniciar servidor NL-SQL
+python nlsql/server.py
+
+# Terminal 2: build do dashboard (ou usar existente)
+python pipeline/build.py
+
+# Abrir dist/index.html e clicar na aba "Relatório"
+```
+
+---
+
 ## [2026-06-02] Passo 9 — Validação de dados + ativação de filtros faltantes
 
 **Commits:** `e7b88eb`, `708a94c`, `0358d4e`
