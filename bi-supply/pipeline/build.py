@@ -1519,107 +1519,323 @@ else _init();
 # ── CSS da Aba Relatório ─────────────────────────────────────────────────────
 
 RELATORIO_CSS = """
-/* ── Aba Relatório — gerado por build.py ── */
-.rel-wrap { display:flex; height:calc(100vh - 200px); min-height:500px; gap:0; overflow:hidden; }
-
-/* Sidebar */
-.rel-side { width:300px; flex-shrink:0; border-right:1px solid var(--line); display:flex; flex-direction:column; background:var(--bg); }
-.rel-side-tabs { display:flex; border-bottom:1px solid var(--line); }
-.rel-side-tab { flex:1; padding:7px 6px; font-size:11px; font-weight:700; color:var(--muted); background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer; letter-spacing:.4px; text-transform:uppercase; }
-.rel-side-tab.active { color:var(--blue); border-bottom-color:var(--blue); }
-.rel-side-list { flex:1; overflow-y:auto; padding:6px 0; }
-.rel-side-item { padding:8px 12px; cursor:pointer; border-radius:6px; margin:2px 6px; transition:background .1s; }
-.rel-side-item:hover { background:var(--blue-soft); }
-.rel-side-item.active { background:var(--blue-soft); }
-.rel-side-item .ri-title { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.rel-side-item .ri-sub { font-size:10.5px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.rel-side-item .ri-meta { display:flex; gap:8px; margin-top:3px; align-items:center; }
-.rel-side-item .ri-chip { font-size:10px; padding:1px 6px; border-radius:10px; font-weight:700; }
-.ri-chip.ok { background:#dcfce7; color:#16a34a; }
-.ri-chip.error { background:#fee2e2; color:#dc2626; }
-.rel-side-item .ri-rows { font-size:10px; color:var(--muted); }
-.rel-new-chat { margin:8px; }
-
-/* Main */
-.rel-main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-
-/* Topbar do relatorio */
-.rel-topbar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--line); flex-shrink:0; }
-.rel-topbar-title { font-size:13px; font-weight:700; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.rel-topbar-sub { font-size:11px; color:var(--muted); }
-.rel-tabs { display:flex; gap:4px; overflow-x:auto; padding:6px 12px 0; flex-shrink:0; border-bottom:1px solid var(--line); }
-.rel-tab { padding:5px 14px; font-size:12px; font-weight:600; color:var(--muted); background:transparent; border:1px solid transparent; border-radius:6px 6px 0 0; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px; }
-.rel-tab.active { color:var(--blue); background:var(--blue-soft); border-color:var(--blue); border-bottom-color:var(--blue-soft); }
-.rel-tab .rt-count { font-size:10px; padding:0 5px; background:var(--line); border-radius:8px; color:var(--muted); }
-.rel-tab.active .rt-count { background:var(--blue); color:#fff; }
-.rel-tab .rt-spin { width:10px; height:10px; border:2px solid var(--blue); border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; }
-@keyframes spin { to { transform:rotate(360deg); } }
-
-/* Área de resultado */
-.rel-result { flex:1; overflow:auto; padding:14px; display:flex; flex-direction:column; gap:12px; }
-.rel-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:12px; color:var(--muted); }
-.rel-empty svg { opacity:.3; }
-
+/* ── Aba Relatório — GovGo v2 layout + BI Design System ── */
+.rel-wrap {
+  display: grid;
+  grid-template-columns: 360px minmax(0,1fr);
+  height: calc(100vh - 175px);
+  min-height: 520px;
+  overflow: hidden;
+}
+.rel-side {
+  border-right: 1px solid var(--line,#e2e8f0);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.rel-side-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--head,#f1f5f9);
+  flex-shrink: 0;
+}
+.rel-mode-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted,#64748b);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.rel-mode-btn.active {
+  color: var(--blue,#2563eb);
+  background: #fff;
+  border-color: var(--line);
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+#rel-side-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
 /* Chat */
-.rel-chat-area { display:flex; flex-direction:column; height:100%; overflow:hidden; }
-.rel-messages { flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
-.rel-msg { display:flex; flex-direction:column; gap:4px; max-width:85%; }
-.rel-msg.user { align-self:flex-end; align-items:flex-end; }
-.rel-msg.assistant { align-self:flex-start; align-items:flex-start; }
-.rel-msg-bubble { padding:8px 12px; border-radius:10px; font-size:13px; line-height:1.5; }
-.rel-msg.user .rel-msg-bubble { background:var(--blue); color:#fff; border-radius:10px 10px 3px 10px; }
-.rel-msg.assistant .rel-msg-bubble { background:var(--surface,#f8fafc); border:1px solid var(--line); border-radius:10px 10px 10px 3px; }
-.rel-msg-sql { font-size:10.5px; color:var(--blue); cursor:pointer; padding:0 2px; }
-.rel-msg-meta { font-size:10px; color:var(--muted); display:flex; gap:8px; align-items:center; }
-.rel-msg-ref { font-size:11px; padding:4px 10px; background:var(--blue-soft); border:1px solid #bfdbfe; border-radius:6px; cursor:pointer; color:var(--blue); font-weight:600; }
-.rel-msg-ref:hover { background:var(--blue); color:#fff; }
-
-/* Input de pergunta */
-.rel-input-wrap { padding:10px 14px; border-top:1px solid var(--line); flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
-.rel-input-row { display:flex; gap:8px; align-items:flex-end; }
-.rel-input { flex:1; resize:none; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; background:var(--bg); color:var(--text); min-height:38px; max-height:120px; overflow-y:auto; }
-.rel-input:focus { outline:none; border-color:var(--blue); }
-.rel-send { height:38px; padding:0 16px; background:var(--blue); color:#fff; border:0; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; white-space:nowrap; }
-.rel-send:disabled { opacity:.5; cursor:default; }
-.rel-input-hint { font-size:10.5px; color:var(--muted); }
-
-/* Resultado: tabela */
-.rel-table-wrap { overflow:auto; border:1px solid var(--line); border-radius:8px; }
-.rel-table { width:100%; border-collapse:collapse; font-size:12px; }
-.rel-table th { background:var(--head,#f1f5f9); color:var(--text); font-weight:700; padding:7px 10px; text-align:left; position:sticky; top:0; border-bottom:1px solid var(--line); white-space:nowrap; }
-.rel-table td { padding:6px 10px; border-bottom:1px solid var(--line-soft); }
-.rel-table tr:last-child td { border-bottom:0; }
-.rel-table tr:hover td { background:var(--blue-soft); }
-.rel-table td.num { text-align:right; font-variant-numeric:tabular-nums; }
-.rel-pagination { display:flex; align-items:center; gap:8px; padding:8px 0; font-size:12px; color:var(--muted); }
-.rel-page-btn { padding:3px 10px; border:1px solid var(--border); border-radius:5px; background:var(--surface,#fff); cursor:pointer; font-size:12px; }
-.rel-page-btn:disabled { opacity:.4; cursor:default; }
-
-/* Resultado: KPIs */
-.rel-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
-.rel-kpi { padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--surface,#fff); }
-.rel-kpi-lab { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
-.rel-kpi-val { font-size:22px; font-weight:800; color:var(--text); margin-top:4px; }
-
-/* Resultado: erro */
-.rel-error { padding:12px 14px; background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; color:#dc2626; font-size:13px; }
-.rel-sql-block { background:var(--head,#f1f5f9); border:1px solid var(--line); border-radius:6px; padding:10px 12px; font-family:monospace; font-size:11.5px; color:var(--text); white-space:pre-wrap; word-break:break-all; overflow:auto; max-height:200px; }
-
+.rel-chat-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.rel-chat-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(226,232,240,.5);
+  flex-shrink: 0;
+}
+.rel-chat-lbl {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.rel-msgs {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 12px 10px;
+  display: flex;
+  flex-direction: column;
+}
+.rel-msg { display: flex; margin-bottom: 8px; width: 100%; overflow: hidden; }
+.rel-msg.user { justify-content: flex-end; }
+.rel-msg.asst { justify-content: flex-start; }
+.rel-bubble {
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  overflow-wrap: anywhere;
+}
+.rel-msg.user .rel-bubble {
+  max-width: 82%;
+  background: var(--blue,#2563eb);
+  color: #fff;
+  border: 1px solid var(--blue);
+  border-radius: 12px 12px 3px 12px;
+}
+.rel-msg.asst .rel-bubble {
+  max-width: 92%;
+  background: #eff6ff;
+  color: var(--text);
+  border: 1px solid #bfdbfe;
+  border-radius: 12px 12px 12px 3px;
+}
+.rel-msg.asst .rel-bubble.err { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+.rel-msg-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: var(--blue);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rel-msg-meta { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+.rel-icn-btn {
+  width: 20px; height: 18px;
+  border: 1px solid var(--border,#e2e8f0);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 0;
+}
+.rel-icn-btn:hover { background: #eff6ff; color: var(--blue); }
+/* Input */
+.rel-input-wrap { flex-shrink: 0; padding: 8px 10px; border-top: 1px solid var(--line); }
+.rel-input-box {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: end;
+  gap: 8px;
+  padding: 7px 10px;
+  background: #fff;
+  border: 1px solid var(--border,#e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.rel-input-icon { color: var(--muted); font-size: 14px; padding-bottom: 3px; }
+.rel-textarea {
+  all: unset;
+  min-width: 0;
+  height: 58px;
+  overflow-y: auto;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.rel-textarea::placeholder { color: var(--muted); opacity: .7; }
+.rel-send {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--blue);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rel-send:disabled { opacity: .5; cursor: default; }
+.rel-hint { font-size: 10px; color: var(--muted); margin-top: 4px; padding: 0 2px; }
+/* Histórico */
+.rel-hist-tabs {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.rel-hist-tab {
+  padding: 5px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--head,#f1f5f9);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: center;
+}
+.rel-hist-tab.active { color: var(--blue); background: #eff6ff; border-color: #bfdbfe; }
+.rel-hist-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 10px 10px; }
+.rel-hist-item { padding: 8px 10px; margin-bottom: 6px; background: #fff; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.rel-hist-item:hover,.rel-hist-item.active { background: #eff6ff; border-color: #bfdbfe; }
+.rel-hi-title { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rel-hi-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rel-hi-meta  { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 10.5px; color: var(--muted); }
+.rel-hi-chip  { padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 700; }
+.rel-hi-chip.ok    { background: #dcfce7; color: #16a34a; }
+.rel-hi-chip.error { background: #fee2e2; color: #dc2626; }
+/* Main direita */
+.rel-main { display: flex; flex-direction: column; min-width: 0; overflow: hidden; background: var(--bg,#f8fafc); }
+/* Barra de tabs */
+.rel-tabs-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 0 8px;
+  background: var(--head,#f1f5f9);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+  min-height: 44px;
+}
+.rel-rtab {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  overflow: hidden;
+}
+.rel-rtab.active { color: var(--text); background: #fff; border-color: var(--line); border-bottom-color: #fff; }
+.rel-rtab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.rel-rtab-count {
+  font-size: 10.5px; font-weight: 600;
+  padding: 1px 5px; background: var(--line); border-radius: 8px;
+  color: var(--muted); flex-shrink: 0;
+}
+.rel-rtab.active .rel-rtab-count { background: var(--blue); color: #fff; }
+.rel-rtab-x {
+  flex-shrink: 0; width: 14px; height: 14px;
+  border: 0; background: transparent; color: var(--muted);
+  cursor: pointer; font-size: 12px; padding: 0;
+  display: flex; align-items: center; justify-content: center; border-radius: 3px;
+}
+.rel-rtab-x:hover { background: var(--line); }
+.rel-sp {
+  width: 10px; height: 10px;
+  border: 2px solid var(--line); border-top-color: var(--blue);
+  border-radius: 50%; animation: rl-spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes rl-spin { to { transform: rotate(360deg); } }
+.rel-new-tab {
+  flex-shrink: 0; width: 28px; height: 28px;
+  margin: 6px 4px 0; border: 1px solid var(--border,#e2e8f0);
+  border-radius: 6px; background: transparent; color: var(--blue);
+  cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+}
+.rel-new-tab:hover { background: #eff6ff; }
+.rel-asst-tab {
+  flex-shrink: 0; margin-left: auto; margin-top: 6px;
+  padding: 6px 10px; font-size: 11px; font-weight: 600;
+  color: var(--muted); background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px 8px 0 0; cursor: pointer;
+}
+.rel-asst-tab.active { color: var(--blue); background: #fff; border-color: var(--line); border-bottom-color: #fff; }
+/* Conteúdo */
+.rel-content { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 24px 32px; }
+.rel-intro { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+.rel-r-title { font-size: 20px; font-weight: 600; color: var(--text); margin: 0 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rel-r-sub   { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* SQL block */
+.rel-sql-wrap { background: #0f172a; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+.rel-sql-head { display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,.08); gap: 8px; }
+.rel-sql-lbl  { font-size: 10.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; flex: 1; }
+.rel-sql-copy { font-size: 11px; font-weight: 600; color: #94a3b8; background: transparent; border: 1px solid rgba(255,255,255,.1); border-radius: 5px; padding: 2px 8px; cursor: pointer; }
+.rel-sql-copy:hover { color: #fff; }
+.rel-sql-pre  { margin: 0; padding: 10px 14px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; line-height: 1.5; color: #e0eaf9; overflow: auto; max-height: 92px; scrollbar-width: thin; white-space: pre-wrap; word-break: break-all; }
+/* Tabela */
+.rel-tbl-wrap { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.rel-tbl-hd   { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid rgba(226,232,240,.5); flex-wrap: wrap; }
+.rel-chip     { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+.rel-chip.ok  { background: #dcfce7; color: #16a34a; }
+.rel-chip.err { background: #fee2e2; color: #dc2626; }
+.rel-chip.run { background: #eff6ff; color: var(--blue); }
+.rel-rows-info { font-size: 12px; color: var(--muted); }
+.rel-spacer   { flex: 1; }
+.rel-pager    { display: inline-flex; align-items: center; gap: 3px; }
+.rel-pg-btn   { width: 26px; height: 24px; border: 1px solid var(--border); border-radius: 5px; background: #fff; cursor: pointer; font-size: 11px; color: var(--text); display: flex; align-items: center; justify-content: center; }
+.rel-pg-btn:disabled { opacity: .4; cursor: default; }
+.rel-pg-num   { font-size: 11px; color: var(--muted); padding: 0 4px; }
+.rel-act-btn  { padding: 3px 10px; border: 1px solid var(--border); border-radius: 6px; background: #fff; font-size: 11.5px; font-weight: 600; cursor: pointer; color: var(--text); }
+.rel-act-btn:hover  { background: #eff6ff; color: var(--blue); border-color: #bfdbfe; }
+.rel-act-btn.saved  { background: #eff6ff; color: var(--blue); border-color: #bfdbfe; }
+.rel-tbl-scroll { overflow-x: auto; overflow-y: auto; height: 400px; scrollbar-width: thin; }
+.rel-table { border-collapse: collapse; width: 100%; }
+.rel-table thead { position: sticky; top: 0; z-index: 1; }
+.rel-table th { background: var(--head,#f1f5f9); text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(226,232,240,.5); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; white-space: nowrap; height: 36px; }
+.rel-table td { padding: 9px 12px; border-bottom: 1px solid rgba(226,232,240,.5); font-size: 12.5px; color: var(--text); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 40px; }
+.rel-table tbody tr:first-child td { background: #eff6ff; }
+.rel-table tbody tr:hover td { background: rgba(37,99,235,.03); }
+.rel-err { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 14px; color: #dc2626; font-size: 13px; margin-bottom: 12px; }
 /* Prompt editor */
-.rel-prompt-wrap { display:flex; flex-direction:column; height:100%; padding:14px; gap:10px; }
-.rel-prompt-toolbar { display:flex; gap:8px; align-items:center; flex-shrink:0; }
-.rel-prompt-label { font-size:12px; color:var(--muted); flex:1; }
-.rel-prompt-ta { flex:1; resize:none; font-family:monospace; font-size:12px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); }
-.rel-prompt-ta:focus { outline:none; border-color:var(--blue); }
-
-/* Toolbar action buttons */
-.rel-action-bar { display:flex; gap:8px; flex-shrink:0; align-items:center; padding:0 2px; }
-.rel-add-btn { font-size:11.5px; font-weight:700; color:var(--blue); background:var(--blue-soft); border:1px solid #bfdbfe; border-radius:6px; padding:4px 10px; cursor:pointer; }
-.rel-add-btn:hover { background:var(--blue); color:#fff; }
-
-/* Status spinner geral */
-.rel-running { display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px; padding:14px; }
-.rel-spinner { width:18px; height:18px; border:3px solid var(--line); border-top-color:var(--blue); border-radius:50%; animation:spin .8s linear infinite; flex-shrink:0; }
+.rel-prompt-section { display: flex; flex-direction: column; height: 100%; gap: 10px; }
+.rel-prompt-hd { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.rel-prompt-info { font-size: 12px; color: var(--muted); flex: 1; }
+.rel-prompt-ta { flex: 1; resize: none; font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; line-height: 1.5; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); min-height: 200px; }
+.rel-prompt-ta:focus { outline: none; border-color: var(--blue); }
 """
 
 # ── JS da Aba Relatório ───────────────────────────────────────────────────────
@@ -1629,554 +1845,279 @@ RELATORIO_JS = r"""
 (function(){
 'use strict';
 
-const _RL_URL = (window._BI_NLSQL_URL || 'http://localhost:5001');
+const _RL = (window._BI_NLSQL_URL || 'http://localhost:5001');
+const PAGE_SZ = 10;
 
-// ── Estado ────────────────────────────────────────────────────────────────────
-const _RS = {
-  activeChatId: null,
-  activeReportId: null,
-  activeTab: 'chat',      // 'chat' | 'result' | 'prompt'
-  sidebarMode: 'chats',   // 'chats' | 'history' | 'saved'
+// ── Estado ─────────────────────────────────────────────────────────────────
+const _S = {
+  tabs: [{id:'intro', title:'Nova consulta', st:'idle', count:0, closable:false}],
+  activeId: 'intro',
+  reports: {},
+  chatId: null,
+  msgs: [],
+  sideMode: 'chat',
+  histMode: 'chats',
   chats: [],
   history: [],
-  reports: {},             // {id: report}
   running: false,
+  pages: {},
   promptContent: '',
   promptUpdatedAt: '',
+  inited: false,
 };
 
-// ── API ───────────────────────────────────────────────────────────────────────
-async function _api(method, path, body) {
+// ── API ─────────────────────────────────────────────────────────────────────
+async function _api(m, path, body) {
   try {
-    const opts = { method, headers: {'Content-Type':'application/json'} };
-    if (body) opts.body = JSON.stringify(body);
-    const r = await fetch(_RL_URL + path, opts);
-    return await r.json();
-  } catch(e) {
-    return {ok: false, error: e.message};
-  }
+    const r = await fetch(_RL + path, {
+      method: m,
+      headers: {'Content-Type': 'application/json'},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return r.json();
+  } catch(e) { return {ok:false, error:e.message}; }
 }
 
-// ── FMT ──────────────────────────────────────────────────────────────────────
-function _fmtNum(v) {
+// ── Formatação ──────────────────────────────────────────────────────────────
+function _fv(v) {
   const n = parseFloat(v);
-  if (isNaN(n)) return String(v);
-  if (Math.abs(n) >= 1e6) return 'R$ ' + (n/1e6).toFixed(1).replace('.',',') + ' mi';
-  if (Math.abs(n) >= 1e3) return n.toLocaleString('pt-BR', {maximumFractionDigits:2});
-  return n.toLocaleString('pt-BR', {maximumFractionDigits:4});
+  if (isNaN(n)) return String(v ?? '—');
+  if (Math.abs(n) >= 1e6) return 'R$ '+(n/1e6).toFixed(1).replace('.',',')+' mi';
+  if (Math.abs(n) >= 1e3) return n.toLocaleString('pt-BR',{maximumFractionDigits:2});
+  return n.toLocaleString('pt-BR',{maximumFractionDigits:4});
 }
-function _isNum(v) { return v !== null && v !== '' && !isNaN(parseFloat(v)); }
-function _ts(iso) {
-  if (!iso) return '';
-  try { return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(e){return '';}
-}
+function _isN(v){ return v!==null&&v!==''&&v!==undefined&&!isNaN(parseFloat(v)); }
+function _ts(s){ if(!s) return ''; try{ return new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){return '';} }
+const $ = id => document.getElementById(id);
+const _esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-// ── Render resultado ──────────────────────────────────────────────────────────
-function _renderResult(report) {
-  if (!report) return '<div class="rel-empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg><span>Nenhum resultado</span></div>';
-  if (report.status === 'error') {
-    return `<div class="rel-error">❌ ${report.error||'Erro desconhecido'}</div>` +
-           (report.sql ? `<div class="rel-sql-block">${report.sql}</div>` : '');
-  }
-  const cols = report.columns || [], rows = report.rows || [];
-  if (!rows.length) return '<div class="rel-empty"><span>A consulta não retornou resultados.</span></div>';
+// ── Tabs de resultado ───────────────────────────────────────────────────────
+function _openTab(id){ _S.activeId=id; _renderTabs(); _renderContent(); }
 
-  // Detectar KPI: ≤4 linhas, ≥1 col numérica
-  const numCols = cols.filter(c => rows.some(r => _isNum(r[c])));
-  if (rows.length <= 4 && numCols.length >= 1 && cols.length <= 3) {
-    return _renderKPIs(cols, rows);
-  }
-  return _renderTable(cols, rows, report.rowCount);
+function _closeTab(id){
+  const i=_S.tabs.findIndex(t=>t.id===id);
+  _S.tabs=_S.tabs.filter(t=>t.id!==id);
+  delete _S.reports[id]; delete _S.pages[id];
+  if(_S.activeId===id) _S.activeId=_S.tabs[Math.max(0,i-1)]?.id||'intro';
+  _renderTabs(); _renderContent();
 }
 
-function _renderKPIs(cols, rows) {
-  let html = '<div class="rel-kpis">';
-  rows.forEach(row => {
-    cols.forEach(c => {
-      const v = row[c];
-      if (v === null || v === undefined || v === '') return;
-      const disp = _isNum(v) ? _fmtNum(v) : String(v);
-      html += `<div class="rel-kpi"><div class="rel-kpi-lab">${c}</div><div class="rel-kpi-val">${disp}</div></div>`;
-    });
-  });
-  return html + '</div>';
+function _addTab(title, st){
+  const id='t'+Date.now();
+  _S.tabs.push({id, title:title||'…', st:st||'running', count:0, closable:true});
+  _S.activeId=id; _S.pages[id]=0;
+  _renderTabs(); _renderContent();
+  return id;
 }
 
-let _relPage = 0;
-const _relPageSize = 10;
-function _renderTable(cols, rows, rowCount) {
-  const start = _relPage * _relPageSize;
-  const pageRows = rows.slice(start, start + _relPageSize);
-  const total = rowCount || rows.length;
-  const pages = Math.ceil(rows.length / _relPageSize);
-
-  let ths = cols.map(c => `<th>${c}</th>`).join('');
-  let trs = pageRows.map(r =>
-    '<tr>' + cols.map(c => {
-      const v = r[c] ?? '';
-      const cls = _isNum(v) ? ' class="num"' : '';
-      return `<td${cls}>${_isNum(v) ? _fmtNum(v) : v}</td>`;
-    }).join('') + '</tr>'
-  ).join('');
-
-  const pager = pages > 1 ? `
-    <div class="rel-pagination">
-      <button class="rel-page-btn" id="rel-prev" ${_relPage===0?'disabled':''}>‹ Anterior</button>
-      <span>Pág. ${_relPage+1} / ${pages} · ${total.toLocaleString()} linha${total!==1?'s':''}</span>
-      <button class="rel-page-btn" id="rel-next" ${_relPage>=pages-1?'disabled':''}>Próxima ›</button>
-    </div>` : `<div class="rel-pagination">${total.toLocaleString()} linha${total!==1?'s':''}</div>`;
-
-  return `<div class="rel-table-wrap"><table class="rel-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>${pager}`;
+function _patchTab(id, patch){
+  const t=_S.tabs.find(t=>t.id===id); if(t) Object.assign(t,patch);
+  _renderTabs();
 }
 
-// ── Render sidebar ────────────────────────────────────────────────────────────
-function _renderSideList() {
-  const el = document.getElementById('rel-side-list');
-  if (!el) return;
-  const mode = _RS.sidebarMode;
+// ── Enviar pergunta ─────────────────────────────────────────────────────────
+async function _submit(){
+  const ta=$('rel-q'); if(!ta) return;
+  const q=ta.value.trim(); if(!q||_S.running) return;
+  ta.value=''; ta.style.height='58px';
+  _S.running=true; _updateSend();
 
-  let items = [];
-  if (mode === 'chats') {
-    items = _RS.chats.map(c => ({
-      id: c.id, title: c.title || 'Chat', sub: _ts(c.updatedAt),
-      chip: null, isChat: true
-    }));
-  } else if (mode === 'history') {
-    items = _RS.history.map(r => ({
-      id: r.id, title: r.title || r.question, sub: _ts(r.createdAt),
-      chip: r.status, rows: r.rowCount, isChat: false
-    }));
-  } else { // saved
-    items = _RS.history.filter(r=>r.saved).map(r => ({
-      id: r.id, title: r.title || r.question, sub: _ts(r.createdAt),
-      chip: r.status, rows: r.rowCount, isChat: false
-    }));
-  }
+  const uid='u'+Date.now();
+  _S.msgs.push({id:uid, role:'user', text:q});
+  const aid='a'+(Date.now()+1);
+  _S.msgs.push({id:aid, role:'asst', text:'Gerando SQL…', st:'running'});
+  _renderMsgs();
 
-  el.innerHTML = items.length ? items.map(item => `
-    <div class="rel-side-item ${item.isChat ? (item.id===_RS.activeChatId?'active':'') : (item.id===_RS.activeReportId?'active':'')}"
-         data-id="${item.id}" data-type="${item.isChat?'chat':'report'}">
-      <div class="ri-title">${item.title}</div>
-      ${item.sub ? `<div class="ri-sub">${item.sub}</div>` : ''}
-      <div class="ri-meta">
-        ${item.chip ? `<span class="ri-chip ${item.chip}">${item.chip==='ok'?'✓ ok':'✗ erro'}</span>` : ''}
-        ${item.rows != null ? `<span class="ri-rows">${item.rows} linhas</span>` : ''}
-      </div>
-    </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Vazio</div>';
+  const tabId=_addTab(q.slice(0,40),'running');
 
-  el.querySelectorAll('.rel-side-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const {id, type} = el.dataset;
-      if (type === 'chat') _loadChat(id);
-      else _loadReport(id);
-    });
-  });
-}
+  const res=await _api('POST','/run',{question:q, chatId:_S.chatId||undefined});
+  _S.running=false; _updateSend();
 
-// ── Render main ───────────────────────────────────────────────────────────────
-function _renderMain() {
-  const tab = _RS.activeTab;
-  const report = _RS.reports[_RS.activeReportId];
-
-  // Topbar
-  const topEl = document.getElementById('rel-topbar-title');
-  const subEl = document.getElementById('rel-topbar-sub');
-  if (topEl) topEl.textContent = report ? report.title : (tab==='prompt' ? 'Editor de Prompt' : 'BI de Suprimentos · Relatório');
-  if (subEl) subEl.textContent = report?.subtitle || '';
-
-  // Tabs
-  document.querySelectorAll('.rel-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.tab === tab);
-  });
-
-  // Conteúdo
-  const resultEl = document.getElementById('rel-result');
-  if (!resultEl) return;
-
-  if (tab === 'chat') {
-    _renderChat();
-    return;
-  }
-  if (tab === 'result') {
-    if (_RS.running) {
-      resultEl.innerHTML = `<div class="rel-running"><div class="rel-spinner"></div>Executando consulta…</div>`;
-    } else {
-      resultEl.innerHTML = _renderResult(report || null);
-      if (report) _renderActionBar(report);
-      // Paginação
-      const prev = document.getElementById('rel-prev');
-      const next = document.getElementById('rel-next');
-      if (prev) prev.onclick = () => { _relPage--; _renderMain(); };
-      if (next) next.onclick = () => { _relPage++; _renderMain(); };
-    }
-    return;
-  }
-  if (tab === 'prompt') {
-    _renderPromptEditor(resultEl);
-    return;
-  }
-}
-
-function _renderActionBar(report) {
-  const el = document.getElementById('rel-action-bar');
-  if (!el) return;
-  const saved = report.saved;
-  el.innerHTML = `
-    <button class="rel-page-btn" title="Copiar SQL" onclick="_relCopySQL()">📋 SQL</button>
-    <button class="rel-page-btn" title="${saved?'Remover dos favoritos':'Salvar nos favoritos'}"
-      onclick="_relToggleFav()">${saved?'★ Salvo':'☆ Salvar'}</button>
-    <button class="rel-page-btn" onclick="_relExport()">⬇ CSV</button>
-    <button class="rel-add-btn" onclick="_relAddToBI()">＋ Adicionar ao BI</button>
-  `;
-}
-
-window._relCopySQL = function() {
-  const r = _RS.reports[_RS.activeReportId];
-  if (r?.sql) navigator.clipboard.writeText(r.sql).then(()=>{});
-};
-
-window._relToggleFav = async function() {
-  const r = _RS.reports[_RS.activeReportId]; if (!r) return;
-  const res = await _api('POST', `/favorites/${r.id}`);
-  if (res.ok) { r.saved = res.saved; _renderMain(); _renderSideList(); }
-};
-
-window._relExport = function() {
-  const r = _RS.reports[_RS.activeReportId]; if (!r) return;
-  window.open(`${_RL_URL}/export/${r.id}`, '_blank');
-};
-
-window._relAddToBI = function() {
-  const r = _RS.reports[_RS.activeReportId]; if (!r || !r.rows?.length) return;
-  // Cria elemento temporário no grid da aba ativa
-  const pk = document.querySelector('.tab.active[data-page]')?.dataset.page;
-  if (!pk || !window._BI_DATA) return;
-  const vjs = 'REL_' + r.id.replace(/-/g,'').slice(0,8).toUpperCase();
-  window._BI_DATA[vjs] = r.rows;
-  if (window._BI_DATA_RAW) window._BI_DATA_RAW[vjs] = r.rows;
-  // Tipo auto-detectado
-  const cols = r.columns||[], rows = r.rows||[];
-  const numCols = cols.filter(c=>rows.some(row=>_isNum(row[c])));
-  const tipo = (rows.length<=4 && numCols.length>=1) ? 'KPI' : 'T';
-  // Adiciona ao ABAS_INDEX para o renderer incluir
-  if (window.ABAS_INDEX && window.ABAS_INDEX[pk]) {
-    const col=1, colSpan=8, row=2, rowSpan=tipo==='KPI'?2:6;
-    window.ABAS_INDEX[pk].elementos.push({
-      id: vjs, tipo, variavel_js: vjs,
-      titulo: r.title, subtitulo: r.subtitle||'',
-      config: {colunas: cols.map(c=>({key:c,label:c,fmt:numCols.includes(c)?'num':'str'})),
-               chave: numCols[0]||cols[0]},
-      layout: {col, col_span:colSpan, row, row_span:rowSpan, visivel:true}
-    });
-    // Re-renderiza aba
-    const pg = document.getElementById('page');
-    if (pg && typeof pages!=='undefined' && pages[pk]) pg.innerHTML = pages[pk]();
-    if (window._BI_EDITOR) window._BI_EDITOR.applyLayout(pk);
-  }
-  alert(`Elemento "${r.title}" adicionado à aba "${pk}". Use o editor para reposicioná-lo.`);
-};
-
-// ── Chat render ───────────────────────────────────────────────────────────────
-function _renderChat() {
-  const resultEl = document.getElementById('rel-result');
-  if (!resultEl) return;
-
-  const chat = _RS.chats.find(c => c.id === _RS.activeChatId);
-  const msgs = chat?.messages || [];
-
-  const msgsHtml = msgs.map(m => {
-    const isUser = m.role === 'user';
-    const refBtn = m.reportId && !isUser
-      ? `<button class="rel-msg-ref" onclick="_relOpenReport('${m.reportId}')">${m.reportTitle||'Ver resultado'} →</button>` : '';
-    const sqlBtn = m.sql && !isUser
-      ? `<span class="rel-msg-sql" onclick="_relShowSQL('${m.reportId}')">ver SQL</span>` : '';
-    const meta = (!isUser && (m.rowCount!=null||m.status))
-      ? `<div class="rel-msg-meta">
-          <span class="ri-chip ${m.status||'ok'}">${m.status==='error'?'erro':'ok'}</span>
-          ${m.rowCount!=null?`<span>${m.rowCount} linha${m.rowCount!==1?'s':''}</span>`:''}
-          ${sqlBtn}
-         </div>` : '';
-    return `<div class="rel-msg ${isUser?'user':'assistant'}">
-      <div class="rel-msg-bubble">${m.text||''}</div>
-      ${refBtn}
-      ${meta}
-    </div>`;
-  }).join('');
-
-  resultEl.innerHTML = `
-    <div class="rel-chat-area">
-      <div class="rel-messages" id="rel-chat-msgs">
-        ${msgsHtml || '<div class="rel-empty" style="height:100%;justify-content:center"><span>Faça uma pergunta para começar</span></div>'}
-      </div>
-    </div>`;
-
-  const msgsEl = document.getElementById('rel-chat-msgs');
-  if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
-}
-
-window._relOpenReport = function(rid) {
-  const r = _RS.reports[rid];
-  if (r) {
-    _RS.activeReportId = rid;
-    _RS.activeTab = 'result';
-    _relPage = 0;
-    _renderMain();
-    _renderSideList();
-  }
-};
-
-window._relShowSQL = function(rid) {
-  const r = _RS.reports[rid];
-  if (r?.sql) {
-    const el = document.getElementById('rel-result');
-    if (el) el.innerHTML = `<div class="rel-sql-block">${r.sql}</div>
-      <button class="rel-page-btn" style="margin-top:8px" onclick="_relOpenReport('${rid}')">← Voltar ao resultado</button>`;
-  }
-};
-
-// ── Prompt editor ─────────────────────────────────────────────────────────────
-function _renderPromptEditor(container) {
-  container.innerHTML = `
-    <div class="rel-prompt-wrap">
-      <div class="rel-prompt-toolbar">
-        <span class="rel-prompt-label">📄 nlsql/prompts/bi_suprimentos_sql.md · Atualizado: ${_RS.promptUpdatedAt?_ts(_RS.promptUpdatedAt):'—'}</span>
-        <button class="rel-page-btn" id="rel-prompt-save">💾 Salvar</button>
-        <button class="rel-page-btn" id="rel-prompt-reset">↩ Restaurar backup</button>
-      </div>
-      <textarea class="rel-prompt-ta" id="rel-prompt-ta" spellcheck="false">${_RS.promptContent}</textarea>
-    </div>`;
-
-  document.getElementById('rel-prompt-save').onclick = async () => {
-    const content = document.getElementById('rel-prompt-ta').value;
-    const res = await _api('POST', '/prompt', {content});
-    if (res.ok) { _RS.promptContent = content; alert('Prompt salvo. Próximas perguntas usarão o novo prompt.'); }
-    else alert('Erro ao salvar: ' + res.error);
-  };
-  document.getElementById('rel-prompt-reset').onclick = async () => {
-    if (!confirm('Restaurar o backup do prompt?')) return;
-    const res = await _api('POST', '/prompt/reset');
-    if (res.ok) { await _loadPrompt(); _renderMain(); }
-    else alert('Erro: ' + res.error);
-  };
-}
-
-// ── Ações ─────────────────────────────────────────────────────────────────────
-async function _submit() {
-  const inp = document.getElementById('rel-q');
-  if (!inp) return;
-  const question = inp.value.trim();
-  if (!question || _RS.running) return;
-
-  // Garantir chat ativo
-  if (!_RS.activeChatId) {
-    const res = await _api('POST', '/chats', {title: question.slice(0,60)});
-    if (res.ok) {
-      _RS.chats.unshift(res.chat);
-      _RS.activeChatId = res.chat.id;
-    }
-  }
-
-  inp.value = '';
-  inp.style.height = 'auto';
-  _RS.running = true;
-  _RS.activeTab = 'chat';
-
-  // Adiciona mensagem do usuário otimisticamente
-  const chat = _RS.chats.find(c => c.id === _RS.activeChatId);
-  if (chat) {
-    chat.messages = chat.messages || [];
-    chat.messages.push({id:'tmp-u', role:'user', text:question, createdAt:new Date().toISOString()});
-    chat.messages.push({id:'tmp-a', role:'assistant', text:'…', status:'running', createdAt:new Date().toISOString()});
-  }
-  _renderMain();
-
-  const res = await _api('POST', '/run', {question, chatId: _RS.activeChatId});
-  _RS.running = false;
-
-  if (res.ok) {
-    _RS.history = res.history || _RS.history;
-    _RS.chats = res.chats || _RS.chats;
-    if (res.report) {
-      _RS.reports[res.report.id] = res.report;
-      _RS.activeReportId = res.report.id;
-    }
-    if (res.chat) {
-      const idx = _RS.chats.findIndex(c=>c.id===res.chat.id);
-      if (idx>=0) _RS.chats[idx] = res.chat;
-      else _RS.chats.unshift(res.chat);
-    }
-    // Abre resultado se ok
-    if (res.report?.status === 'ok') {
-      _RS.activeTab = 'result';
-      _relPage = 0;
-    }
+  const am=_S.msgs.find(m=>m.id===aid);
+  if(res.ok&&res.report){
+    const r=res.report;
+    _S.chatId=res.chat?.id||_S.chatId;
+    _S.reports[tabId]=r;
+    if(res.history) _S.history=res.history;
+    if(res.chats)   _S.chats=res.chats;
+    _patchTab(tabId,{title:r.title||q.slice(0,40), st:r.status, count:r.rowCount||0});
+    if(am){ am.text=r.title||(r.status==='ok'?'Concluído':r.error||'Erro'); am.st=r.status; am.sql=r.sql; am.tabId=tabId; am.refTitle=r.title; am.rowCount=r.rowCount; }
   } else {
-    // Atualiza mensagem de erro
-    if (chat) {
-      const lastAsst = [...(chat.messages||[])].reverse().find(m=>m.role==='assistant');
-      if (lastAsst) { lastAsst.text = res.error||'Erro'; lastAsst.status='error'; }
+    _patchTab(tabId,{title:'Erro',st:'error',count:0});
+    if(am){ am.text=res.error||'Erro ao processar.'; am.st='error'; }
+  }
+  _renderMsgs(); _renderContent();
+}
+
+function _updateSend(){ const b=$('rel-send'); if(b) b.disabled=_S.running; }
+
+// ── Render: mensagens ───────────────────────────────────────────────────────
+function _renderMsgs(){
+  const el=$('rel-msgs'); if(!el) return;
+  if(!_S.msgs.length){
+    el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;padding:20px 12px">Faça uma pergunta abaixo.<br>O resultado aparece nas abas à direita.</div>';
+    return;
+  }
+  el.innerHTML=_S.msgs.map(m=>{
+    const isU=m.role==='user';
+    const spin=m.st==='running'?'<span class="rel-sp" style="margin-right:4px;vertical-align:middle"></span>':'';
+    const errC=m.st==='error'?' err':'';
+    let ext='';
+    if(!isU&&m.tabId&&m.st!=='running'){
+      ext+=`<div><span class="rel-msg-ref" onclick="window._RL.openTab('${m.tabId}')">📊 ${_esc(m.refTitle||'Ver resultado')}${m.rowCount!=null?' · '+m.rowCount+' linha'+(m.rowCount!==1?'s':''):''}↗</span></div>`;
     }
-  }
-  _renderMain();
-  _renderSideList();
-}
-
-async function _loadChat(chatId) {
-  _RS.activeChatId = chatId;
-  _RS.activeTab = 'chat';
-  const res = await _api('GET', '/history');
-  if (res.ok) {
-    _RS.history = res.history || [];
-    _RS.chats = res.chats || [];
-    // Carregar relatórios do chat
-    const chat = _RS.chats.find(c=>c.id===chatId);
-    if (chat) {
-      for (const rid of (chat.reportIds||[]).slice(-10)) {
-        if (!_RS.reports[rid]) {
-          const rr = await _api('GET', `/history/${rid}`);
-          if (rr.ok) _RS.reports[rr.report.id] = rr.report;
-        }
-      }
+    if(!isU&&m.sql){
+      const safe=m.sql.replace(/\\/g,'\\\\').replace(/`/g,"'");
+      ext+=`<div class="rel-msg-meta"><button class="rel-icn-btn" title="Copiar SQL" onclick="navigator.clipboard.writeText(\`${safe}\`)">⎘</button></div>`;
     }
-  }
-  _renderMain();
-  _renderSideList();
+    return `<div class="rel-msg ${isU?'user':'asst'}"><div class="rel-bubble${errC}">${spin}${_esc(m.text)}${ext}</div></div>`;
+  }).join('');
+  requestAnimationFrame(()=>{ el.scrollTop=el.scrollHeight; });
 }
 
-async function _loadReport(rid) {
-  if (!_RS.reports[rid]) {
-    const res = await _api('GET', `/history/${rid}`);
-    if (res.ok) _RS.reports[res.report.id] = res.report;
-  }
-  _RS.activeReportId = rid;
-  _RS.activeTab = 'result';
-  _relPage = 0;
-  _renderMain();
-  _renderSideList();
+// ── Render: barra de abas ───────────────────────────────────────────────────
+function _renderTabs(){
+  const el=$('rel-tabs-bar'); if(!el) return;
+  const isPrompt=_S.activeId==='__prompt';
+  const ts=_S.tabs.map(t=>{
+    const act=t.id===_S.activeId;
+    const spin=t.st==='running'?'<span class="rel-sp"></span>':'';
+    const cnt=(t.st!=='running'&&t.count>0)?`<span class="rel-rtab-count">${t.count}</span>`:'';
+    const cls=t.closable?`<button class="rel-rtab-x" onclick="event.stopPropagation();window._RL.closeTab('${t.id}')">×</button>`:'';
+    return `<button class="rel-rtab${act?' active':''}" onclick="window._RL.openTab('${t.id}')">${spin}<span class="rel-rtab-title">${_esc(t.title)}</span>${cnt}${cls}</button>`;
+  }).join('');
+  el.innerHTML=ts+
+    '<button class="rel-new-tab" title="Nova consulta" onclick="window._RL.newQuery()">+</button>'+
+    `<button class="rel-asst-tab${isPrompt?' active':''}" onclick="window._RL.showPrompt()">🤖 Assistente</button>`;
 }
 
-async function _loadPrompt() {
-  const res = await _api('GET', '/prompt');
-  if (res.ok) { _RS.promptContent = res.content; _RS.promptUpdatedAt = res.updatedAt; }
+// ── Render: conteúdo direita ────────────────────────────────────────────────
+function _renderContent(){
+  const el=$('rel-content'); if(!el) return;
+  if(_S.activeId==='__prompt'){ _renderPrompt(el); return; }
+  if(_S.activeId==='intro'||!_S.reports[_S.activeId]){
+    el.innerHTML='<div class="rel-intro"><strong>BI de Suprimentos · Relatório</strong><br><br>Use o chat à esquerda para fazer perguntas em português.<br>O SQL gerado e os resultados aparecem aqui, em abas.<br><br><em>Exemplos:</em><br>· "Top 10 fornecedores por gasto em SP"<br>· "Quantos IDs únicos comprados em 2025?"<br>· "Impacto de cotação por categoria no último trimestre"</div>';
+    return;
+  }
+  const r=_S.reports[_S.activeId], tid=_S.activeId;
+  if(r.status==='running'){
+    el.innerHTML='<div style="display:flex;align-items:center;gap:12px;padding:20px;color:var(--muted)"><span class="rel-sp" style="width:18px;height:18px;border-width:3px"></span>Gerando SQL e consultando o Zoho…</div>';
+    return;
+  }
+  let h=`<h2 class="rel-r-title">${_esc(r.title||r.question||'Resultado')}</h2>`;
+  if(r.subtitle) h+=`<div class="rel-r-sub">${_esc(r.subtitle)}</div>`;
+  else h+='<div style="margin-bottom:14px"></div>';
+  if(r.status==='error') h+=`<div class="rel-err">❌ ${_esc(r.error||'Erro desconhecido')}</div>`;
+  if(r.sql){
+    const safe=r.sql.replace(/\\/g,'\\\\').replace(/`/g,"'");
+    h+=`<div class="rel-sql-wrap"><div class="rel-sql-head"><span class="rel-sql-lbl">Comando SQL</span><button class="rel-sql-copy" onclick="navigator.clipboard.writeText(\`${safe}\`)">Copiar</button></div><pre class="rel-sql-pre">${_esc(r.sql)}</pre></div>`;
+  }
+  if(r.status==='ok'){
+    const cols=r.columns||[], rows=r.rows||[];
+    const total=r.rowCount||rows.length;
+    const pg=_S.pages[tid]||0;
+    const pgs=Math.ceil(rows.length/PAGE_SZ);
+    const vis=rows.slice(pg*PAGE_SZ,(pg+1)*PAGE_SZ);
+    const ths=cols.map(c=>`<th>${_esc(c)}</th>`).join('');
+    const trs=vis.map(row=>'<tr>'+cols.map(c=>{
+      const v=row[c]??'';
+      const d=_isN(v)?_fv(v):_esc(String(v));
+      const s=_isN(v)?' style="text-align:right;font-variant-numeric:tabular-nums"':'';
+      return `<td${s}>${d}</td>`;
+    }).join('')+'</tr>').join('');
+    let pgr='';
+    if(pgs>1) pgr=`<div class="rel-pager"><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',0)">«</button><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',${pg-1})">‹</button><span class="rel-pg-num">${pg+1}/${pgs}</span><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pg+1})">›</button><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pgs-1})">»</button></div>`;
+    const sv=r.saved;
+    h+=`<div class="rel-tbl-wrap"><div class="rel-tbl-hd"><span class="rel-chip ok">✓ Executado</span><span class="rel-rows-info">${total.toLocaleString()} linha${total!==1?'s':''} · ${r.elapsedMs||0}ms</span><span class="rel-spacer"></span>${pgr}<button class="rel-act-btn" onclick="window._RL.export_('${tid}')">⬇ CSV</button><button class="rel-act-btn${sv?' saved':''}" onclick="window._RL.fav('${tid}')">${sv?'★ Salvo':'☆ Salvar'}</button></div><div class="rel-tbl-scroll"><table class="rel-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div></div>`;
+  }
+  el.innerHTML=h;
 }
 
-async function _newChat() {
-  const res = await _api('POST', '/chats', {title:'Novo chat'});
-  if (res.ok) {
-    _RS.chats.unshift(res.chat);
-    _RS.activeChatId = res.chat.id;
-    _RS.activeReportId = null;
-    _RS.activeTab = 'chat';
-    _renderMain();
-    _renderSideList();
-  }
+// ── Render: prompt editor ───────────────────────────────────────────────────
+function _renderPrompt(c){
+  const mt=_S.promptUpdatedAt?'Atualizado: '+_ts(_S.promptUpdatedAt):'';
+  c.innerHTML=`<div class="rel-prompt-section"><div class="rel-prompt-hd"><span class="rel-prompt-info">📄 nlsql/prompts/bi_suprimentos_sql.md &nbsp;·&nbsp; ${mt}</span><button class="rel-act-btn" id="rl-psave">💾 Salvar</button><button class="rel-act-btn" id="rl-prst">↩ Restaurar</button></div><textarea class="rel-prompt-ta" id="rl-pta" spellcheck="false">${_esc(_S.promptContent)}</textarea></div>`;
+  $('rl-psave').onclick=async()=>{ const v=$('rl-pta').value; const r=await _api('POST','/prompt',{content:v}); if(r.ok){_S.promptContent=v;alert('Prompt salvo! Próximas consultas usam o novo prompt.');}else alert('Erro: '+(r.error||'')); };
+  $('rl-prst').onclick=async()=>{ if(!confirm('Restaurar backup?')) return; const r=await _api('POST','/prompt/reset'); if(r.ok){const g=await _api('GET','/prompt');if(g.ok){_S.promptContent=g.content;_S.promptUpdatedAt=g.updatedAt;}_renderPrompt(c);}else alert('Sem backup.'); };
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-async function _initRelatorio() {
-  // Carregar histórico e chats
-  const res = await _api('GET', '/history');
-  if (res.ok) {
-    _RS.history = res.history || [];
-    _RS.chats   = res.chats   || [];
-    if (_RS.chats.length) _RS.activeChatId = _RS.chats[0].id;
-  }
-  // Carregar prompt
-  await _loadPrompt();
-
-  // Wiring dos botões de tab da sidebar
-  document.querySelectorAll('.rel-side-tab').forEach(t => {
-    t.addEventListener('click', () => {
-      _RS.sidebarMode = t.dataset.mode;
-      document.querySelectorAll('.rel-side-tab').forEach(x=>x.classList.remove('active'));
-      t.classList.add('active');
-      _renderSideList();
-    });
-  });
-
-  // Wiring das tabs de resultado
-  document.querySelectorAll('.rel-tab').forEach(t => {
-    t.addEventListener('click', () => {
-      _RS.activeTab = t.dataset.tab;
-      if (t.dataset.tab === 'prompt' && !_RS.promptContent) _loadPrompt();
-      _renderMain();
-    });
-  });
-
-  // Botão novo chat
-  const nc = document.getElementById('rel-new-chat-btn');
-  if (nc) nc.addEventListener('click', _newChat);
-
-  // Input de pergunta
-  const inp = document.getElementById('rel-q');
-  const btn = document.getElementById('rel-send');
-  if (inp) {
-    inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); _submit(); }
-    });
-    inp.addEventListener('input', () => {
-      inp.style.height = 'auto';
-      inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
-    });
-  }
-  if (btn) btn.addEventListener('click', _submit);
-
-  _renderSideList();
-  _renderMain();
+// ── Render: sidebar histórico ───────────────────────────────────────────────
+function _renderHist(){
+  const el=$('rel-side-body'); if(!el) return;
+  const m=_S.histMode;
+  let items=[];
+  if(m==='chats') items=_S.chats.map(c=>({id:c.id,title:c.title||'Chat',sub:_ts(c.updatedAt),type:'chat'}));
+  else if(m==='reports') items=_S.history.map(r=>({id:r.id,title:r.title||r.question,sub:_ts(r.createdAt),type:'report',chip:r.status,rows:r.rowCount}));
+  else items=_S.history.filter(r=>r.saved).map(r=>({id:r.id,title:r.title||r.question,sub:_ts(r.createdAt),type:'report',chip:r.status,rows:r.rowCount}));
+  const list=items.length?items.map(it=>`<div class="rel-hist-item" onclick="window._RL.histOpen('${it.id}','${it.type}')"><div class="rel-hi-title">${_esc(it.title)}</div>${it.sub?`<div class="rel-hi-sub">${it.sub}</div>`:''}<div class="rel-hi-meta">${it.chip?`<span class="rel-hi-chip ${it.chip}">${it.chip==='ok'?'✓':'✗'}</span>`:''}${it.rows!=null?`<span>${it.rows.toLocaleString()} linhas</span>`:''}</div></div>`).join(''):'<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Vazio</div>';
+  el.innerHTML=`<div style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden"><div class="rel-hist-tabs"><button class="rel-hist-tab${m==='chats'?' active':''}" onclick="window._RL.histMode('chats')">Chats</button><button class="rel-hist-tab${m==='reports'?' active':''}" onclick="window._RL.histMode('reports')">Relatórios</button><button class="rel-hist-tab${m==='saved'?' active':''}" onclick="window._RL.histMode('saved')">Favoritos</button></div><div class="rel-hist-list">${list}</div></div>`;
 }
 
-// Hook na troca de aba
-const _origRelatorio = () => {
-  const wrap = document.querySelector('.rel-wrap');
-  if (!wrap) return;
-  // Se já inicializado, só re-render sidebar
-  if (wrap.dataset.init === '1') { _renderSideList(); _renderMain(); return; }
-  wrap.dataset.init = '1';
-  _initRelatorio();
+// ── Render: sidebar chat ────────────────────────────────────────────────────
+function _renderChat(){
+  const el=$('rel-side-body'); if(!el) return;
+  el.innerHTML=`<div class="rel-chat-section"><div class="rel-chat-hd"><div class="rel-chat-lbl">Chat</div><button class="btn" onclick="window._RL.newChat()" style="padding:3px 10px;font-size:11px">+ Novo</button></div><div class="rel-msgs" id="rel-msgs"></div></div><div class="rel-input-wrap"><div class="rel-input-box"><span class="rel-input-icon">💬</span><textarea class="rel-textarea" id="rel-q" rows="3" placeholder="Faça uma pergunta em português… Ex: Top 10 fornecedores por gasto em SP"></textarea><button class="rel-send" id="rel-send">Enviar</button></div><div class="rel-hint">Enter para enviar · Shift+Enter nova linha · ${_RL}</div></div>`;
+  const ta=$('rel-q'), btn=$('rel-send');
+  if(ta) ta.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();_submit();} });
+  if(btn) btn.addEventListener('click',_submit);
+  _renderMsgs();
+}
+
+function _renderSide(){
+  if(_S.sideMode==='chat') _renderChat();
+  else _renderHist();
+  document.querySelectorAll('.rel-mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===_S.sideMode));
+}
+
+// ── Globals ─────────────────────────────────────────────────────────────────
+window._RL = {
+  openTab:  id => _openTab(id),
+  closeTab: id => _closeTab(id),
+  newQuery: () => { _openTab('intro'); setTimeout(()=>{ const t=$('rel-q');if(t)t.focus(); },60); },
+  page:     (id,p) => { _S.pages[id]=Math.max(0,p); _renderContent(); },
+  export_:  id => { const r=_S.reports[id]; if(r?.id) window.open(`${_RL}/export/${r.id}`,'_blank'); },
+  fav:      async id => { const r=_S.reports[id]; if(!r) return; const res=await _api('POST',`/favorites/${r.id}`); if(res.ok){r.saved=res.saved;_renderContent();} },
+  histMode: m => { _S.histMode=m; _renderHist(); },
+  histOpen: async (id,type) => {
+    if(type==='chat'){ const c=_S.chats.find(c=>c.id===id); if(c){_S.chatId=c.id;_S.msgs=c.messages||[];_S.sideMode='chat';_renderSide();} return; }
+    let r=_S.history.find(h=>h.id===id);
+    if(!r||!r.columns){ const res=await _api('GET',`/history/${id}`); if(res.ok) r=res.report; }
+    if(!r) return;
+    const tid='th'+id.slice(0,8);
+    if(!_S.tabs.find(t=>t.id===tid)) _S.tabs.push({id:tid,title:r.title||r.question||'Relatório',st:r.status,count:r.rowCount||0,closable:true});
+    _S.reports[tid]=r; _S.pages[tid]=0; _S.activeId=tid;
+    _renderTabs(); _renderContent();
+  },
+  newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
+  showPrompt: async () => { if(!_S.promptContent){ const r=await _api('GET','/prompt'); if(r.ok){_S.promptContent=r.content;_S.promptUpdatedAt=r.updatedAt;} } _S.activeId='__prompt'; _renderTabs(); _renderContent(); },
 };
 
-// Registrar pages.relatorio
-if (typeof pages !== 'undefined') {
-  pages['relatorio'] = () => `
+// ── Init ────────────────────────────────────────────────────────────────────
+async function _init(){
+  const first=!_S.inited; _S.inited=true;
+  if(first){ const r=await _api('GET','/history'); if(r.ok){_S.history=r.history||[];_S.chats=r.chats||[];} }
+  document.querySelectorAll('.rel-mode-btn').forEach(b=>{
+    b.addEventListener('click',()=>{ _S.sideMode=b.dataset.mode; _renderSide(); });
+  });
+  _renderSide(); _renderTabs(); _renderContent();
+}
+
+if(typeof pages!=='undefined'){
+  pages['relatorio']=()=>`
 <div class="rel-wrap">
   <aside class="rel-side">
-    <div class="rel-side-tabs">
-      <button class="rel-side-tab active" data-mode="chats">Chats</button>
-      <button class="rel-side-tab" data-mode="history">Histórico</button>
-      <button class="rel-side-tab" data-mode="saved">Favoritos</button>
+    <div class="rel-side-top">
+      <button class="rel-mode-btn active" data-mode="chat">💬 Chat</button>
+      <button class="rel-mode-btn" data-mode="history">📋 Histórico</button>
     </div>
-    <div class="rel-side-list" id="rel-side-list"></div>
-    <div class="rel-new-chat">
-      <button class="btn" id="rel-new-chat-btn" style="width:100%">+ Novo chat</button>
-    </div>
+    <div id="rel-side-body" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden"></div>
   </aside>
   <main class="rel-main">
-    <div class="rel-topbar">
-      <span class="rel-topbar-title" id="rel-topbar-title">BI de Suprimentos · Relatório</span>
-      <span class="rel-topbar-sub" id="rel-topbar-sub"></span>
-    </div>
-    <div class="rel-tabs">
-      <button class="rel-tab active" data-tab="chat">💬 Chat</button>
-      <button class="rel-tab" data-tab="result">📊 Resultado</button>
-      <button class="rel-tab" data-tab="prompt">🤖 Assistente</button>
-    </div>
-    <div class="rel-action-bar" id="rel-action-bar"></div>
-    <div class="rel-result" id="rel-result"></div>
-    <div class="rel-input-wrap">
-      <div class="rel-input-row">
-        <textarea class="rel-input" id="rel-q" rows="1" placeholder="Faça uma pergunta em português… Ex: Top 10 fornecedores por gasto em SP"></textarea>
-        <button class="rel-send" id="rel-send">Enviar</button>
-      </div>
-      <div class="rel-input-hint">Enter para enviar · Shift+Enter para nova linha · Servidor: ${_RL_URL}</div>
-    </div>
+    <div class="rel-tabs-bar" id="rel-tabs-bar"></div>
+    <div class="rel-content" id="rel-content"></div>
   </main>
 </div>`;
-
-  // Hook na troca de aba
-  document.addEventListener('click', e => {
-    const tab = e.target.closest('.tab[data-page="relatorio"]');
-    if (tab) setTimeout(_origRelatorio, 50);
-  });
+  document.addEventListener('click',e=>{ if(e.target.closest('.tab[data-page="relatorio"]')) setTimeout(_init,60); });
 }
 
 })();
