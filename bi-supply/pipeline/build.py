@@ -1516,6 +1516,672 @@ else _init();
 
 # ── Substituição do HTML dos filtros ──────────────────────────────────────────
 
+# ── CSS da Aba Relatório ─────────────────────────────────────────────────────
+
+RELATORIO_CSS = """
+/* ── Aba Relatório — gerado por build.py ── */
+.rel-wrap { display:flex; height:calc(100vh - 200px); min-height:500px; gap:0; overflow:hidden; }
+
+/* Sidebar */
+.rel-side { width:300px; flex-shrink:0; border-right:1px solid var(--line); display:flex; flex-direction:column; background:var(--bg); }
+.rel-side-tabs { display:flex; border-bottom:1px solid var(--line); }
+.rel-side-tab { flex:1; padding:7px 6px; font-size:11px; font-weight:700; color:var(--muted); background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer; letter-spacing:.4px; text-transform:uppercase; }
+.rel-side-tab.active { color:var(--blue); border-bottom-color:var(--blue); }
+.rel-side-list { flex:1; overflow-y:auto; padding:6px 0; }
+.rel-side-item { padding:8px 12px; cursor:pointer; border-radius:6px; margin:2px 6px; transition:background .1s; }
+.rel-side-item:hover { background:var(--blue-soft); }
+.rel-side-item.active { background:var(--blue-soft); }
+.rel-side-item .ri-title { font-size:12px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rel-side-item .ri-sub { font-size:10.5px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rel-side-item .ri-meta { display:flex; gap:8px; margin-top:3px; align-items:center; }
+.rel-side-item .ri-chip { font-size:10px; padding:1px 6px; border-radius:10px; font-weight:700; }
+.ri-chip.ok { background:#dcfce7; color:#16a34a; }
+.ri-chip.error { background:#fee2e2; color:#dc2626; }
+.rel-side-item .ri-rows { font-size:10px; color:var(--muted); }
+.rel-new-chat { margin:8px; }
+
+/* Main */
+.rel-main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+/* Topbar do relatorio */
+.rel-topbar { display:flex; align-items:center; gap:8px; padding:8px 12px; border-bottom:1px solid var(--line); flex-shrink:0; }
+.rel-topbar-title { font-size:13px; font-weight:700; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rel-topbar-sub { font-size:11px; color:var(--muted); }
+.rel-tabs { display:flex; gap:4px; overflow-x:auto; padding:6px 12px 0; flex-shrink:0; border-bottom:1px solid var(--line); }
+.rel-tab { padding:5px 14px; font-size:12px; font-weight:600; color:var(--muted); background:transparent; border:1px solid transparent; border-radius:6px 6px 0 0; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+.rel-tab.active { color:var(--blue); background:var(--blue-soft); border-color:var(--blue); border-bottom-color:var(--blue-soft); }
+.rel-tab .rt-count { font-size:10px; padding:0 5px; background:var(--line); border-radius:8px; color:var(--muted); }
+.rel-tab.active .rt-count { background:var(--blue); color:#fff; }
+.rel-tab .rt-spin { width:10px; height:10px; border:2px solid var(--blue); border-top-color:transparent; border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Área de resultado */
+.rel-result { flex:1; overflow:auto; padding:14px; display:flex; flex-direction:column; gap:12px; }
+.rel-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:12px; color:var(--muted); }
+.rel-empty svg { opacity:.3; }
+
+/* Chat */
+.rel-chat-area { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+.rel-messages { flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+.rel-msg { display:flex; flex-direction:column; gap:4px; max-width:85%; }
+.rel-msg.user { align-self:flex-end; align-items:flex-end; }
+.rel-msg.assistant { align-self:flex-start; align-items:flex-start; }
+.rel-msg-bubble { padding:8px 12px; border-radius:10px; font-size:13px; line-height:1.5; }
+.rel-msg.user .rel-msg-bubble { background:var(--blue); color:#fff; border-radius:10px 10px 3px 10px; }
+.rel-msg.assistant .rel-msg-bubble { background:var(--surface,#f8fafc); border:1px solid var(--line); border-radius:10px 10px 10px 3px; }
+.rel-msg-sql { font-size:10.5px; color:var(--blue); cursor:pointer; padding:0 2px; }
+.rel-msg-meta { font-size:10px; color:var(--muted); display:flex; gap:8px; align-items:center; }
+.rel-msg-ref { font-size:11px; padding:4px 10px; background:var(--blue-soft); border:1px solid #bfdbfe; border-radius:6px; cursor:pointer; color:var(--blue); font-weight:600; }
+.rel-msg-ref:hover { background:var(--blue); color:#fff; }
+
+/* Input de pergunta */
+.rel-input-wrap { padding:10px 14px; border-top:1px solid var(--line); flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+.rel-input-row { display:flex; gap:8px; align-items:flex-end; }
+.rel-input { flex:1; resize:none; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; background:var(--bg); color:var(--text); min-height:38px; max-height:120px; overflow-y:auto; }
+.rel-input:focus { outline:none; border-color:var(--blue); }
+.rel-send { height:38px; padding:0 16px; background:var(--blue); color:#fff; border:0; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; white-space:nowrap; }
+.rel-send:disabled { opacity:.5; cursor:default; }
+.rel-input-hint { font-size:10.5px; color:var(--muted); }
+
+/* Resultado: tabela */
+.rel-table-wrap { overflow:auto; border:1px solid var(--line); border-radius:8px; }
+.rel-table { width:100%; border-collapse:collapse; font-size:12px; }
+.rel-table th { background:var(--head,#f1f5f9); color:var(--text); font-weight:700; padding:7px 10px; text-align:left; position:sticky; top:0; border-bottom:1px solid var(--line); white-space:nowrap; }
+.rel-table td { padding:6px 10px; border-bottom:1px solid var(--line-soft); }
+.rel-table tr:last-child td { border-bottom:0; }
+.rel-table tr:hover td { background:var(--blue-soft); }
+.rel-table td.num { text-align:right; font-variant-numeric:tabular-nums; }
+.rel-pagination { display:flex; align-items:center; gap:8px; padding:8px 0; font-size:12px; color:var(--muted); }
+.rel-page-btn { padding:3px 10px; border:1px solid var(--border); border-radius:5px; background:var(--surface,#fff); cursor:pointer; font-size:12px; }
+.rel-page-btn:disabled { opacity:.4; cursor:default; }
+
+/* Resultado: KPIs */
+.rel-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }
+.rel-kpi { padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--surface,#fff); }
+.rel-kpi-lab { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.rel-kpi-val { font-size:22px; font-weight:800; color:var(--text); margin-top:4px; }
+
+/* Resultado: erro */
+.rel-error { padding:12px 14px; background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; color:#dc2626; font-size:13px; }
+.rel-sql-block { background:var(--head,#f1f5f9); border:1px solid var(--line); border-radius:6px; padding:10px 12px; font-family:monospace; font-size:11.5px; color:var(--text); white-space:pre-wrap; word-break:break-all; overflow:auto; max-height:200px; }
+
+/* Prompt editor */
+.rel-prompt-wrap { display:flex; flex-direction:column; height:100%; padding:14px; gap:10px; }
+.rel-prompt-toolbar { display:flex; gap:8px; align-items:center; flex-shrink:0; }
+.rel-prompt-label { font-size:12px; color:var(--muted); flex:1; }
+.rel-prompt-ta { flex:1; resize:none; font-family:monospace; font-size:12px; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); }
+.rel-prompt-ta:focus { outline:none; border-color:var(--blue); }
+
+/* Toolbar action buttons */
+.rel-action-bar { display:flex; gap:8px; flex-shrink:0; align-items:center; padding:0 2px; }
+.rel-add-btn { font-size:11.5px; font-weight:700; color:var(--blue); background:var(--blue-soft); border:1px solid #bfdbfe; border-radius:6px; padding:4px 10px; cursor:pointer; }
+.rel-add-btn:hover { background:var(--blue); color:#fff; }
+
+/* Status spinner geral */
+.rel-running { display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px; padding:14px; }
+.rel-spinner { width:18px; height:18px; border:3px solid var(--line); border-top-color:var(--blue); border-radius:50%; animation:spin .8s linear infinite; flex-shrink:0; }
+"""
+
+# ── JS da Aba Relatório ───────────────────────────────────────────────────────
+
+RELATORIO_JS = r"""
+/* ── Aba Relatório — gerado por build.py ── */
+(function(){
+'use strict';
+
+const _RL_URL = (window._BI_NLSQL_URL || 'http://localhost:5001');
+
+// ── Estado ────────────────────────────────────────────────────────────────────
+const _RS = {
+  activeChatId: null,
+  activeReportId: null,
+  activeTab: 'chat',      // 'chat' | 'result' | 'prompt'
+  sidebarMode: 'chats',   // 'chats' | 'history' | 'saved'
+  chats: [],
+  history: [],
+  reports: {},             // {id: report}
+  running: false,
+  promptContent: '',
+  promptUpdatedAt: '',
+};
+
+// ── API ───────────────────────────────────────────────────────────────────────
+async function _api(method, path, body) {
+  try {
+    const opts = { method, headers: {'Content-Type':'application/json'} };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(_RL_URL + path, opts);
+    return await r.json();
+  } catch(e) {
+    return {ok: false, error: e.message};
+  }
+}
+
+// ── FMT ──────────────────────────────────────────────────────────────────────
+function _fmtNum(v) {
+  const n = parseFloat(v);
+  if (isNaN(n)) return String(v);
+  if (Math.abs(n) >= 1e6) return 'R$ ' + (n/1e6).toFixed(1).replace('.',',') + ' mi';
+  if (Math.abs(n) >= 1e3) return n.toLocaleString('pt-BR', {maximumFractionDigits:2});
+  return n.toLocaleString('pt-BR', {maximumFractionDigits:4});
+}
+function _isNum(v) { return v !== null && v !== '' && !isNaN(parseFloat(v)); }
+function _ts(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(e){return '';}
+}
+
+// ── Render resultado ──────────────────────────────────────────────────────────
+function _renderResult(report) {
+  if (!report) return '<div class="rel-empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg><span>Nenhum resultado</span></div>';
+  if (report.status === 'error') {
+    return `<div class="rel-error">❌ ${report.error||'Erro desconhecido'}</div>` +
+           (report.sql ? `<div class="rel-sql-block">${report.sql}</div>` : '');
+  }
+  const cols = report.columns || [], rows = report.rows || [];
+  if (!rows.length) return '<div class="rel-empty"><span>A consulta não retornou resultados.</span></div>';
+
+  // Detectar KPI: ≤4 linhas, ≥1 col numérica
+  const numCols = cols.filter(c => rows.some(r => _isNum(r[c])));
+  if (rows.length <= 4 && numCols.length >= 1 && cols.length <= 3) {
+    return _renderKPIs(cols, rows);
+  }
+  return _renderTable(cols, rows, report.rowCount);
+}
+
+function _renderKPIs(cols, rows) {
+  let html = '<div class="rel-kpis">';
+  rows.forEach(row => {
+    cols.forEach(c => {
+      const v = row[c];
+      if (v === null || v === undefined || v === '') return;
+      const disp = _isNum(v) ? _fmtNum(v) : String(v);
+      html += `<div class="rel-kpi"><div class="rel-kpi-lab">${c}</div><div class="rel-kpi-val">${disp}</div></div>`;
+    });
+  });
+  return html + '</div>';
+}
+
+let _relPage = 0;
+const _relPageSize = 10;
+function _renderTable(cols, rows, rowCount) {
+  const start = _relPage * _relPageSize;
+  const pageRows = rows.slice(start, start + _relPageSize);
+  const total = rowCount || rows.length;
+  const pages = Math.ceil(rows.length / _relPageSize);
+
+  let ths = cols.map(c => `<th>${c}</th>`).join('');
+  let trs = pageRows.map(r =>
+    '<tr>' + cols.map(c => {
+      const v = r[c] ?? '';
+      const cls = _isNum(v) ? ' class="num"' : '';
+      return `<td${cls}>${_isNum(v) ? _fmtNum(v) : v}</td>`;
+    }).join('') + '</tr>'
+  ).join('');
+
+  const pager = pages > 1 ? `
+    <div class="rel-pagination">
+      <button class="rel-page-btn" id="rel-prev" ${_relPage===0?'disabled':''}>‹ Anterior</button>
+      <span>Pág. ${_relPage+1} / ${pages} · ${total.toLocaleString()} linha${total!==1?'s':''}</span>
+      <button class="rel-page-btn" id="rel-next" ${_relPage>=pages-1?'disabled':''}>Próxima ›</button>
+    </div>` : `<div class="rel-pagination">${total.toLocaleString()} linha${total!==1?'s':''}</div>`;
+
+  return `<div class="rel-table-wrap"><table class="rel-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>${pager}`;
+}
+
+// ── Render sidebar ────────────────────────────────────────────────────────────
+function _renderSideList() {
+  const el = document.getElementById('rel-side-list');
+  if (!el) return;
+  const mode = _RS.sidebarMode;
+
+  let items = [];
+  if (mode === 'chats') {
+    items = _RS.chats.map(c => ({
+      id: c.id, title: c.title || 'Chat', sub: _ts(c.updatedAt),
+      chip: null, isChat: true
+    }));
+  } else if (mode === 'history') {
+    items = _RS.history.map(r => ({
+      id: r.id, title: r.title || r.question, sub: _ts(r.createdAt),
+      chip: r.status, rows: r.rowCount, isChat: false
+    }));
+  } else { // saved
+    items = _RS.history.filter(r=>r.saved).map(r => ({
+      id: r.id, title: r.title || r.question, sub: _ts(r.createdAt),
+      chip: r.status, rows: r.rowCount, isChat: false
+    }));
+  }
+
+  el.innerHTML = items.length ? items.map(item => `
+    <div class="rel-side-item ${item.isChat ? (item.id===_RS.activeChatId?'active':'') : (item.id===_RS.activeReportId?'active':'')}"
+         data-id="${item.id}" data-type="${item.isChat?'chat':'report'}">
+      <div class="ri-title">${item.title}</div>
+      ${item.sub ? `<div class="ri-sub">${item.sub}</div>` : ''}
+      <div class="ri-meta">
+        ${item.chip ? `<span class="ri-chip ${item.chip}">${item.chip==='ok'?'✓ ok':'✗ erro'}</span>` : ''}
+        ${item.rows != null ? `<span class="ri-rows">${item.rows} linhas</span>` : ''}
+      </div>
+    </div>`).join('') : '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Vazio</div>';
+
+  el.querySelectorAll('.rel-side-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const {id, type} = el.dataset;
+      if (type === 'chat') _loadChat(id);
+      else _loadReport(id);
+    });
+  });
+}
+
+// ── Render main ───────────────────────────────────────────────────────────────
+function _renderMain() {
+  const tab = _RS.activeTab;
+  const report = _RS.reports[_RS.activeReportId];
+
+  // Topbar
+  const topEl = document.getElementById('rel-topbar-title');
+  const subEl = document.getElementById('rel-topbar-sub');
+  if (topEl) topEl.textContent = report ? report.title : (tab==='prompt' ? 'Editor de Prompt' : 'BI de Suprimentos · Relatório');
+  if (subEl) subEl.textContent = report?.subtitle || '';
+
+  // Tabs
+  document.querySelectorAll('.rel-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+
+  // Conteúdo
+  const resultEl = document.getElementById('rel-result');
+  if (!resultEl) return;
+
+  if (tab === 'chat') {
+    _renderChat();
+    return;
+  }
+  if (tab === 'result') {
+    if (_RS.running) {
+      resultEl.innerHTML = `<div class="rel-running"><div class="rel-spinner"></div>Executando consulta…</div>`;
+    } else {
+      resultEl.innerHTML = _renderResult(report || null);
+      if (report) _renderActionBar(report);
+      // Paginação
+      const prev = document.getElementById('rel-prev');
+      const next = document.getElementById('rel-next');
+      if (prev) prev.onclick = () => { _relPage--; _renderMain(); };
+      if (next) next.onclick = () => { _relPage++; _renderMain(); };
+    }
+    return;
+  }
+  if (tab === 'prompt') {
+    _renderPromptEditor(resultEl);
+    return;
+  }
+}
+
+function _renderActionBar(report) {
+  const el = document.getElementById('rel-action-bar');
+  if (!el) return;
+  const saved = report.saved;
+  el.innerHTML = `
+    <button class="rel-page-btn" title="Copiar SQL" onclick="_relCopySQL()">📋 SQL</button>
+    <button class="rel-page-btn" title="${saved?'Remover dos favoritos':'Salvar nos favoritos'}"
+      onclick="_relToggleFav()">${saved?'★ Salvo':'☆ Salvar'}</button>
+    <button class="rel-page-btn" onclick="_relExport()">⬇ CSV</button>
+    <button class="rel-add-btn" onclick="_relAddToBI()">＋ Adicionar ao BI</button>
+  `;
+}
+
+window._relCopySQL = function() {
+  const r = _RS.reports[_RS.activeReportId];
+  if (r?.sql) navigator.clipboard.writeText(r.sql).then(()=>{});
+};
+
+window._relToggleFav = async function() {
+  const r = _RS.reports[_RS.activeReportId]; if (!r) return;
+  const res = await _api('POST', `/favorites/${r.id}`);
+  if (res.ok) { r.saved = res.saved; _renderMain(); _renderSideList(); }
+};
+
+window._relExport = function() {
+  const r = _RS.reports[_RS.activeReportId]; if (!r) return;
+  window.open(`${_RL_URL}/export/${r.id}`, '_blank');
+};
+
+window._relAddToBI = function() {
+  const r = _RS.reports[_RS.activeReportId]; if (!r || !r.rows?.length) return;
+  // Cria elemento temporário no grid da aba ativa
+  const pk = document.querySelector('.tab.active[data-page]')?.dataset.page;
+  if (!pk || !window._BI_DATA) return;
+  const vjs = 'REL_' + r.id.replace(/-/g,'').slice(0,8).toUpperCase();
+  window._BI_DATA[vjs] = r.rows;
+  if (window._BI_DATA_RAW) window._BI_DATA_RAW[vjs] = r.rows;
+  // Tipo auto-detectado
+  const cols = r.columns||[], rows = r.rows||[];
+  const numCols = cols.filter(c=>rows.some(row=>_isNum(row[c])));
+  const tipo = (rows.length<=4 && numCols.length>=1) ? 'KPI' : 'T';
+  // Adiciona ao ABAS_INDEX para o renderer incluir
+  if (window.ABAS_INDEX && window.ABAS_INDEX[pk]) {
+    const col=1, colSpan=8, row=2, rowSpan=tipo==='KPI'?2:6;
+    window.ABAS_INDEX[pk].elementos.push({
+      id: vjs, tipo, variavel_js: vjs,
+      titulo: r.title, subtitulo: r.subtitle||'',
+      config: {colunas: cols.map(c=>({key:c,label:c,fmt:numCols.includes(c)?'num':'str'})),
+               chave: numCols[0]||cols[0]},
+      layout: {col, col_span:colSpan, row, row_span:rowSpan, visivel:true}
+    });
+    // Re-renderiza aba
+    const pg = document.getElementById('page');
+    if (pg && typeof pages!=='undefined' && pages[pk]) pg.innerHTML = pages[pk]();
+    if (window._BI_EDITOR) window._BI_EDITOR.applyLayout(pk);
+  }
+  alert(`Elemento "${r.title}" adicionado à aba "${pk}". Use o editor para reposicioná-lo.`);
+};
+
+// ── Chat render ───────────────────────────────────────────────────────────────
+function _renderChat() {
+  const resultEl = document.getElementById('rel-result');
+  if (!resultEl) return;
+
+  const chat = _RS.chats.find(c => c.id === _RS.activeChatId);
+  const msgs = chat?.messages || [];
+
+  const msgsHtml = msgs.map(m => {
+    const isUser = m.role === 'user';
+    const refBtn = m.reportId && !isUser
+      ? `<button class="rel-msg-ref" onclick="_relOpenReport('${m.reportId}')">${m.reportTitle||'Ver resultado'} →</button>` : '';
+    const sqlBtn = m.sql && !isUser
+      ? `<span class="rel-msg-sql" onclick="_relShowSQL('${m.reportId}')">ver SQL</span>` : '';
+    const meta = (!isUser && (m.rowCount!=null||m.status))
+      ? `<div class="rel-msg-meta">
+          <span class="ri-chip ${m.status||'ok'}">${m.status==='error'?'erro':'ok'}</span>
+          ${m.rowCount!=null?`<span>${m.rowCount} linha${m.rowCount!==1?'s':''}</span>`:''}
+          ${sqlBtn}
+         </div>` : '';
+    return `<div class="rel-msg ${isUser?'user':'assistant'}">
+      <div class="rel-msg-bubble">${m.text||''}</div>
+      ${refBtn}
+      ${meta}
+    </div>`;
+  }).join('');
+
+  resultEl.innerHTML = `
+    <div class="rel-chat-area">
+      <div class="rel-messages" id="rel-chat-msgs">
+        ${msgsHtml || '<div class="rel-empty" style="height:100%;justify-content:center"><span>Faça uma pergunta para começar</span></div>'}
+      </div>
+    </div>`;
+
+  const msgsEl = document.getElementById('rel-chat-msgs');
+  if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+window._relOpenReport = function(rid) {
+  const r = _RS.reports[rid];
+  if (r) {
+    _RS.activeReportId = rid;
+    _RS.activeTab = 'result';
+    _relPage = 0;
+    _renderMain();
+    _renderSideList();
+  }
+};
+
+window._relShowSQL = function(rid) {
+  const r = _RS.reports[rid];
+  if (r?.sql) {
+    const el = document.getElementById('rel-result');
+    if (el) el.innerHTML = `<div class="rel-sql-block">${r.sql}</div>
+      <button class="rel-page-btn" style="margin-top:8px" onclick="_relOpenReport('${rid}')">← Voltar ao resultado</button>`;
+  }
+};
+
+// ── Prompt editor ─────────────────────────────────────────────────────────────
+function _renderPromptEditor(container) {
+  container.innerHTML = `
+    <div class="rel-prompt-wrap">
+      <div class="rel-prompt-toolbar">
+        <span class="rel-prompt-label">📄 nlsql/prompts/bi_suprimentos_sql.md · Atualizado: ${_RS.promptUpdatedAt?_ts(_RS.promptUpdatedAt):'—'}</span>
+        <button class="rel-page-btn" id="rel-prompt-save">💾 Salvar</button>
+        <button class="rel-page-btn" id="rel-prompt-reset">↩ Restaurar backup</button>
+      </div>
+      <textarea class="rel-prompt-ta" id="rel-prompt-ta" spellcheck="false">${_RS.promptContent}</textarea>
+    </div>`;
+
+  document.getElementById('rel-prompt-save').onclick = async () => {
+    const content = document.getElementById('rel-prompt-ta').value;
+    const res = await _api('POST', '/prompt', {content});
+    if (res.ok) { _RS.promptContent = content; alert('Prompt salvo. Próximas perguntas usarão o novo prompt.'); }
+    else alert('Erro ao salvar: ' + res.error);
+  };
+  document.getElementById('rel-prompt-reset').onclick = async () => {
+    if (!confirm('Restaurar o backup do prompt?')) return;
+    const res = await _api('POST', '/prompt/reset');
+    if (res.ok) { await _loadPrompt(); _renderMain(); }
+    else alert('Erro: ' + res.error);
+  };
+}
+
+// ── Ações ─────────────────────────────────────────────────────────────────────
+async function _submit() {
+  const inp = document.getElementById('rel-q');
+  if (!inp) return;
+  const question = inp.value.trim();
+  if (!question || _RS.running) return;
+
+  // Garantir chat ativo
+  if (!_RS.activeChatId) {
+    const res = await _api('POST', '/chats', {title: question.slice(0,60)});
+    if (res.ok) {
+      _RS.chats.unshift(res.chat);
+      _RS.activeChatId = res.chat.id;
+    }
+  }
+
+  inp.value = '';
+  inp.style.height = 'auto';
+  _RS.running = true;
+  _RS.activeTab = 'chat';
+
+  // Adiciona mensagem do usuário otimisticamente
+  const chat = _RS.chats.find(c => c.id === _RS.activeChatId);
+  if (chat) {
+    chat.messages = chat.messages || [];
+    chat.messages.push({id:'tmp-u', role:'user', text:question, createdAt:new Date().toISOString()});
+    chat.messages.push({id:'tmp-a', role:'assistant', text:'…', status:'running', createdAt:new Date().toISOString()});
+  }
+  _renderMain();
+
+  const res = await _api('POST', '/run', {question, chatId: _RS.activeChatId});
+  _RS.running = false;
+
+  if (res.ok) {
+    _RS.history = res.history || _RS.history;
+    _RS.chats = res.chats || _RS.chats;
+    if (res.report) {
+      _RS.reports[res.report.id] = res.report;
+      _RS.activeReportId = res.report.id;
+    }
+    if (res.chat) {
+      const idx = _RS.chats.findIndex(c=>c.id===res.chat.id);
+      if (idx>=0) _RS.chats[idx] = res.chat;
+      else _RS.chats.unshift(res.chat);
+    }
+    // Abre resultado se ok
+    if (res.report?.status === 'ok') {
+      _RS.activeTab = 'result';
+      _relPage = 0;
+    }
+  } else {
+    // Atualiza mensagem de erro
+    if (chat) {
+      const lastAsst = [...(chat.messages||[])].reverse().find(m=>m.role==='assistant');
+      if (lastAsst) { lastAsst.text = res.error||'Erro'; lastAsst.status='error'; }
+    }
+  }
+  _renderMain();
+  _renderSideList();
+}
+
+async function _loadChat(chatId) {
+  _RS.activeChatId = chatId;
+  _RS.activeTab = 'chat';
+  const res = await _api('GET', '/history');
+  if (res.ok) {
+    _RS.history = res.history || [];
+    _RS.chats = res.chats || [];
+    // Carregar relatórios do chat
+    const chat = _RS.chats.find(c=>c.id===chatId);
+    if (chat) {
+      for (const rid of (chat.reportIds||[]).slice(-10)) {
+        if (!_RS.reports[rid]) {
+          const rr = await _api('GET', `/history/${rid}`);
+          if (rr.ok) _RS.reports[rr.report.id] = rr.report;
+        }
+      }
+    }
+  }
+  _renderMain();
+  _renderSideList();
+}
+
+async function _loadReport(rid) {
+  if (!_RS.reports[rid]) {
+    const res = await _api('GET', `/history/${rid}`);
+    if (res.ok) _RS.reports[res.report.id] = res.report;
+  }
+  _RS.activeReportId = rid;
+  _RS.activeTab = 'result';
+  _relPage = 0;
+  _renderMain();
+  _renderSideList();
+}
+
+async function _loadPrompt() {
+  const res = await _api('GET', '/prompt');
+  if (res.ok) { _RS.promptContent = res.content; _RS.promptUpdatedAt = res.updatedAt; }
+}
+
+async function _newChat() {
+  const res = await _api('POST', '/chats', {title:'Novo chat'});
+  if (res.ok) {
+    _RS.chats.unshift(res.chat);
+    _RS.activeChatId = res.chat.id;
+    _RS.activeReportId = null;
+    _RS.activeTab = 'chat';
+    _renderMain();
+    _renderSideList();
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function _initRelatorio() {
+  // Carregar histórico e chats
+  const res = await _api('GET', '/history');
+  if (res.ok) {
+    _RS.history = res.history || [];
+    _RS.chats   = res.chats   || [];
+    if (_RS.chats.length) _RS.activeChatId = _RS.chats[0].id;
+  }
+  // Carregar prompt
+  await _loadPrompt();
+
+  // Wiring dos botões de tab da sidebar
+  document.querySelectorAll('.rel-side-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      _RS.sidebarMode = t.dataset.mode;
+      document.querySelectorAll('.rel-side-tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      _renderSideList();
+    });
+  });
+
+  // Wiring das tabs de resultado
+  document.querySelectorAll('.rel-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      _RS.activeTab = t.dataset.tab;
+      if (t.dataset.tab === 'prompt' && !_RS.promptContent) _loadPrompt();
+      _renderMain();
+    });
+  });
+
+  // Botão novo chat
+  const nc = document.getElementById('rel-new-chat-btn');
+  if (nc) nc.addEventListener('click', _newChat);
+
+  // Input de pergunta
+  const inp = document.getElementById('rel-q');
+  const btn = document.getElementById('rel-send');
+  if (inp) {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); _submit(); }
+    });
+    inp.addEventListener('input', () => {
+      inp.style.height = 'auto';
+      inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
+    });
+  }
+  if (btn) btn.addEventListener('click', _submit);
+
+  _renderSideList();
+  _renderMain();
+}
+
+// Hook na troca de aba
+const _origRelatorio = () => {
+  const wrap = document.querySelector('.rel-wrap');
+  if (!wrap) return;
+  // Se já inicializado, só re-render sidebar
+  if (wrap.dataset.init === '1') { _renderSideList(); _renderMain(); return; }
+  wrap.dataset.init = '1';
+  _initRelatorio();
+};
+
+// Registrar pages.relatorio
+if (typeof pages !== 'undefined') {
+  pages['relatorio'] = () => `
+<div class="rel-wrap">
+  <aside class="rel-side">
+    <div class="rel-side-tabs">
+      <button class="rel-side-tab active" data-mode="chats">Chats</button>
+      <button class="rel-side-tab" data-mode="history">Histórico</button>
+      <button class="rel-side-tab" data-mode="saved">Favoritos</button>
+    </div>
+    <div class="rel-side-list" id="rel-side-list"></div>
+    <div class="rel-new-chat">
+      <button class="btn" id="rel-new-chat-btn" style="width:100%">+ Novo chat</button>
+    </div>
+  </aside>
+  <main class="rel-main">
+    <div class="rel-topbar">
+      <span class="rel-topbar-title" id="rel-topbar-title">BI de Suprimentos · Relatório</span>
+      <span class="rel-topbar-sub" id="rel-topbar-sub"></span>
+    </div>
+    <div class="rel-tabs">
+      <button class="rel-tab active" data-tab="chat">💬 Chat</button>
+      <button class="rel-tab" data-tab="result">📊 Resultado</button>
+      <button class="rel-tab" data-tab="prompt">🤖 Assistente</button>
+    </div>
+    <div class="rel-action-bar" id="rel-action-bar"></div>
+    <div class="rel-result" id="rel-result"></div>
+    <div class="rel-input-wrap">
+      <div class="rel-input-row">
+        <textarea class="rel-input" id="rel-q" rows="1" placeholder="Faça uma pergunta em português… Ex: Top 10 fornecedores por gasto em SP"></textarea>
+        <button class="rel-send" id="rel-send">Enviar</button>
+      </div>
+      <div class="rel-input-hint">Enter para enviar · Shift+Enter para nova linha · Servidor: ${_RL_URL}</div>
+    </div>
+  </main>
+</div>`;
+
+  // Hook na troca de aba
+  document.addEventListener('click', e => {
+    const tab = e.target.closest('.tab[data-page="relatorio"]');
+    if (tab) setTimeout(_origRelatorio, 50);
+  });
+}
+
+})();
+"""
+
 def replace_filter_html(html):
     """Substitui o bloco .filters do v4 com as novas linhas de filtros."""
     new_filters = """<div class="filters" id="filters">
@@ -1568,6 +2234,22 @@ def inject_before_script_end(html, js):
     pos = html.rfind("</script>")
     if pos == -1: return html + f"\n<script>\n{js}\n</script>"
     return html[:pos] + "\n" + js + "\n" + html[pos:]
+
+def inject_relatorio_tab(html):
+    """Adiciona botão da aba Relatório no nav do v4 e configura URL do servidor."""
+    # Adiciona botão antes do fechamento da nav de tabs
+    html = html.replace(
+        '<button class="tab" data-page="qualidade">Dados</button>',
+        '<button class="tab" data-page="qualidade">Dados</button>\n    <button class="tab" data-page="relatorio">Relatório</button>',
+        1
+    )
+    # Injeta URL do servidor NL-SQL como variável global
+    html = html.replace(
+        "</head>",
+        '<script>window._BI_NLSQL_URL = "http://localhost:5001";</script>\n</head>',
+        1
+    )
+    return html
 
 def update_timestamp(html):
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -1691,10 +2373,12 @@ def main():
 
     print("Injetando no HTML...")
     html = replace_filter_html(html)
+    html = inject_relatorio_tab(html)
     html = inject_css(html, GRID_CSS)
     html = inject_css(html, EDITOR_CSS)
     html = inject_css(html, FILTER_CSS)
-    html = inject_before_script_end(html, js_injection + "\n" + RENDERER_JS + "\n" + EDITOR_JS + "\n" + FILTER_JS)
+    html = inject_css(html, RELATORIO_CSS)
+    html = inject_before_script_end(html, js_injection + "\n" + RENDERER_JS + "\n" + EDITOR_JS + "\n" + FILTER_JS + "\n" + RELATORIO_JS)
     html = update_timestamp(html)
 
     out = DIST / "index.html"
