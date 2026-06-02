@@ -179,7 +179,7 @@ GRID_CSS = """
 .grid-editor-handle {
   display: none;
   position: absolute;
-  top: 4px; right: 4px;
+  top: 4px; left: 4px;
   cursor: grab;
   z-index: 10;
   background: var(--blue-soft);
