@@ -1,338 +1,11 @@
 # Diário de Bordo — BI de Suprimentos
 
-Registro técnico de todas as alterações do projeto, ordenado do mais recente ao mais antigo.
+Registro técnico de todas as alterações do projeto, em ordem cronológica (mais antigo → mais recente).
 
 **Regras:**
 - Atualizar este diário a cada alteração relevante, sempre com data e detalhes técnicos.
 - Atualizar o README somente quando a estrutura geral ou o uso do projeto mudar.
 - Nunca deixar uma sessão de trabalho sem registrar o que foi feito.
-
----
-
-## [2026-06-02] Passo 10 — Aba Relatório (NL-SQL com UI completa)
-
-**Commit:** `d2cd9c8`
-
-### O que foi feito
-
-Implementação completa da Aba Relatório, inspirada no GovGo v2 (`src/features/relatorios/RelatoriosWorkspace.jsx` + `src/backend/reports/api/service.py`), adaptada para Zoho Analytics.
-
-### Backend: `nlsql/server.py` (Flask)
-
-Servidor leve em `http://localhost:5001`. Reutiliza `nlsql/orchestrator.py` (NL→SQL via OpenAI) e `nlsql/adapter.py` (execução via Zoho Bulk API).
-
-**Endpoints:**
-
-| Endpoint | Função |
-|---|---|
-| `POST /run` | Pergunta → SQL → Zoho → título IA → salva no histórico |
-| `POST /generate-sql` | NL → SQL sem executar |
-| `POST /execute` | Executa SQL diretamente |
-| `GET /history` | Lista histórico + chats |
-| `DELETE /history/:id` | Soft delete (preserva registro) |
-| `POST /favorites/:id` | Toggle favorito |
-| `GET/POST /chats` | Lista/cria chats |
-| `GET /prompt` | Lê `bi_suprimentos_sql.md` |
-| `POST /prompt` | Grava prompt (backup automático em `.backup.md`) |
-| `POST /prompt/reset` | Restaura backup |
-| `GET /export/:id` | Download CSV |
-
-**Storage:** `nlsql/history.json` · `nlsql/chats.json` (JSON local, sem banco)
-
-**Chat contextual:** últimas 6 mensagens do chat passadas como contexto para o LLM → permite follow-up ("agora por UF", "o mesmo por mês")
-
-### Frontend: RELATORIO_CSS + RELATORIO_JS (injetados via build.py)
-
-**Layout:**
-- Sidebar 300px: abas Chats / Histórico / Favoritos com lista navegável
-- Main: topbar + abas (Chat · Resultado · Assistente) + área de resultado + input
-
-**Auto-detecção de resultado:**
-- ≤4 linhas + coluna numérica → **KPIs** com `.rel-kpi`
-- qualquer outra coisa → **Tabela paginada** (10 linhas/página)
-
-**Funcionalidades:**
-- Enter para enviar, Shift+Enter para nova linha
-- Status visual: spinner (rodando) · chip verde (ok) · chip vermelho (erro)
-- Mensagens de chat com referência clicável ao resultado
-- Copy SQL, Export CSV, Toggle favorito por resultado
-- "Adicionar ao BI" → injeta elemento gerado no grid da aba ativa como tipo T ou KPI
-
-**Editor de Prompt (aba "Assistente"):**
-- Exibe conteúdo atual do `bi_suprimentos_sql.md` em textarea editável
-- Salvar → `POST /prompt` → backup automático → grava arquivo
-- Restaurar → `POST /prompt/reset` → restaura backup
-- Timestamp da última modificação visível
-
-### Para usar
-
-```
-# Terminal 1: iniciar servidor NL-SQL
-python nlsql/server.py
-
-# Terminal 2: build do dashboard (ou usar existente)
-python pipeline/build.py
-
-# Abrir dist/index.html e clicar na aba "Relatório"
-```
-
----
-
-## [2026-06-02] Passo 9 — Validação de dados + ativação de filtros faltantes
-
-**Commits:** `e7b88eb`, `708a94c`, `0358d4e`
-
-### Validação realizada: 131 elementos em 15 abas
-
-Leitura completa de todos os `00_index.json` e arquivos de dados de cada aba. Resultado:
-
-| Status | Count |
-|---|---:|
-| OK | 127 |
-| PROBLEMAS (corrigidos) | 4 |
-| PENDENTE (sem dados) | 2 abas |
-
-**Abas PENDENTE:** `05_estoque` (requer workspace APURAÇÃO DE RESULTADOS) · `11_fiscal` (requer base cadastral de regime fiscal)
-
-### Problemas encontrados e corrigidos
-
-#### 1. `inflacao_media_pct = 29316%` (e `inflacao_media_cesta` em produto)
-
-**Causa:** `PERC_INF_ID_PMP` no Zoho tem outliers extremos — divisão de variação por PMP≈0 gera valores como 1,69 bilhões de %. Havia 1.516 registros > 100%, máx = 1.692.571.328%.
-
-**Fix em `transform.py`:**
-```python
-_INF_CAP = 500  # cap ±500%
-
-def _inf_p(r):
-    p = flt(r.get("PERC_INF_ID_PMP",""))
-    return p if abs(p) <= _INF_CAP else 0.0
-```
-Aplicado em todas as 4 funções que leem `PERC_INF_ID_PMP`: `aba_inflacao`, `_produto_fix_kpis`, e derivados.
-
-**Resultado:** `inflacao_media_pct`: 29316 → **4.0%** · `cat2_mais_inflada`: D3 → **A2 - ATIVOS INDIRETOS**
-
-#### 2. Arquivos ausentes: r03/r04 (produto) e r05/r06 (inflação)
-
-**Causa:** `pmp_prod_inf_12.csv` tem PMP_0–PMP_12 todos vazios (export Zoho sem série de preços). Condição `if p0<=0 or p12<=0: continue` excluía todas as linhas.
-
-**Fix:** fallback que agrega `PERC_INF_ID_PMP` por produto via `inflacao.csv` quando PMP não disponível:
-```python
-if not pvars and inf_raw:
-    pd_ = defaultdict(...)
-    for r in inf_raw:
-        nm = r.get("NMPRODUTO_EST",""); p = _inf_p(r)
-        if not nm or p == 0: continue
-        pd_[nm]["ps"] += p; pd_[nm]["pn"] += 1
-    pvars = [...] # produtos com ≥3 meses de dado
-```
-
-**Resultado:** 4 arquivos criados com 25 linhas cada.
-
-#### 3. `pmp_medio_cesta = 0`
-
-**Causa:** PMP_0–PMP_12 vazios na fonte Zoho. Não corrigível sem novo extract.
-**Status:** PENDENTE — aguarda nova extração do Zoho com série de preços.
-
-### Filtros ativados na aba Categorias
-
-**Problema:** aba `categorias` usa implementação v4 original que lê `const CAT_VAL` e `const CAT_INF`. Por serem `const`, não podiam ser reatribuídos pelo FILTER_JS.
-
-**Fix em `build.py`:**
-- `const CAT_VAL` → `var CAT_VAL`
-- `const CAT_INF` → `var CAT_INF`
-
-**Fix em FILTER_JS (`_applyF`):** após filtrar os arrays de `_BI_DATA`, rebuild dinâmico:
-```javascript
-// Rebuild CAT_VAL a partir de CATEGORIA_R01_HIERARQUIA filtrado
-const hier = _BDF('CATEGORIA_R01_HIERARQUIA') || [];
-const cv = {};
-hier.forEach(r => {
-  ['cat1','cat2','cat3','cat4','cat5'].forEach(k => {
-    const code = r[k]?.split(' - ')[0]?.trim()?.split(' ')[0];
-    if (code) cv[code] = Math.round(((cv[code]||0) + (parseFloat(r.spend)||0)/1e6)*10)/10;
-  });
-});
-CAT_VAL = cv;
-
-// Rebuild CAT_INF a partir de INFLACAO_R04_POR_CAT filtrado
-CAT_INF = Object.fromEntries(
-  (_BDF('INFLACAO_R04_POR_CAT')||[]).map(r => [
-    r.cat2?.split(' - ')[0]?.trim()?.split(' ')[0],
-    parseFloat(r.inflacao_media_pct)||0
-  ]).filter(([k]) => k)
-);
-```
-
-**Resultado:** aba Categorias (cascata interativa v4) agora responde a filtros de CAT1-5, UF, empresa.
-
-### Bug crítico descoberto e corrigido: indexes sobrescritos
-
-**Causa:** `transform.py` grava `{aba}_00_index.json` com formato `"relatorios"`, sobrescrevendo o formato `"elementos"` criado por `generate_indexes.py`. O `build.py` busca `"elementos"` → resultado: 136 elementos mas só 5 com dados injetados, todos os gráficos vazios.
-
-**Fix:** `run.bat` agora chama `generate_indexes.py` depois de `transform.py`:
-```
-extract.py → transform.py → generate_indexes.py → build.py
-```
-
-### Estado atual do dashboard
-
-- **131/131 elementos** com dados (exceto abas PENDENTE)
-- **141 elementos com dados injetados** (incluindo 5 dimensões de filtro)
-- **HTML:** 3.201 KB
-- **Filtros:** todos os 15 filtros funcionais, incluindo categorias
-- **Aba estoque:** PENDENTE · **Aba fiscal:** PENDENTE
-
----
-
-## [2026-06-02] Passo 8 — Correções pós-entrega dos filtros
-
-**Commits:** `77e448a`, `c309b4b`, `fb10c1f`, `97fae8e`, `b84e94b`
-
-### Bugs corrigidos
-
-| Bug | Causa | Solução |
-|---|---|---|
-| Labels do dropdown em linha horizontal | CSS `#flt-dd-list` mas HTML usava `id="flt-list"` | Seletor corrigido para `#flt-list` |
-| Dropdown aparecia atrás do conteúdo | `position:fixed` e `z-index` vinham só da stylesheet; `style.cssText` os sobrescrevia | `position:fixed;z-index:9999` definidos no inline style |
-| Fundo do dropdown transparente | `var(--surface)` não existe no v4 | `background:#fff` definido no inline style |
-| "Selecionar todos" não funcionava | Seletor CSS inválido `[#flt-list...` lançava `DOMException` antes da lógica | Linha removida (variável `vis` nunca era usada) |
-| Categorias CAT1–5 vazias | Chave `CAT_R01_HIERARQUIA` errada | Corrigido para `CATEGORIA_R01_HIERARQUIA` |
-| ABC incompleto | `['AAA','AA','A','B','C']` | Corrigido para `['AAA','AA','A','B','BB','C','CC','CCC']` |
-| Filtros ID e Produto separados | Redundância — ID é `cdproduto` do produto | Mergeados em único filtro Produto com formato `"ID - Nome"` |
-
-### Mudanças estruturais
-
-- Linha 2 dos filtros: de 13 para 12 colunas (remoção do botão ID)
-- Predicado `_pred`: matching de produto usa `Set` de IDs e `Set` de nomes
-- Cascata: `abc_id` e `abc_prod` afetam `produto` (não mais `id` separado)
-
----
-
-## [2026-06-02] Dimensões completas para filtros (fornecedor, filial, categorias, produto)
-
-**Commits:** `fb9c671`, `6e74d3e`
-
-### Problema
-Filtros usavam dados processados com MAX_ROWS truncados:
-- Categorias: 150 de 1386 combinações cat1-5
-- Produto: 200 de 6302 produtos com nome
-- Filial: 20 de 79 filiais (HL=20)
-- Fornecedor: 300 de 3518 com curva ABC
-
-### Solução: 4 dimensões injetadas sem limite
-
-| Dimensão | Fonte | Total |
-|---|---|---|
-| `DIM_CATEGORIAS` | `03_categoria_r01_hierarquia.csv` (processado) | 1386 |
-| `DIM_PRODUTOS` | `raw/pmp_id_inf_12.csv` (Zoho) | 6302 |
-| `DIM_FILIAIS` | `04_filial_r01_ranking.csv` (processado) | 79 |
-| `DIM_FORNECEDORES` | `raw/curva_forn.csv` (Zoho) | 3518 |
-
-### Filtro Produto unificado
-`ID + Nome` no formato `"D501112009 - FRANGO CONGELADO"` — merged dos filtros separados ID e Produto.
-
-### Empresas: apenas 3
-`_EMPS = ['RC','ME','PV']` — RC=Ideal, ME=Melhor, PV=Pomme Vita
-
-### ABC corrigido
-`['AAA','AA','A','B','BB','C','CC','CCC']`
-
-### Amarração Categoria→Produto via _vc2
-`_computeVC2()` pré-computa Set<cat2> válidos da hierarquia completa antes de filtrar.
-Garante que CAT1→CAT2→…→Produto funcione mesmo sem cat1-5 no arquivo de produtos.
-
-### HTML: 746 KB → 1727 KB
-Crescimento esperado com 3518 fornecedores + 6302 produtos + 1386 categorias.
-
----
-
-## [2026-06-02] Passo 8 — Sistema de filtros multi-select
-
-**Commit:** `298a06c`
-
-### O que foi feito
-
-Sistema completo de filtros interativos injetado no dashboard pelo `build.py`.
-
-### Nova estrutura de filtros
-
-**Linha 1 (9 filtros):** Empresa · Negócio · Região · UF · Filial · Ano · Período · ABC fornecedor · Fornecedor
-
-**Linha 2 (13 filtros, colapsável):** CAT1 · CAT2 · CAT3 · CAT4 · CAT5 · Produto · ID · ABC produto · ABC ID · Status cotação · Status CP · Status AD · Tipo alerta
-
-### Componente multi-select
-
-- Botão mostra `Todos` ou `N sel.` ou valor único
-- Dropdown com busca, `Selecionar todos`, checkboxes, contador e `Limpar`
-- Um único `div#flt-dd` reposicionado dinamicamente abaixo do botão ativo
-- Fecha ao clicar fora; aplica filtros ao fechar
-
-### Persistência e estado
-
-- Estado `_F` salvo em `localStorage['bi_filters']`
-- Filtros restaurados e aplicados automaticamente ao abrir o dashboard
-- Chips clicáveis na `filter-foot` mostram filtros ativos; clicar num chip remove aquele filtro
-- "Limpar filtros" reseta tudo e salva estado vazio
-
-### Arquitetura de dados
-
-```
-window._BI_DATA_RAW  ← cópia inicial (preservada)
-       ↓ _applyF()
-window._BI_DATA      ← dados filtrados (usados pelo renderer)
-       ↓ pages[pk]()
-DOM                  ← re-renderizado com dados filtrados
-```
-
-### Predicado de filtro (`_pred`)
-
-Aplica todos os filtros ativos a cada linha de dados. Colunas mapeadas:
-
-| Filtro | Coluna |
-|---|---|
-| empresa | `empresa` ou `empresas` (pipe-separated) |
-| negocio | `negocio` |
-| uf | `uf` (+ expansão de `regiao`) |
-| filial | `filial` ou `nome` |
-| cat1–5 | `cat1`–`cat5` |
-| fornecedor | `fornecedor` |
-| produto | `produto` |
-| id | `id` ou `cdproduto` |
-| abc_forn/prod/id | `curva`, `curva_prod`, `curva_id` |
-| periodo | `mesano` |
-| ano | ano extraído de `mesano` |
-| status_cp | `statuspag` |
-| status_ad | `status_conciliacao` |
-
-### Recálculo de KPIs (`_KC`)
-
-38 KPIs deriváveis recalculados em runtime a partir dos dados de linha já filtrados. Exemplos:
-
-- `FILIAL_K01_TOTAL` → `SUM(FILIAL_R01_RANKING.spend)` após filtro
-- `IMPACTO_K04_UF` → `MAX(IMPACTO_R02_UF, imp_cot).uf` após filtro
-- `ADIANTAMENTO_K04_PCT` → `SUM(conciliado) / (SUM(pendente) + SUM(conciliado))`
-
-~10 KPIs mantêm valor original (cross-source ou dependentes de data): `produtos_unicos`, `pct_com_cotacao`, `ids_sem_cotacao_12m`, `cp_a_vencer_7d`, `cp_critico_120d`, etc.
-
-### Cascatas (`_CASC`)
-
-| Filtro pai | Restringe opções de |
-|---|---|
-| Região | UF, Filial |
-| Empresa, Negócio, UF | Filial |
-| CAT1 → CAT2 → … → CAT5 | cada nível seguinte + Produto + ID |
-| Produto | ID |
-| ABC fornecedor | Fornecedor |
-| ABC produto | Produto, ID |
-| ABC ID | ID |
-| Ano | Período |
-
-### Integração com Editor (`_BI_EDITOR`)
-
-`window._BI_EDITOR = { applyLayout, decorate, enText, enSvg }` exposto pelo EDITOR_JS.
-
-Após re-render por filtro, FILTER_JS chama `_BI_EDITOR.applyLayout(pk)` para restaurar overrides de layout, e re-decora elementos se o modo edição estiver ativo.
 
 ---
 
@@ -443,6 +116,8 @@ Não migrados por serem prompts para Claude Design (não são documentação do 
 
 ---
 
+---
+
 ## [2026-06-01] Fase 1 — Passo 1: zoho/client.py
 
 **Commit:** `f94ecaf`
@@ -525,6 +200,8 @@ Organização:
 
 ---
 
+---
+
 ## [2026-06-01] Fase 2 — Passo 1: pipeline/extract.py
 
 **Commit:** a registrar
@@ -592,6 +269,8 @@ Incremental não vale a pena agora porque:
 
 - [x] Rodar extração completa das 18 fontes
 - [ ] Criar `pipeline/transform.py`
+
+---
 
 ---
 
@@ -679,6 +358,8 @@ AD_v3 · FILIAIS_SUPPLY · TAB_PROD · FAT_SUP
 
 ---
 
+---
+
 ## [2026-06-02] Fase 3 — Sistema unificado de elementos (passos 1-3)
 
 ### Abordagem correta do build.py
@@ -704,6 +385,8 @@ Gera os 15 00_index.json completos:
 2. Elementos Tipo B (visivel:false) -> painel lateral do editor
 3. Ciclo: editar no browser -> salvar layout.json -> build.py -> HTML novo
 4. v4.html nao modificado — adaptacoes injetadas pelo build.py
+
+---
 
 ---
 
@@ -762,6 +445,8 @@ Renderers implementados: `_renderKPI`, `_renderHL`, `_renderT`, `_renderTE`, `_r
 
 ---
 
+---
+
 ## [2026-06-02] Fase 3 — Passo 6: 22 elementos processed posicionados
 
 **Commits:** `e6d5781`, `55dd4d9`, `5d5422f`
@@ -795,6 +480,8 @@ Todos os elementos de cada aba foram deslocados -1 linha para compensar.
 
 ---
 
+---
+
 ## [2026-06-02] Correção: fontes SVG fora do Design System
 
 **Commit:** `e30f927`
@@ -804,6 +491,8 @@ Eixos dos gráficos SVG usavam `fill="#94a3b8"` e `font-family` incorreto.
 **Corrigido para:**
 - `fill="#64748b"` (= CSS `--muted` do Design System)
 - `font-family="'Segoe UI',Arial,sans-serif"` (stack completo)
+
+---
 
 ---
 
@@ -883,3 +572,310 @@ def apply_layout_overrides(indexes):
 - 132 elementos com dados reais injetados
 - 136 elementos no total (4 sem dados — rule-based ou hardcoded no v4)
 - Editor funcional: drag livre, resize, visibilidade, textos, SVG labels, auto-save
+
+---
+
+---
+
+## [2026-06-02] Passo 8 — Sistema de filtros multi-select
+
+**Commit:** `298a06c`
+
+### O que foi feito
+
+Sistema completo de filtros interativos injetado no dashboard pelo `build.py`.
+
+### Nova estrutura de filtros
+
+**Linha 1 (9 filtros):** Empresa · Negócio · Região · UF · Filial · Ano · Período · ABC fornecedor · Fornecedor
+
+**Linha 2 (13 filtros, colapsável):** CAT1 · CAT2 · CAT3 · CAT4 · CAT5 · Produto · ID · ABC produto · ABC ID · Status cotação · Status CP · Status AD · Tipo alerta
+
+### Componente multi-select
+
+- Botão mostra `Todos` ou `N sel.` ou valor único
+- Dropdown com busca, `Selecionar todos`, checkboxes, contador e `Limpar`
+- Um único `div#flt-dd` reposicionado dinamicamente abaixo do botão ativo
+- Fecha ao clicar fora; aplica filtros ao fechar
+
+### Persistência e estado
+
+- Estado `_F` salvo em `localStorage['bi_filters']`
+- Filtros restaurados e aplicados automaticamente ao abrir o dashboard
+- Chips clicáveis na `filter-foot` mostram filtros ativos; clicar num chip remove aquele filtro
+- "Limpar filtros" reseta tudo e salva estado vazio
+
+### Arquitetura de dados
+
+```
+window._BI_DATA_RAW  ← cópia inicial (preservada)
+       ↓ _applyF()
+window._BI_DATA      ← dados filtrados (usados pelo renderer)
+       ↓ pages[pk]()
+DOM                  ← re-renderizado com dados filtrados
+```
+
+### Predicado de filtro (`_pred`)
+
+Aplica todos os filtros ativos a cada linha de dados. Colunas mapeadas:
+
+| Filtro | Coluna |
+|---|---|
+| empresa | `empresa` ou `empresas` (pipe-separated) |
+| negocio | `negocio` |
+| uf | `uf` (+ expansão de `regiao`) |
+| filial | `filial` ou `nome` |
+| cat1–5 | `cat1`–`cat5` |
+| fornecedor | `fornecedor` |
+| produto | `produto` |
+| id | `id` ou `cdproduto` |
+| abc_forn/prod/id | `curva`, `curva_prod`, `curva_id` |
+| periodo | `mesano` |
+| ano | ano extraído de `mesano` |
+| status_cp | `statuspag` |
+| status_ad | `status_conciliacao` |
+
+### Recálculo de KPIs (`_KC`)
+
+38 KPIs deriváveis recalculados em runtime a partir dos dados de linha já filtrados. Exemplos:
+
+- `FILIAL_K01_TOTAL` → `SUM(FILIAL_R01_RANKING.spend)` após filtro
+- `IMPACTO_K04_UF` → `MAX(IMPACTO_R02_UF, imp_cot).uf` após filtro
+- `ADIANTAMENTO_K04_PCT` → `SUM(conciliado) / (SUM(pendente) + SUM(conciliado))`
+
+~10 KPIs mantêm valor original (cross-source ou dependentes de data): `produtos_unicos`, `pct_com_cotacao`, `ids_sem_cotacao_12m`, `cp_a_vencer_7d`, `cp_critico_120d`, etc.
+
+### Cascatas (`_CASC`)
+
+| Filtro pai | Restringe opções de |
+|---|---|
+| Região | UF, Filial |
+| Empresa, Negócio, UF | Filial |
+| CAT1 → CAT2 → … → CAT5 | cada nível seguinte + Produto + ID |
+| Produto | ID |
+| ABC fornecedor | Fornecedor |
+| ABC produto | Produto, ID |
+| ABC ID | ID |
+| Ano | Período |
+
+### Integração com Editor (`_BI_EDITOR`)
+
+`window._BI_EDITOR = { applyLayout, decorate, enText, enSvg }` exposto pelo EDITOR_JS.
+
+Após re-render por filtro, FILTER_JS chama `_BI_EDITOR.applyLayout(pk)` para restaurar overrides de layout, e re-decora elementos se o modo edição estiver ativo.
+
+---
+
+---
+
+## [2026-06-02] Passo 8 — Correções pós-entrega dos filtros
+
+**Commits:** `77e448a`, `c309b4b`, `fb10c1f`, `97fae8e`, `b84e94b`
+
+### Bugs corrigidos
+
+| Bug | Causa | Solução |
+|---|---|---|
+| Labels do dropdown em linha horizontal | CSS `#flt-dd-list` mas HTML usava `id="flt-list"` | Seletor corrigido para `#flt-list` |
+| Dropdown aparecia atrás do conteúdo | `position:fixed` e `z-index` vinham só da stylesheet; `style.cssText` os sobrescrevia | `position:fixed;z-index:9999` definidos no inline style |
+| Fundo do dropdown transparente | `var(--surface)` não existe no v4 | `background:#fff` definido no inline style |
+| "Selecionar todos" não funcionava | Seletor CSS inválido `[#flt-list...` lançava `DOMException` antes da lógica | Linha removida (variável `vis` nunca era usada) |
+| Categorias CAT1–5 vazias | Chave `CAT_R01_HIERARQUIA` errada | Corrigido para `CATEGORIA_R01_HIERARQUIA` |
+| ABC incompleto | `['AAA','AA','A','B','C']` | Corrigido para `['AAA','AA','A','B','BB','C','CC','CCC']` |
+| Filtros ID e Produto separados | Redundância — ID é `cdproduto` do produto | Mergeados em único filtro Produto com formato `"ID - Nome"` |
+
+### Mudanças estruturais
+
+- Linha 2 dos filtros: de 13 para 12 colunas (remoção do botão ID)
+- Predicado `_pred`: matching de produto usa `Set` de IDs e `Set` de nomes
+- Cascata: `abc_id` e `abc_prod` afetam `produto` (não mais `id` separado)
+
+---
+
+---
+
+## [2026-06-02] Dimensões completas para filtros (fornecedor, filial, categorias, produto)
+
+**Commits:** `fb9c671`, `6e74d3e`
+
+### Problema
+Filtros usavam dados processados com MAX_ROWS truncados:
+- Categorias: 150 de 1386 combinações cat1-5
+- Produto: 200 de 6302 produtos com nome
+- Filial: 20 de 79 filiais (HL=20)
+- Fornecedor: 300 de 3518 com curva ABC
+
+### Solução: 4 dimensões injetadas sem limite
+
+| Dimensão | Fonte | Total |
+|---|---|---|
+| `DIM_CATEGORIAS` | `03_categoria_r01_hierarquia.csv` (processado) | 1386 |
+| `DIM_PRODUTOS` | `raw/pmp_id_inf_12.csv` (Zoho) | 6302 |
+| `DIM_FILIAIS` | `04_filial_r01_ranking.csv` (processado) | 79 |
+| `DIM_FORNECEDORES` | `raw/curva_forn.csv` (Zoho) | 3518 |
+
+### Filtro Produto unificado
+`ID + Nome` no formato `"D501112009 - FRANGO CONGELADO"` — merged dos filtros separados ID e Produto.
+
+### Empresas: apenas 3
+`_EMPS = ['RC','ME','PV']` — RC=Ideal, ME=Melhor, PV=Pomme Vita
+
+### ABC corrigido
+`['AAA','AA','A','B','BB','C','CC','CCC']`
+
+### Amarração Categoria→Produto via _vc2
+`_computeVC2()` pré-computa Set<cat2> válidos da hierarquia completa antes de filtrar.
+Garante que CAT1→CAT2→…→Produto funcione mesmo sem cat1-5 no arquivo de produtos.
+
+### HTML: 746 KB → 1727 KB
+Crescimento esperado com 3518 fornecedores + 6302 produtos + 1386 categorias.
+
+---
+
+---
+
+## [2026-06-02] Passo 9 — Validação de dados + ativação de filtros faltantes
+
+**Commits:** `e7b88eb`, `708a94c`, `0358d4e`
+
+### Validação realizada: 131 elementos em 15 abas
+
+Leitura completa de todos os `00_index.json` e arquivos de dados de cada aba. Resultado:
+
+| Status | Count |
+|---|---:|
+| OK | 127 |
+| PROBLEMAS (corrigidos) | 4 |
+| PENDENTE (sem dados) | 2 abas |
+
+**Abas PENDENTE:** `05_estoque` (requer workspace APURAÇÃO DE RESULTADOS) · `11_fiscal` (requer base cadastral de regime fiscal)
+
+### Problemas encontrados e corrigidos
+
+#### 1. `inflacao_media_pct = 29316%` (e `inflacao_media_cesta` em produto)
+
+**Causa:** `PERC_INF_ID_PMP` no Zoho tem outliers extremos — divisão de variação por PMP≈0 gera valores como 1,69 bilhões de %. Havia 1.516 registros > 100%, máx = 1.692.571.328%.
+
+**Fix em `transform.py`:**
+```python
+_INF_CAP = 500  # cap ±500%
+
+def _inf_p(r):
+    p = flt(r.get("PERC_INF_ID_PMP",""))
+    return p if abs(p) <= _INF_CAP else 0.0
+```
+Aplicado em todas as 4 funções que leem `PERC_INF_ID_PMP`: `aba_inflacao`, `_produto_fix_kpis`, e derivados.
+
+**Resultado:** `inflacao_media_pct`: 29316 → **4.0%** · `cat2_mais_inflada`: D3 → **A2 - ATIVOS INDIRETOS**
+
+#### 2. Arquivos ausentes: r03/r04 (produto) e r05/r06 (inflação)
+
+**Causa:** `pmp_prod_inf_12.csv` tem PMP_0–PMP_12 todos vazios (export Zoho sem série de preços). Condição `if p0<=0 or p12<=0: continue` excluía todas as linhas.
+
+**Fix:** fallback que agrega `PERC_INF_ID_PMP` por produto via `inflacao.csv` quando PMP não disponível:
+```python
+if not pvars and inf_raw:
+    pd_ = defaultdict(...)
+    for r in inf_raw:
+        nm = r.get("NMPRODUTO_EST",""); p = _inf_p(r)
+        if not nm or p == 0: continue
+        pd_[nm]["ps"] += p; pd_[nm]["pn"] += 1
+    pvars = [...] # produtos com ≥3 meses de dado
+```
+
+**Resultado:** 4 arquivos criados com 25 linhas cada.
+
+#### 3. `pmp_medio_cesta = 0`
+
+**Causa:** PMP_0–PMP_12 vazios na fonte Zoho. Não corrigível sem novo extract.
+**Status:** PENDENTE — aguarda nova extração do Zoho com série de preços.
+
+### Filtros ativados na aba Categorias
+
+**Problema:** aba `categorias` usa implementação v4 original que lê `const CAT_VAL` e `const CAT_INF`. Por serem `const`, não podiam ser reatribuídos pelo FILTER_JS.
+
+**Fix em `build.py`:**
+- `const CAT_VAL` → `var CAT_VAL`
+- `const CAT_INF` → `var CAT_INF`
+
+**Fix em FILTER_JS (`_applyF`):** após filtrar os arrays de `_BI_DATA`, rebuild dinâmico:
+```javascript
+// Rebuild CAT_VAL a partir de CATEGORIA_R01_HIERARQUIA filtrado
+const hier = _BDF('CATEGORIA_R01_HIERARQUIA') || [];
+const cv = {};
+hier.forEach(r => {
+  ['cat1','cat2','cat3','cat4','cat5'].forEach(k => {
+    const code = r[k]?.split(' - ')[0]?.trim()?.split(' ')[0];
+    if (code) cv[code] = Math.round(((cv[code]||0) + (parseFloat(r.spend)||0)/1e6)*10)/10;
+  });
+});
+CAT_VAL = cv;
+
+// Rebuild CAT_INF a partir de INFLACAO_R04_POR_CAT filtrado
+CAT_INF = Object.fromEntries(
+  (_BDF('INFLACAO_R04_POR_CAT')||[]).map(r => [
+    r.cat2?.split(' - ')[0]?.trim()?.split(' ')[0],
+    parseFloat(r.inflacao_media_pct)||0
+  ]).filter(([k]) => k)
+);
+```
+
+**Resultado:** aba Categorias (cascata interativa v4) agora responde a filtros de CAT1-5, UF, empresa.
+
+### Bug crítico descoberto e corrigido: indexes sobrescritos
+
+**Causa:** `transform.py` grava `{aba}_00_index.json` com formato `"relatorios"`, sobrescrevendo o formato `"elementos"` criado por `generate_indexes.py`. O `build.py` busca `"elementos"` → resultado: 136 elementos mas só 5 com dados injetados, todos os gráficos vazios.
+
+**Fix:** `run.bat` agora chama `generate_indexes.py` depois de `transform.py`:
+```
+extract.py → transform.py → generate_indexes.py → build.py
+```
+
+### Estado atual do dashboard
+
+- **131/131 elementos** com dados (exceto abas PENDENTE)
+- **141 elementos com dados injetados** (incluindo 5 dimensões de filtro)
+- **HTML:** 3.201 KB
+- **Filtros:** todos os 15 filtros funcionais, incluindo categorias
+- **Aba estoque:** PENDENTE · **Aba fiscal:** PENDENTE
+
+---
+
+---
+
+## [2026-06-02] Passo 10 — Aba Relatório (NL-SQL com UI completa)
+
+**Commit:** `d2cd9c8`
+
+Implementação da Aba Relatório inspirada no GovGo v2, adaptada para Zoho Analytics.
+
+### `nlsql/server.py` (Flask, `http://localhost:5001`)
+
+| Endpoint | Função |
+|---|---|
+| `POST /run` | Pergunta → SQL → Zoho → título IA → histórico |
+| `POST /generate-sql` | NL → SQL sem executar |
+| `POST /execute` | SQL direto |
+| `GET /history` · `DELETE /history/:id` | Histórico, soft delete |
+| `POST /favorites/:id` | Toggle favorito |
+| `GET/POST /chats` · `DELETE /chats/:id` | Gestão de chats |
+| `GET/POST /prompt` · `POST /prompt/reset` | Ler/gravar/restaurar `bi_suprimentos_sql.md` |
+| `GET /export/:id` | Download CSV |
+
+Storage: `nlsql/history.json` + `nlsql/chats.json`. Chat contextual: últimas 6 mensagens passadas ao LLM.
+
+### Frontend (RELATORIO_CSS + RELATORIO_JS via build.py)
+
+- Layout 2-colunas: sidebar 300px (Chats/Histórico/Favoritos) + main
+- Auto-detecta resultado: ≤4 linhas + numérico → KPIs · senão → tabela paginada (10/página)
+- Enter envia, Shift+Enter nova linha · status visual spinner/verde/vermelho
+- Copy SQL, Export CSV, toggle favorito, "Adicionar ao BI" (insere no grid da aba ativa)
+- Aba "Assistente": editor textarea do `bi_suprimentos_sql.md` com salvar/restaurar backup
+
+### Para usar
+```
+python nlsql/server.py   # Terminal 1
+# Abrir dist/index.html → aba "Relatório"
+```
+
+---
