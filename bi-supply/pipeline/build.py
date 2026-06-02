@@ -995,8 +995,18 @@ const _F0 = ()=>({
   status_cot:[],status_cp:[],status_ad:[],alerta:[]
 });
 let _F=_F0();
+let _vc2=null; // Set de cat2 válidos derivado da hierarquia (null = sem filtro de cat)
 
 function _loadF(){ try{ const s=localStorage.getItem(_LS); if(s) _F=Object.assign(_F0(),JSON.parse(s)); }catch(e){} }
+
+// Pré-computa cat2 válidos a partir da hierarquia, cruzando todos os níveis ativos
+function _computeVC2(){
+  const active=['cat1','cat2','cat3','cat4','cat5'].some(k=>_F[k].length>0);
+  if(!active){ _vc2=null; return; }
+  let h=_BD('CATEGORIA_R01_HIERARQUIA');
+  ['cat1','cat2','cat3','cat4','cat5'].forEach(k=>{ if(_F[k].length) h=h.filter(r=>_F[k].includes(r[k])); });
+  _vc2=new Set(h.map(r=>r.cat2).filter(Boolean));
+}
 function _saveF(){ try{ localStorage.setItem(_LS,JSON.stringify(_F)); }catch(e){} }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1022,7 +1032,8 @@ function _pred(r){
   if (_F.negocio.length  && r.negocio     && !_F.negocio.includes(r.negocio))    return false;
   if (eu.length          && r.uf          && !eu.includes(r.uf))                  return false;
   if (_F.filial.length){ const f=r.filial||r.nome||''; if(f&&!_F.filial.includes(f)) return false; }
-  for(let i=1;i<=5;i++){ const k=`cat${i}`; if(_F[k].length&&r[k]&&!_F[k].includes(r[k])) return false; }
+  // Filtro de categoria via cat2 derivado da hierarquia (funciona mesmo sem cat1-5 na linha)
+  if (_vc2!==null && r.cat2 && !_vc2.has(r.cat2)) return false;
   if (_F.fornecedor.length && r.fornecedor && !_F.fornecedor.includes(r.fornecedor)) return false;
   if (_F.produto.length) {
     const sI=new Set(_F.produto.map(v=>v.split(' - ')[0]));
@@ -1129,7 +1140,14 @@ const _OPTS={
     let d=_BD('PRODUTO_R01_TABELA');
     if(_F.abc_prod.length) d=d.filter(r=>_F.abc_prod.includes(r.curva_prod||r.curva_id));
     if(_F.abc_id.length)   d=d.filter(r=>_F.abc_id.includes(r.curva_id));
-    for(let i=1;i<=5;i++){const k=`cat${i}`;if(_F[k].length)d=d.filter(r=>_F[k].includes(r[k]));}
+    // Filtro de categoria: deriva cat2 válidos da hierarquia (cobre cat1-5 mesmo sem essas colunas no produto)
+    const catActive=['cat1','cat2','cat3','cat4','cat5'].some(k=>_F[k].length>0);
+    if(catActive){
+      let h=_BD('CATEGORIA_R01_HIERARQUIA');
+      ['cat1','cat2','cat3','cat4','cat5'].forEach(k=>{ if(_F[k].length) h=h.filter(r=>_F[k].includes(r[k])); });
+      const vc2=new Set(h.map(r=>r.cat2).filter(Boolean));
+      d=d.filter(r=>vc2.has(r.cat2));
+    }
     return [...new Set(d.map(r=>`${r.cdproduto} - ${r.produto}`).filter(Boolean))].sort().slice(0,300);
   },
   id:         ()=>[],
@@ -1164,6 +1182,9 @@ function _cascade(fk){
 function _applyF(){
   if(!window._BI_DATA_RAW && window._BI_DATA)
     window._BI_DATA_RAW=Object.assign({},window._BI_DATA);
+
+  // Pré-computa cat2 válidos (usado pelo _pred para todos os tipos de dado)
+  _computeVC2();
 
   // Restaurar dados originais
   Object.keys(window._BI_DATA_RAW||{}).forEach(k=>{ window._BI_DATA[k]=window._BI_DATA_RAW[k]; });
