@@ -77,9 +77,11 @@ def build_js_injection(indexes):
     lines = ["\n/* ========================================================"]
     lines.append("   DADOS REAIS — gerado por pipeline/build.py")
     lines.append("   " + datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
-    lines.append("   ======================================================== */\n")
+    lines.append("   ======================================================== */")
+    # Registry global — acessível como _BI_DATA[nome] pelo renderer
+    lines.append("if (!window._BI_DATA) window._BI_DATA = {};\n")
 
-    # 1. Constante por elemento
+    # 1. Dados por elemento → _BI_DATA[variavel_js]
     for folder, idx in indexes.items():
         for elem in idx.get("elementos", []):
             vjs   = elem.get("variavel_js", "")
@@ -88,7 +90,7 @@ def build_js_injection(indexes):
             data = load_elem_data(folder, dados, elem.get("tipo","T"))
             if data is None: continue
             data_js = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-            lines.append(f"const {vjs} = {data_js};")
+            lines.append(f"window._BI_DATA['{vjs}'] = {data_js};")
 
     lines.append("")
 
@@ -454,7 +456,7 @@ function _renderPage(pageKey) {
   const elems = (idx.elementos || []).filter(e => e.layout && e.layout.visivel);
   const cells = elems.map(e => {
     const {col, col_span, row, row_span} = e.layout;
-    const data = window[e.variavel_js];
+    const data = window._BI_DATA ? window._BI_DATA[e.variavel_js] : undefined;
     const content = _renderElemento(e, data);
     const handle = `<div class="grid-editor-handle" data-id="${e.id}" title="${e.id}">⠿ ${e.variavel_js}</div>`;
     return `<div class="grid-element" data-id="${e.id}"
@@ -600,8 +602,8 @@ def main():
 
     print("Gerando constantes JS dos elementos...")
     js_injection = build_js_injection(indexes)
-    n_consts = js_injection.count("\nconst ")
-    print(f"  {n_consts} constantes geradas")
+    n_consts = js_injection.count("_BI_DATA[")
+    print(f"  {n_consts} elementos com dados injetados")
 
     print("Injetando no HTML...")
     html = inject_css(html, GRID_CSS)
