@@ -584,12 +584,13 @@ EDITOR_JS = r"""
 (function() {
 'use strict';
 
-const _st   = {};
-let _undo   = null;
-let _mode   = false;
-let _src    = null;
-let _gCol   = 1, _gRow = 1;   // posição do ghost atual
-let _svgInp = null, _svgTgt = null;
+const LS_PFX = 'bi_layout_';
+const _st    = {};
+let _undo    = null;
+let _mode    = false;
+let _src     = null;
+let _gCol    = 1, _gRow = 1;
+let _svgInp  = null, _svgTgt = null;
 
 function _pk() { const a=document.querySelector('.tab.active[data-page]'); return a?a.dataset.page:''; }
 function _ens(pk) { if (!_st[pk]) _st[pk]={overrides:{}}; return _st[pk]; }
@@ -603,6 +604,54 @@ function _getL(el) {
 }
 function _setL(el,l) { el.style.gridColumn=`${l.col}/span ${l.col_span}`; el.style.gridRow=`${l.row}/span ${l.row_span}`; }
 
+// ── localStorage: auto-save e load ───────────────────────────────────────────
+function _autoSave(pk) {
+  try {
+    const ov=(_st[pk]||{}).overrides||{};
+    localStorage.setItem(LS_PFX+pk, JSON.stringify(ov));
+    _flashSaved();
+  } catch(e) {}
+}
+
+function _loadAll() {
+  for (let i=0;i<localStorage.length;i++) {
+    const key=localStorage.key(i);
+    if (!key||!key.startsWith(LS_PFX)) continue;
+    const pk=key.slice(LS_PFX.length);
+    try { const ov=JSON.parse(localStorage.getItem(key)||'{}'); _ens(pk); _st[pk].overrides=ov; } catch(e) {}
+  }
+}
+
+// ── Aplicar overrides salvos ao DOM da aba atual ──────────────────────────────
+function _applyLayout(pk) {
+  const ov=(_st[pk]||{}).overrides||{};
+  document.querySelectorAll('.grid-element').forEach(el=>{
+    const id=el.dataset.id; if(!id||!ov[id]) return;
+    const o=ov[id];
+    if ('col' in o && 'col_span' in o) el.style.gridColumn=`${o.col}/span ${o.col_span}`;
+    if ('row' in o && 'row_span' in o) el.style.gridRow   =`${o.row}/span ${o.row_span}`;
+    if ('visivel' in o && !o.visivel) el.classList.add('ed-hidden');
+    if (o.texto) {
+      if (o.texto.titulo)    { const h=el.querySelector('.card-h h3');  if(h) h.textContent=o.texto.titulo; }
+      if (o.texto.subtitulo) { const s=el.querySelector('.card-h .sub');if(s) s.textContent=o.texto.subtitulo; }
+      if (o.texto.colunas)   {
+        el.querySelectorAll('table th[data-key]').forEach(th=>{
+          if(o.texto.colunas[th.dataset.key]) th.textContent=o.texto.colunas[th.dataset.key];
+        });
+      }
+    }
+  });
+}
+
+// ── Flash "salvo" no topbar ───────────────────────────────────────────────────
+function _flashSaved() {
+  let el=document.getElementById('ed-saved');
+  if(!el){el=document.createElement('span');el.id='ed-saved';el.style.cssText='font-size:11px;color:var(--green,#16a34a);transition:opacity .5s';document.getElementById('ed-tb')?.appendChild(el);}
+  el.textContent='✓ salvo';el.style.opacity='1';
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},1500);
+}
+
+// ── Snapshot para undo ────────────────────────────────────────────────────────
 function _snap(pk) {
   const dom={};
   document.querySelectorAll('.grid-element').forEach(el=>{
@@ -615,102 +664,92 @@ function _snap(pk) {
 // ── Ghost de posição ──────────────────────────────────────────────────────────
 function _ghost(grid) {
   let g=document.getElementById('ed-ghost');
-  if (!g) { g=document.createElement('div'); g.id='ed-ghost'; grid.appendChild(g); }
+  if (!g){g=document.createElement('div');g.id='ed-ghost';grid.appendChild(g);}
   return g;
 }
-function _rmGhost() { const g=document.getElementById('ed-ghost'); if(g) g.remove(); }
+function _rmGhost() { const g=document.getElementById('ed-ghost');if(g)g.remove(); }
 
 // ── Drag / drop ───────────────────────────────────────────────────────────────
 function _initDnd() {
-  document.addEventListener('dragstart', e => {
-    if (!_mode) return;
-    const el=e.target.closest('.grid-element'); if(!el) return;
-    _src=el; el.classList.add('ed-drag');
-    e.dataTransfer.effectAllowed='move';
-    // Mostrar ghost na posição inicial
-    const grid=el.closest('.page-grid'); if(!grid) return;
-    const L=_getL(el); _gCol=L.col; _gRow=L.row;
+  document.addEventListener('dragstart', e=>{
+    if(!_mode) return;
+    const el=e.target.closest('.grid-element');if(!el) return;
+    _src=el;el.classList.add('ed-drag');e.dataTransfer.effectAllowed='move';
+    const grid=el.closest('.page-grid');if(!grid) return;
+    const L=_getL(el);_gCol=L.col;_gRow=L.row;
     const g=_ghost(grid);
     g.style.gridColumn=`${L.col}/span ${L.col_span}`;
     g.style.gridRow   =`${L.row}/span ${L.row_span}`;
   });
 
-  document.addEventListener('dragend', () => {
-    if(_src) _src.classList.remove('ed-drag');
-    _src=null; _rmGhost();
+  document.addEventListener('dragend', ()=>{
+    if(_src)_src.classList.remove('ed-drag');_src=null;_rmGhost();
   });
 
-  document.addEventListener('dragover', e => {
-    if (!_mode||!_src) return;
-    const grid=_src.closest('.page-grid'); if(!grid) return;
+  document.addEventListener('dragover', e=>{
+    if(!_mode||!_src) return;
+    const grid=_src.closest('.page-grid');if(!grid) return;
     const r=grid.getBoundingClientRect();
-    // Aceitar drop somente dentro do grid
-    if (e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) return;
-    e.preventDefault(); e.dataTransfer.dropEffect='move';
-    // Calcular célula alvo a partir das coordenadas do mouse
-    const colW=r.width/16, rowH=50; // 40px row + 10px gap
+    if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) return;
+    e.preventDefault();e.dataTransfer.dropEffect='move';
+    const colW=r.width/16,rowH=50;
     const col=Math.max(1,Math.min(16,Math.floor((e.clientX-r.left)/colW)+1));
     const row=Math.max(1,Math.min(40,Math.floor((e.clientY-r.top )/rowH)+1));
-    if (col===_gCol&&row===_gRow) return;
-    _gCol=col; _gRow=row;
-    const L=_getL(_src);
-    const g=_ghost(grid);
+    if(col===_gCol&&row===_gRow) return;
+    _gCol=col;_gRow=row;
+    const L=_getL(_src);const g=_ghost(grid);
     g.style.gridColumn=`${col}/span ${L.col_span}`;
     g.style.gridRow   =`${row}/span ${L.row_span}`;
   });
 
-  document.addEventListener('drop', e => {
-    if (!_mode||!_src) return;
-    const grid=_src.closest('.page-grid'); if(!grid) return;
+  document.addEventListener('drop', e=>{
+    if(!_mode||!_src) return;
+    const grid=_src.closest('.page-grid');if(!grid) return;
     const r=grid.getBoundingClientRect();
-    if (e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) return;
+    if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) return;
     e.preventDefault();
-    const pk=_pk(); _snap(pk);
-    const srcL=_getL(_src); const tc=_gCol,tr=_gRow;
-    // Verificar sobreposição com outro elemento
+    const pk=_pk();_snap(pk);
+    const srcL=_getL(_src);const tc=_gCol,tr=_gRow;
     let tgt=null;
     document.querySelectorAll('.grid-element').forEach(el=>{
       if(el===_src) return;
       const l=_getL(el);
-      if(tc<l.col+l.col_span && tc+srcL.col_span>l.col &&
-         tr<l.row+l.row_span && tr+srcL.row_span>l.row) tgt=el;
+      if(tc<l.col+l.col_span&&tc+srcL.col_span>l.col&&tr<l.row+l.row_span&&tr+srcL.row_span>l.row) tgt=el;
     });
-    if (tgt) {
-      // SWAP quando cai em cima de outro elemento
+    if(tgt){
       const tL=_getL(tgt);
-      _setL(_src,tL); _setL(tgt,srcL);
+      _setL(_src,tL);_setL(tgt,srcL);
       _ov(pk,_src.dataset.id,{col:tL.col,col_span:tL.col_span,row:tL.row,row_span:tL.row_span});
       _ov(pk,tgt.dataset.id, {col:srcL.col,col_span:srcL.col_span,row:srcL.row,row_span:srcL.row_span});
     } else {
-      // MOVER LIVRE para posição vazia
       _setL(_src,{...srcL,col:tc,row:tr});
       _ov(pk,_src.dataset.id,{col:tc,col_span:srcL.col_span,row:tr,row_span:srcL.row_span});
     }
     _rmGhost();
+    _autoSave(pk);
   });
 }
 
 // ── Resize ────────────────────────────────────────────────────────────────────
 function _attachRz(el,rz) {
-  rz.addEventListener('mousedown', e => {
-    e.preventDefault(); e.stopPropagation();
-    const pk=_pk(); _snap(pk);
+  rz.addEventListener('mousedown', e=>{
+    e.preventDefault();e.stopPropagation();
+    const pk=_pk();_snap(pk);
     const gW=(el.closest('.page-grid')||{offsetWidth:640}).offsetWidth;
-    const CP=Math.floor(gW/16), RP=50;
-    const L0=_getL(el), sx=e.clientX, sy=e.clientY;
+    const CP=Math.floor(gW/16),RP=50;
+    const L0=_getL(el),sx=e.clientX,sy=e.clientY;
     const mv=ev=>{
       const nc=Math.max(1,Math.min(17-L0.col,L0.col_span+Math.round((ev.clientX-sx)/CP)));
       const nr=Math.max(1,Math.min(40,         L0.row_span+Math.round((ev.clientY-sy)/RP)));
       _setL(el,{...L0,col_span:nc,row_span:nr});
     };
     const up=()=>{
-      document.removeEventListener('mousemove',mv);
-      document.removeEventListener('mouseup',up);
+      document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);
       const L=_getL(el);
       _ov(pk,el.dataset.id,{col:L.col,col_span:L.col_span,row:L.row,row_span:L.row_span});
+      _autoSave(pk);
     };
-    document.addEventListener('mousemove',mv);
-    document.addEventListener('mouseup',up);
+    document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
   });
 }
 
@@ -720,11 +759,12 @@ function _onBlur(e) {
   const node=e.target,el=node.closest('.grid-element');if(!el) return;
   const pk=_pk(),id=el.dataset.id||'',txt=node.textContent.trim();
   if (node.matches('.card-h h3'))        _ovT(pk,id,{titulo:txt});
-  else if (node.matches('.card-h .sub')) _ovT(pk,id,{subtitulo:txt});
-  else if (node.tagName==='TH') {
+  else if(node.matches('.card-h .sub'))  _ovT(pk,id,{subtitulo:txt});
+  else if(node.tagName==='TH'){
     const k=node.dataset.key;
     if(k){const c={...(_st[pk]?.overrides[id]?.texto?.colunas||{}),[k]:txt};_ovT(pk,id,{colunas:c});}
   }
+  _autoSave(pk);
   if(_mode) node.addEventListener('blur',_onBlur,{once:true});
 }
 function _enText(on) {
@@ -739,7 +779,7 @@ function _initSvgInp() {
   const inp=document.createElement('input');
   inp.id='ed-svg-inp';
   inp.style.cssText='position:fixed;z-index:9999;display:none;padding:2px 6px;border:2px solid var(--blue);border-radius:4px;font-size:11px;font-family:inherit;background:var(--surface);color:var(--text);min-width:80px';
-  document.body.appendChild(inp); _svgInp=inp;
+  document.body.appendChild(inp);_svgInp=inp;
   inp.addEventListener('blur',_commitSvg);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){_commitSvg();e.preventDefault();}if(e.key==='Escape'){inp.style.display='none';_svgTgt=null;}});
   document.addEventListener('click',e=>{if(_svgInp&&_svgInp.style.display!=='none'&&e.target!==_svgInp)_commitSvg();});
@@ -769,21 +809,20 @@ function _decorate() {
   document.querySelectorAll('.grid-element').forEach(el=>{
     if(el.querySelector('.ed-bar')) return;
     const id=el.dataset.id||'';
-    const bar=document.createElement('div');
-    bar.className='ed-bar';
+    const bar=document.createElement('div');bar.className='ed-bar';
     bar.innerHTML='<button class="ed-icn" title="Ocultar/Mostrar">👁</button>';
     el.appendChild(bar);
     bar.querySelector('.ed-icn').onclick=e=>{
       e.stopPropagation();const pk=_pk();_snap(pk);
       const hid=el.classList.toggle('ed-hidden');_ov(pk,id,{visivel:!hid});
+      _autoSave(pk);
     };
-    const rz=document.createElement('div');
-    rz.className='ed-rz';rz.title='Redimensionar';rz.textContent='⇲';
+    const rz=document.createElement('div');rz.className='ed-rz';rz.title='Redimensionar';rz.textContent='⇲';
     el.appendChild(rz);_attachRz(el,rz);
   });
 }
 
-// ── Toggle ────────────────────────────────────────────────────────────────────
+// ── Toggle modo edição ────────────────────────────────────────────────────────
 function _toggle() {
   _mode=!_mode;
   document.body.classList.toggle('edit-mode',_mode);
@@ -806,10 +845,11 @@ function _doUndo() {
     if(s.gc)el.style.gridColumn=s.gc;if(s.gr)el.style.gridRow=s.gr;
     el.classList.toggle('ed-hidden',!!s.hid);
   });
+  _autoSave(pk);
 }
 
-// ── Save ──────────────────────────────────────────────────────────────────────
-function _save() {
+// ── Download JSON (para build pipeline) ──────────────────────────────────────
+function _export() {
   const pk=_pk();if(!pk){alert('Aba desconhecida.');return;}
   const ov=(_st[pk]||{}).overrides||{};
   const a=document.createElement('a');
@@ -817,7 +857,21 @@ function _save() {
   a.download=pk+'.layout.json';a.click();URL.revokeObjectURL(a.href);
 }
 
-// ── Inject topbar ─────────────────────────────────────────────────────────────
+// ── Observar troca de abas para re-aplicar layout ─────────────────────────────
+function _watchTabs() {
+  document.querySelectorAll('.tab[data-page]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      // Aguarda o renderer terminar antes de aplicar overrides
+      setTimeout(()=>{
+        const pk=btn.dataset.page;if(!pk) return;
+        _applyLayout(pk);
+        if(_mode){_decorate();_enText(true);_enSvg(true);}
+      }, 60);
+    });
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
 function _inject() {
   const stamp=document.querySelector('.topbar .stamp');if(!stamp) return;
   const par=stamp.parentNode;
@@ -827,14 +881,23 @@ function _inject() {
   par.insertBefore(btn,stamp);
   const tb=document.createElement('div');
   tb.id='ed-tb';tb.style.cssText='display:none;gap:6px;align-items:center;margin-left:4px';
-  tb.innerHTML='<button class="btn" id="ed-undo">↩ Desfazer</button><button class="btn" id="ed-sav">⬇ Salvar JSON</button>';
+  tb.innerHTML='<button class="btn" id="ed-undo">↩ Desfazer</button><button class="btn" id="ed-exp" title="Exporta JSON para usar com build.py">⬇ Exportar JSON</button>';
   par.insertBefore(tb,stamp);
   document.getElementById('ed-undo').onclick=_doUndo;
-  document.getElementById('ed-sav').onclick=_save;
+  document.getElementById('ed-exp').onclick=_export;
 }
 
-function _init(){_inject();_initDnd();_initSvgInp();}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_init);
+function _init() {
+  _loadAll();          // restaura estado do localStorage
+  _inject();
+  _initDnd();
+  _initSvgInp();
+  _watchTabs();
+  // Aplica layout salvo para a aba inicial
+  const pk=_pk(); if(pk) _applyLayout(pk);
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_init);
 else _init();
 })();
 """
