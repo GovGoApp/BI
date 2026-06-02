@@ -520,11 +520,25 @@ EDITOR_CSS = """
 
 body.edit-mode .grid-element {
   cursor: grab;
-  outline: 1px dashed var(--line) !important;
-  outline-offset: -1px;
   position: relative;
 }
-body.edit-mode .grid-element:hover  { outline-color: var(--blue) !important; }
+/* borda via ::after para ficar ACIMA do conteúdo (KPI, card etc.) */
+body.edit-mode .grid-element::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 15;
+}
+body.edit-mode .grid-element:hover::after {
+  border: 2px solid var(--blue);
+}
+body.edit-mode .grid-element.ed-over::after {
+  border: 2px solid var(--blue);
+  background: rgba(37,99,235,.07);
+}
 body.edit-mode .grid-element.ed-drag { opacity:.35; }
 body.edit-mode .grid-element.ed-hidden { opacity:.18; }
 
@@ -632,7 +646,7 @@ function _applyLayout(pk) {
     if ('row' in o && 'row_span' in o) el.style.gridRow   =`${o.row}/span ${o.row_span}`;
     if ('visivel' in o && !o.visivel) el.classList.add('ed-hidden');
     if (o.texto) {
-      if (o.texto.titulo)    { const h=el.querySelector('.card-h h3');  if(h) h.textContent=o.texto.titulo; }
+      if (o.texto.titulo)    { const h=el.querySelector('.card-h h3')||el.querySelector('.kpi .lab'); if(h) h.textContent=o.texto.titulo; }
       if (o.texto.subtitulo) { const s=el.querySelector('.card-h .sub');if(s) s.textContent=o.texto.subtitulo; }
       if (o.texto.colunas)   {
         el.querySelectorAll('table th[data-key]').forEach(th=>{
