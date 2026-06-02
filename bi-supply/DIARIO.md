@@ -33,6 +33,44 @@ Registro técnico de todas as alterações do projeto, ordenado do mais recente 
 
 ---
 
+## [2026-06-02] Dimensões completas para filtros (fornecedor, filial, categorias, produto)
+
+**Commits:** `fb9c671`, `6e74d3e`
+
+### Problema
+Filtros usavam dados processados com MAX_ROWS truncados:
+- Categorias: 150 de 1386 combinações cat1-5
+- Produto: 200 de 6302 produtos com nome
+- Filial: 20 de 79 filiais (HL=20)
+- Fornecedor: 300 de 3518 com curva ABC
+
+### Solução: 4 dimensões injetadas sem limite
+
+| Dimensão | Fonte | Total |
+|---|---|---|
+| `DIM_CATEGORIAS` | `03_categoria_r01_hierarquia.csv` (processado) | 1386 |
+| `DIM_PRODUTOS` | `raw/pmp_id_inf_12.csv` (Zoho) | 6302 |
+| `DIM_FILIAIS` | `04_filial_r01_ranking.csv` (processado) | 79 |
+| `DIM_FORNECEDORES` | `raw/curva_forn.csv` (Zoho) | 3518 |
+
+### Filtro Produto unificado
+`ID + Nome` no formato `"D501112009 - FRANGO CONGELADO"` — merged dos filtros separados ID e Produto.
+
+### Empresas: apenas 3
+`_EMPS = ['RC','ME','PV']` — RC=Ideal, ME=Melhor, PV=Pomme Vita
+
+### ABC corrigido
+`['AAA','AA','A','B','BB','C','CC','CCC']`
+
+### Amarração Categoria→Produto via _vc2
+`_computeVC2()` pré-computa Set<cat2> válidos da hierarquia completa antes de filtrar.
+Garante que CAT1→CAT2→…→Produto funcione mesmo sem cat1-5 no arquivo de produtos.
+
+### HTML: 746 KB → 1727 KB
+Crescimento esperado com 3518 fornecedores + 6302 produtos + 1386 categorias.
+
+---
+
 ## [2026-06-02] Passo 8 — Sistema de filtros multi-select
 
 **Commit:** `298a06c`
