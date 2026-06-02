@@ -18,10 +18,11 @@ import csv, json, re, sys
 from pathlib import Path
 from datetime import datetime, timezone
 
-ROOT   = Path(__file__).resolve().parents[1]
-PROC   = ROOT / "data" / "processed"
-DESIGN = ROOT / "design" / "BI Suprimentos v4.html"
-DIST   = ROOT / "dist"
+ROOT     = Path(__file__).resolve().parents[1]
+PROC     = ROOT / "data" / "processed"
+DESIGN   = ROOT / "design" / "BI Suprimentos v4.html"
+DIST     = ROOT / "dist"
+TABS_DIR = ROOT / "dashboard" / "tabs"
 
 # ── Leitores ──────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,36 @@ def load_all_indexes():
         if idx_file.exists():
             idx = rj(idx_file)
             indexes[p.name] = idx
+    return indexes
+
+
+def apply_layout_overrides(indexes):
+    """Lê dashboard/tabs/{aba}.layout.json e aplica overrides nos indexes."""
+    TABS_DIR.mkdir(parents=True, exist_ok=True)
+    for _, idx in indexes.items():
+        page_key = idx.get("data_page", "")
+        layout_file = TABS_DIR / f"{page_key}.layout.json"
+        if not layout_file.exists():
+            continue
+        overrides = rj(layout_file).get("overrides", {})
+        for elem in idx.get("elementos", []):
+            eid = elem.get("id", "")
+            if eid not in overrides:
+                continue
+            ov = overrides[eid]
+            # Posição
+            for k in ("col", "col_span", "row", "row_span", "visivel"):
+                if k in ov:
+                    elem["layout"][k] = ov[k]
+            # Texto
+            if "texto" in ov:
+                txt = ov["texto"]
+                if "titulo"    in txt: elem["titulo"]    = txt["titulo"]
+                if "subtitulo" in txt: elem["subtitulo"] = txt["subtitulo"]
+                if "colunas"   in txt:
+                    for col in elem.get("config", {}).get("colunas", []):
+                        if col.get("key") in txt["colunas"]:
+                            col["label"] = txt["colunas"][col["key"]]
     return indexes
 
 # ── Gera JS de injeção ────────────────────────────────────────────────────────
@@ -241,7 +272,7 @@ function _renderT(elem, data) {
   if (!data || !data.length) return '<div class="muted" style="padding:10px;font-size:12px">Sem dados</div>';
   const cfg = elem.config || {};
   const cols = cfg.colunas || Object.keys(data[0]).slice(0, 6).map(k => ({key: k, label: k}));
-  const ths = cols.map(c => `<th class="${c.cls || ''}">${c.label || c.key}</th>`).join('');
+  const ths = cols.map(c => `<th class="${c.cls || ''}" data-key="${c.key}">${c.label || c.key}</th>`).join('');
   const trs = data.slice(0, 25).map(r => {
     const tds = cols.map(c => {
       let v = r[c.key] != null ? r[c.key] : '';
@@ -481,6 +512,336 @@ _ABAS_KEYS.filter(pg => !_ABAS_SKIP.has(pg)).forEach(pg => {
 });
 """
 
+# ── CSS do editor ─────────────────────────────────────────────────────────────
+
+EDITOR_CSS = """
+/* ── Editor visual — gerado por build.py ── */
+#ed-toggle.ed-active { background:var(--blue);color:#fff;border-color:var(--blue); }
+
+body.edit-mode .grid-element {
+  cursor: grab;
+  outline: 1px dashed var(--line) !important;
+  outline-offset: -1px;
+  position: relative;
+}
+body.edit-mode .grid-element:hover  { outline-color: var(--blue) !important; }
+body.edit-mode .grid-element.ed-drag { opacity:.35; }
+body.edit-mode .grid-element.ed-over {
+  outline: 2px solid var(--blue) !important;
+  background: rgba(37,99,235,.07);
+}
+body.edit-mode .grid-element.ed-hidden { opacity:.18; }
+
+/* action bar */
+.ed-bar {
+  display: none;
+  position: absolute; top:3px; right:3px;
+  z-index: 30; gap:3px;
+}
+body.edit-mode .ed-bar { display:flex; }
+.ed-icn {
+  width:22px; height:22px;
+  border:1px solid var(--border); border-radius:4px;
+  background:var(--surface); color:var(--text);
+  font-size:12px; cursor:pointer; padding:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.ed-icn:hover { background:var(--blue);color:#fff;border-color:var(--blue); }
+
+/* resize handle */
+.ed-rz {
+  display: none;
+  position: absolute; bottom:3px; right:3px;
+  width:12px; height:12px;
+  background:var(--blue); border-radius:2px;
+  cursor:se-resize; z-index:30; opacity:.7;
+}
+body.edit-mode .ed-rz { display:block; }
+
+/* editable text */
+body.edit-mode [contenteditable="true"] {
+  outline:1px dashed var(--blue); outline-offset:1px;
+  cursor:text; border-radius:2px;
+}
+body.edit-mode [contenteditable="true"]:focus {
+  outline:2px solid var(--blue);
+  background:rgba(37,99,235,.04);
+}
+body.edit-mode svg text { cursor:text; }
+"""
+
+# ── JS do editor ──────────────────────────────────────────────────────────────
+
+EDITOR_JS = r"""
+/* ── Editor visual — gerado por build.py ── */
+(function() {
+'use strict';
+
+const _st   = {};   // { pk: { overrides: { id: {...} } } }
+let _undo   = null; // { pk, overrides, dom }
+let _mode   = false;
+let _src    = null; // elemento sendo arrastado
+let _svgInp = null, _svgTgt = null;
+
+// ── Página ativa ─────────────────────────────────────────────────────────────
+function _pk() {
+  const a = document.querySelector('.tab.active[data-page]');
+  return a ? a.dataset.page : '';
+}
+
+// ── Estado por página ─────────────────────────────────────────────────────────
+function _ens(pk) {
+  if (!_st[pk]) _st[pk] = { overrides: {} };
+  return _st[pk];
+}
+
+function _ov(pk, id, patch) {
+  _ens(pk);
+  if (!_st[pk].overrides[id]) _st[pk].overrides[id] = {};
+  Object.assign(_st[pk].overrides[id], patch);
+}
+
+function _ovTxt(pk, id, tp) {
+  _ens(pk);
+  const ov = _st[pk].overrides;
+  if (!ov[id]) ov[id] = {};
+  if (!ov[id].texto) ov[id].texto = {};
+  Object.assign(ov[id].texto, tp);
+}
+
+// ── Layout CSS ────────────────────────────────────────────────────────────────
+function _getL(el) {
+  const cm = (el.style.gridColumn || '').match(/(\d+)\s*\/\s*span\s*(\d+)/);
+  const rm = (el.style.gridRow    || '').match(/(\d+)\s*\/\s*span\s*(\d+)/);
+  return { col: cm?+cm[1]:1, col_span: cm?+cm[2]:1, row: rm?+rm[1]:1, row_span: rm?+rm[2]:1 };
+}
+
+function _setL(el, l) {
+  el.style.gridColumn = `${l.col} / span ${l.col_span}`;
+  el.style.gridRow    = `${l.row} / span ${l.row_span}`;
+}
+
+// ── Salvar snapshot para undo ─────────────────────────────────────────────────
+function _snap(pk) {
+  const dom = {};
+  document.querySelectorAll('.grid-element').forEach(el => {
+    const id = el.dataset.id; if (!id) return;
+    dom[id] = { gc: el.style.gridColumn, gr: el.style.gridRow, hid: el.classList.contains('ed-hidden') };
+  });
+  const ov = (_st[pk] || {}).overrides || {};
+  _undo = { pk, overrides: JSON.parse(JSON.stringify(ov)), dom };
+}
+
+// ── Drag / drop SWAP ──────────────────────────────────────────────────────────
+function _initDnd() {
+  document.addEventListener('dragstart', e => {
+    if (!_mode) return;
+    const el = e.target.closest('.grid-element'); if (!el) return;
+    _src = el; el.classList.add('ed-drag');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  document.addEventListener('dragend', () => {
+    if (_src) _src.classList.remove('ed-drag'); _src = null;
+    document.querySelectorAll('.ed-over').forEach(x => x.classList.remove('ed-over'));
+  });
+
+  document.addEventListener('dragover', e => {
+    if (!_mode || !_src) return;
+    const el = e.target.closest('.grid-element');
+    if (!el || el === _src) return;
+    e.preventDefault();
+    document.querySelectorAll('.ed-over').forEach(x => x.classList.remove('ed-over'));
+    el.classList.add('ed-over');
+  });
+
+  document.addEventListener('drop', e => {
+    if (!_mode || !_src) return;
+    const tgt = e.target.closest('.grid-element');
+    if (!tgt || tgt === _src) return;
+    e.preventDefault();
+    const pk = _pk(); _snap(pk);
+    const sL = _getL(_src), tL = _getL(tgt);
+    _setL(_src, tL); _setL(tgt, sL);
+    _ov(pk, _src.dataset.id, { col:tL.col, col_span:tL.col_span, row:tL.row, row_span:tL.row_span });
+    _ov(pk, tgt.dataset.id,  { col:sL.col, col_span:sL.col_span, row:sL.row, row_span:sL.row_span });
+    tgt.classList.remove('ed-over');
+  });
+}
+
+// ── Resize ────────────────────────────────────────────────────────────────────
+function _attachRz(el, rz) {
+  rz.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    const pk = _pk(); _snap(pk);
+    const gW = (el.closest('.page-grid') || {offsetWidth: 640}).offsetWidth;
+    const CP = Math.floor(gW / 16), RP = 40;
+    const L0 = _getL(el), sx = e.clientX, sy = e.clientY;
+
+    const mv = ev => {
+      const nc = Math.max(1, Math.min(17 - L0.col, L0.col_span + Math.round((ev.clientX-sx)/CP)));
+      const nr = Math.max(1, Math.min(40,           L0.row_span + Math.round((ev.clientY-sy)/RP)));
+      _setL(el, { ...L0, col_span:nc, row_span:nr });
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', mv);
+      document.removeEventListener('mouseup', up);
+      const L = _getL(el);
+      _ov(pk, el.dataset.id, { col:L.col, col_span:L.col_span, row:L.row, row_span:L.row_span });
+    };
+    document.addEventListener('mousemove', mv);
+    document.addEventListener('mouseup', up);
+  });
+}
+
+// ── Inline text editing ───────────────────────────────────────────────────────
+function _onBlur(e) {
+  if (!_mode) return;
+  const node = e.target, el = node.closest('.grid-element'); if (!el) return;
+  const pk = _pk(), id = el.dataset.id || '', txt = node.textContent.trim();
+  if (node.matches('.card-h h3'))      _ovTxt(pk, id, { titulo: txt });
+  else if (node.matches('.card-h .sub')) _ovTxt(pk, id, { subtitulo: txt });
+  else if (node.tagName === 'TH') {
+    const k = node.dataset.key;
+    if (k) { const c = { ...(_st[pk]?.overrides[id]?.texto?.colunas||{}), [k]:txt }; _ovTxt(pk,id,{colunas:c}); }
+  }
+  if (_mode) node.addEventListener('blur', _onBlur, {once:true});
+}
+
+function _enText(on) {
+  document.querySelectorAll('.grid-element .card-h h3, .grid-element .card-h .sub, .grid-element table th').forEach(n => {
+    n.contentEditable = on ? 'true' : 'false';
+    if (on) n.addEventListener('blur', _onBlur, {once:true});
+  });
+}
+
+// ── SVG floating input ────────────────────────────────────────────────────────
+function _initSvgInp() {
+  const inp = document.createElement('input');
+  inp.id = 'ed-svg-inp';
+  inp.style.cssText = 'position:fixed;z-index:9999;display:none;padding:2px 6px;border:2px solid var(--blue);border-radius:4px;font-size:11px;font-family:inherit;background:var(--surface);color:var(--text);min-width:80px';
+  document.body.appendChild(inp);
+  _svgInp = inp;
+  inp.addEventListener('blur',    _commitSvg);
+  inp.addEventListener('keydown', e => {
+    if (e.key==='Enter')  { _commitSvg(); e.preventDefault(); }
+    if (e.key==='Escape') { inp.style.display='none'; _svgTgt=null; }
+  });
+  document.addEventListener('click', e => {
+    if (_svgInp && _svgInp.style.display!=='none' && e.target!==_svgInp) _commitSvg();
+  });
+}
+
+function _onSvgClick(e) {
+  if (!_mode) return;
+  const t = e.currentTarget, r = t.getBoundingClientRect();
+  _svgTgt = t;
+  _svgInp.value = t.textContent;
+  _svgInp.style.left = r.left+'px'; _svgInp.style.top = (r.top-4)+'px';
+  _svgInp.style.display = 'block';
+  _svgInp.focus(); _svgInp.select();
+  e.stopPropagation();
+}
+
+function _commitSvg() {
+  if (!_svgTgt) return;
+  const v = _svgInp.value.trim(); if (v) _svgTgt.textContent = v;
+  _svgInp.style.display = 'none'; _svgTgt = null;
+}
+
+function _enSvg(on) {
+  document.querySelectorAll('.grid-element svg text').forEach(t => {
+    if (on) { t.style.cursor='text';  t.addEventListener('click', _onSvgClick); }
+    else    { t.style.cursor='';      t.removeEventListener('click', _onSvgClick); }
+  });
+}
+
+// ── Decorar elementos ─────────────────────────────────────────────────────────
+function _decorate() {
+  document.querySelectorAll('.grid-element').forEach(el => {
+    if (el.querySelector('.ed-bar')) return;
+    const id = el.dataset.id || '';
+
+    const bar = document.createElement('div');
+    bar.className = 'ed-bar';
+    bar.innerHTML = `<button class="ed-icn" title="Ocultar/Mostrar">👁</button>`;
+    el.appendChild(bar);
+    bar.querySelector('.ed-icn').onclick = e => {
+      e.stopPropagation();
+      const pk = _pk(); _snap(pk);
+      const hid = el.classList.toggle('ed-hidden');
+      _ov(pk, id, { visivel: !hid });
+    };
+
+    const rz = document.createElement('div');
+    rz.className = 'ed-rz'; rz.title = 'Redimensionar';
+    el.appendChild(rz);
+    _attachRz(el, rz);
+  });
+}
+
+// ── Toggle modo edição ────────────────────────────────────────────────────────
+function _toggle() {
+  _mode = !_mode;
+  document.body.classList.toggle('edit-mode', _mode);
+  const btn = document.getElementById('ed-toggle');
+  if (btn) { btn.textContent = _mode ? '✕ Sair' : '✎ Editar layout'; btn.classList.toggle('ed-active', _mode); }
+  const tb = document.getElementById('ed-tb'); if (tb) tb.style.display = _mode ? 'flex' : 'none';
+  document.querySelectorAll('.grid-element').forEach(el => { el.draggable = _mode; });
+  if (_mode) _decorate();
+  _enText(_mode);
+  _enSvg(_mode);
+}
+
+// ── Undo ──────────────────────────────────────────────────────────────────────
+function _doUndo() {
+  if (!_undo) return;
+  const { pk, overrides, dom } = _undo; _undo = null;
+  _st[pk] = { overrides };
+  document.querySelectorAll('.grid-element').forEach(el => {
+    const id = el.dataset.id; if (!id || !dom[id]) return;
+    const s = dom[id];
+    if (s.gc) el.style.gridColumn = s.gc;
+    if (s.gr) el.style.gridRow    = s.gr;
+    el.classList.toggle('ed-hidden', !!s.hid);
+  });
+}
+
+// ── Salvar JSON ───────────────────────────────────────────────────────────────
+function _save() {
+  const pk = _pk(); if (!pk) { alert('Aba desconhecida.'); return; }
+  const ov = (_st[pk]||{}).overrides||{};
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({overrides:ov},null,2)],{type:'application/json'}));
+  a.download = pk+'.layout.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── Injetar botões no topbar ──────────────────────────────────────────────────
+function _inject() {
+  const stamp = document.querySelector('.topbar .stamp'); if (!stamp) return;
+  const par = stamp.parentNode;
+
+  const btn = document.createElement('button');
+  btn.id='ed-toggle'; btn.className='btn'; btn.textContent='✎ Editar layout';
+  btn.style.marginLeft='auto'; btn.onclick=_toggle;
+  par.insertBefore(btn, stamp);
+
+  const tb = document.createElement('div');
+  tb.id='ed-tb'; tb.style.cssText='display:none;gap:6px;align-items:center;margin-left:4px';
+  tb.innerHTML=`<button class="btn" id="ed-undo">↩ Desfazer</button><button class="btn" id="ed-sav">⬇ Salvar JSON</button>`;
+  par.insertBefore(tb, stamp);
+
+  document.getElementById('ed-undo').onclick = _doUndo;
+  document.getElementById('ed-sav').onclick  = _save;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function _init() { _inject(); _initDnd(); _initSvgInp(); }
+if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',_init);
+else _init();
+})();
+"""
+
 # ── Injeção no HTML ───────────────────────────────────────────────────────────
 
 def inject_css(html, css):
@@ -602,6 +963,9 @@ def main():
     n_vis   = sum(sum(1 for e in idx.get("elementos",[]) if e.get("layout",{}).get("visivel")) for idx in indexes.values())
     print(f"  {len(indexes)} abas · {n_total} elementos · {n_vis} visíveis")
 
+    print("Aplicando overrides de layout...")
+    indexes = apply_layout_overrides(indexes)
+
     print("Substituindo arrays mockados...")
     html = replace_mock_arrays(html, indexes)
 
@@ -612,7 +976,8 @@ def main():
 
     print("Injetando no HTML...")
     html = inject_css(html, GRID_CSS)
-    html = inject_before_script_end(html, js_injection + "\n" + RENDERER_JS)
+    html = inject_css(html, EDITOR_CSS)
+    html = inject_before_script_end(html, js_injection + "\n" + RENDERER_JS + "\n" + EDITOR_JS)
     html = update_timestamp(html)
 
     out = DIST / "index.html"
