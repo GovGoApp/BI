@@ -597,7 +597,7 @@ def aba_fornecedor(nfe, cp, ad, lk):
 
 # ── 07_produto ────────────────────────────────────────────────────────────────
 
-def aba_produto(nfe, pmp12, lk):
+def aba_produto(nfe, pmp12, lk, inf_raw=None):
     F="07_produto"; print(f"  {F}/")
     ps=lk["ps"]
     prod=defaultdict(lambda:{"spend":0.0,"imp":0.0,"nm":"","cat2":"","curva_id":"","curva_prod":""})
@@ -634,6 +634,18 @@ def aba_produto(nfe, pmp12, lk):
         sp=prod.get(cd,{}).get("spend",0)
         if sp<50_000: continue
         pvars.append({"cdproduto":cd,"produto":d["nome"],"cat2":d["cat2"],"curva_id":d["curva"],"var_pmp_pct":var,"spend":r2(sp)})
+    if not pvars and inf_raw:  # fallback via inflacao.csv quando PMP não disponível
+        pd_=defaultdict(lambda:{"ps":0.0,"pn":0,"cat2":"","curva":""})
+        for r in inf_raw:
+            nm=r.get("NMPRODUTO_EST",""); p=_inf_p(r)
+            if not nm or p==0: continue
+            pd_[nm]["ps"]+=p; pd_[nm]["pn"]+=1
+            pd_[nm]["cat2"]=r.get("CAT2",""); pd_[nm]["curva"]=r.get("CURVA_ID","")
+        for nm,d in pd_.items():
+            if d["pn"]<3: continue
+            var=round(d["ps"]/d["pn"],2)
+            sp=prod.get(nm,{}).get("spend",0)
+            pvars.append({"cdproduto":"","produto":nm,"cat2":d["cat2"],"curva_id":d["curva"],"var_pmp_pct":var,"spend":r2(sp)})
     sc(F,"07_produto_r03_top_inflacao.csv", sorted([x for x in pvars if x["var_pmp_pct"]>0],key=lambda x:-x["var_pmp_pct"])[:25])
     sc(F,"07_produto_r04_top_deflacao.csv", sorted([x for x in pvars if x["var_pmp_pct"]<0],key=lambda x: x["var_pmp_pct"])[:25])
     sj(F,"07_produto_00_index.json",{
@@ -803,14 +815,24 @@ def aba_impacto(nfe, cot_min, lk):
 
 # ── 10_inflacao ───────────────────────────────────────────────────────────────
 
+_INF_CAP = 500  # cap ±500%: exclui outliers de divisão por PMP≈0 no Zoho
+
+def _inf_p(r):
+    """Retorna PERC_INF_ID_PMP com cap ±_INF_CAP, ou 0 se fora do range."""
+    p = flt(r.get("PERC_INF_ID_PMP",""))
+    return p if abs(p) <= _INF_CAP else 0.0
+
 def aba_inflacao(inf_raw, pmp_prod12, lk):
     F="10_inflacao"; print(f"  {F}/")
     if not inf_raw: print("    [AVISO] inflacao.csv ausente"); return
-    inf_vals=[flt(r.get("PERC_INF_ID_PMP","")) for r in inf_raw if flt(r.get("PERC_INF_ID_PMP",""))!=0]
+    inf_vals=[_inf_p(r) for r in inf_raw if _inf_p(r)!=0]
     exp_mon=sum(flt(r.get("SOMA_INF_ID_PMP","")) for r in inf_raw)
-    cat_inf=defaultdict(float)
-    for r in inf_raw: cat_inf[r.get("CAT2","")]+=flt(r.get("PERC_INF_ID_PMP",""))
-    top_cat=max(cat_inf.items(),key=lambda x:x[1],default=("",0))
+    cat_inf=defaultdict(lambda:{"ps":0.0,"pn":0})
+    for r in inf_raw:
+        p=_inf_p(r)
+        if p!=0: cat_inf[r.get("CAT2","")]["ps"]+=p; cat_inf[r.get("CAT2","")]["pn"]+=1
+    top_cat=max(((k,d["ps"]/d["pn"]) for k,d in cat_inf.items() if d["pn"] and k.strip()),
+                key=lambda x:x[1], default=("",0))
     sj(F,"10_inflacao_k00_kpis.json",{
         "inflacao_media_pct":round(sum(inf_vals)/len(inf_vals),2) if inf_vals else 0,
         "exposicao_monetaria_12m":r2(exp_mon),
@@ -819,7 +841,7 @@ def aba_inflacao(inf_raw, pmp_prod12, lk):
     cm=defaultdict(lambda:{"ps":0.0,"pn":0,"rs":0.0})
     for r in inf_raw:
         k=(r.get("CAT2",""),r.get("MESANO",""))
-        p=flt(r.get("PERC_INF_ID_PMP",""))
+        p=_inf_p(r)
         if p!=0: cm[k]["ps"]+=p; cm[k]["pn"]+=1
         cm[k]["rs"]+=flt(r.get("SOMA_INF_ID_PMP",""))
     sc(F,"10_inflacao_r01_por_cat_mes.csv",sorted(
@@ -830,7 +852,7 @@ def aba_inflacao(inf_raw, pmp_prod12, lk):
     sc(F,"10_inflacao_r02_por_mes_rs.csv",sorted([{"mesano":k,"exposicao_rs":r2(v)} for k,v in mr.items() if k.strip()],key=lambda x:x["mesano"]))
     ui=defaultdict(lambda:{"ps":0.0,"pn":0,"rs":0.0})
     for r in inf_raw:
-        uf=r.get("UF",""); p=flt(r.get("PERC_INF_ID_PMP",""))
+        uf=r.get("UF",""); p=_inf_p(r)
         if p!=0: ui[uf]["ps"]+=p; ui[uf]["pn"]+=1
         ui[uf]["rs"]+=flt(r.get("SOMA_INF_ID_PMP",""))
     sc(F,"10_inflacao_r03_por_uf.csv",sorted(
@@ -838,18 +860,29 @@ def aba_inflacao(inf_raw, pmp_prod12, lk):
         key=lambda x:-abs(x["inflacao_media_pct"])))
     cat_nac=defaultdict(lambda:{"ps":0.0,"pn":0,"rs":0.0})
     for r in inf_raw:
-        cat=r.get("CAT2",""); p=flt(r.get("PERC_INF_ID_PMP",""))
+        cat=r.get("CAT2",""); p=_inf_p(r)
         if p!=0: cat_nac[cat]["ps"]+=p; cat_nac[cat]["pn"]+=1
         cat_nac[cat]["rs"]+=flt(r.get("SOMA_INF_ID_PMP",""))
     sc(F,"10_inflacao_r04_por_categoria.csv",sorted(
         [{"cat2":k,"inflacao_media_pct":round(d["ps"]/d["pn"],2) if d["pn"] else 0,"exposicao_rs":r2(d["rs"])} for k,d in cat_nac.items() if k.strip()],
         key=lambda x:-abs(x["inflacao_media_pct"])))
+    # top produtos: usa pmp_prod12 se disponível, senão agrega inflacao.csv por produto
     pvars=[]
     for r in pmp_prod12:
         p0=flt(r.get("PMP_0","")); p12=flt(r.get("PMP_12",""))
         if p0<=0 or p12<=0: continue
         var=round((p0-p12)/p12*100,2)
         pvars.append({"produto":r.get("NMPRODUTO_OFICIAL",""),"cat2":r.get("CAT2",""),"curva":r.get("CURVA_PROD",""),"pmp_atual":r2(p0),"pmp_12m_anterior":r2(p12),"var_pct":var})
+    if not pvars:  # fallback: agregar PERC_INF_ID_PMP por produto
+        pd_=defaultdict(lambda:{"ps":0.0,"pn":0,"cat2":"","curva":""})
+        for r in inf_raw:
+            nm=r.get("NMPRODUTO_EST",""); p=_inf_p(r)
+            if not nm or p==0: continue
+            pd_[nm]["ps"]+=p; pd_[nm]["pn"]+=1
+            pd_[nm]["cat2"]=r.get("CAT2",""); pd_[nm]["curva"]=r.get("CURVA_ID","")
+        pvars=[{"produto":nm,"cat2":d["cat2"],"curva":d["curva"],
+                "pmp_atual":0,"pmp_12m_anterior":0,"var_pct":round(d["ps"]/d["pn"],2)}
+               for nm,d in pd_.items() if d["pn"]>=3]  # >=3 meses de dado
     sc(F,"10_inflacao_r05_top_produto.csv",  sorted([x for x in pvars if x["var_pct"]>0],key=lambda x:-x["var_pct"])[:25])
     sc(F,"10_inflacao_r06_top_deflacao.csv", sorted([x for x in pvars if x["var_pct"]<0],key=lambda x: x["var_pct"])[:25])
     sj(F,"10_inflacao_00_index.json",{
@@ -1091,7 +1124,7 @@ def main():
     aba_filial(nfe,lk)
     aba_estoque()
     aba_fornecedor(nfe,cp,ad,lk)
-    aba_produto(nfe,pmp12,lk)
+    aba_produto(nfe,pmp12,lk,inf_raw)
     aba_cotacao(nfe,num_cot,cot,cot_min,lk)
     aba_impacto(nfe,cot_min,lk)
     aba_inflacao(inf_raw,pmp_p12,lk)
@@ -1323,8 +1356,7 @@ def _produto_fix_kpis(nfe, num_cot, inflacao_r, ps):
     pmp_vals = [d["pmps"][0] for d in ps.values() if d["pmps"][0]>0]
     pmp_m    = round(sum(pmp_vals)/len(pmp_vals),2) if pmp_vals else 0
 
-    inf_vals = [flt(r.get("PERC_INF_ID_PMP","")) for r in inflacao_r
-                if flt(r.get("PERC_INF_ID_PMP",""))!=0]
+    inf_vals = [_inf_p(r) for r in inflacao_r if _inf_p(r)!=0]
     inf_m    = round(sum(inf_vals)/len(inf_vals),2) if inf_vals else 0
 
     _update_json(F, "07_produto_k00_kpis.json", {
