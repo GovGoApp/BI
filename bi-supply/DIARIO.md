@@ -9,6 +9,30 @@ Registro técnico de todas as alterações do projeto, ordenado do mais recente 
 
 ---
 
+## [2026-06-02] Passo 8 — Correções pós-entrega dos filtros
+
+**Commits:** `77e448a`, `c309b4b`, `fb10c1f`, `97fae8e`, `b84e94b`
+
+### Bugs corrigidos
+
+| Bug | Causa | Solução |
+|---|---|---|
+| Labels do dropdown em linha horizontal | CSS `#flt-dd-list` mas HTML usava `id="flt-list"` | Seletor corrigido para `#flt-list` |
+| Dropdown aparecia atrás do conteúdo | `position:fixed` e `z-index` vinham só da stylesheet; `style.cssText` os sobrescrevia | `position:fixed;z-index:9999` definidos no inline style |
+| Fundo do dropdown transparente | `var(--surface)` não existe no v4 | `background:#fff` definido no inline style |
+| "Selecionar todos" não funcionava | Seletor CSS inválido `[#flt-list...` lançava `DOMException` antes da lógica | Linha removida (variável `vis` nunca era usada) |
+| Categorias CAT1–5 vazias | Chave `CAT_R01_HIERARQUIA` errada | Corrigido para `CATEGORIA_R01_HIERARQUIA` |
+| ABC incompleto | `['AAA','AA','A','B','C']` | Corrigido para `['AAA','AA','A','B','BB','C','CC','CCC']` |
+| Filtros ID e Produto separados | Redundância — ID é `cdproduto` do produto | Mergeados em único filtro Produto com formato `"ID - Nome"` |
+
+### Mudanças estruturais
+
+- Linha 2 dos filtros: de 13 para 12 colunas (remoção do botão ID)
+- Predicado `_pred`: matching de produto usa `Set` de IDs e `Set` de nomes
+- Cascata: `abc_id` e `abc_prod` afetam `produto` (não mais `id` separado)
+
+---
+
 ## [2026-06-02] Passo 8 — Sistema de filtros multi-select
 
 **Commit:** `298a06c`
