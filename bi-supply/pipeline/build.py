@@ -758,7 +758,7 @@ function _onBlur(e) {
   if(!_mode) return;
   const node=e.target,el=node.closest('.grid-element');if(!el) return;
   const pk=_pk(),id=el.dataset.id||'',txt=node.textContent.trim();
-  if (node.matches('.card-h h3'))        _ovT(pk,id,{titulo:txt});
+  if (node.matches('.card-h h3,.kpi .lab')) _ovT(pk,id,{titulo:txt});
   else if(node.matches('.card-h .sub'))  _ovT(pk,id,{subtitulo:txt});
   else if(node.tagName==='TH'){
     const k=node.dataset.key;
@@ -768,7 +768,7 @@ function _onBlur(e) {
   if(_mode) node.addEventListener('blur',_onBlur,{once:true});
 }
 function _enText(on) {
-  document.querySelectorAll('.grid-element .card-h h3,.grid-element .card-h .sub,.grid-element table th').forEach(n=>{
+  document.querySelectorAll('.grid-element .card-h h3,.grid-element .card-h .sub,.grid-element table th,.grid-element .kpi .lab').forEach(n=>{
     n.contentEditable=on?'true':'false';
     if(on) n.addEventListener('blur',_onBlur,{once:true});
   });
