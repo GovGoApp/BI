@@ -469,11 +469,16 @@ function _renderPage(pageKey) {
 }
 
 // ── Substituir pages.XXX() pelo renderer unificado ───────────────────────────
+// 'categorias' e 'estoque' preservam a implementação original do v4
+// (categorias usa cascata interativa CAT_VAL/CAT_INF/CAT_TAX que já foi populada)
+const _ABAS_SKIP = new Set(['categorias','estoque']);
 const _ABAS_KEYS = ['resumo','oportunidades','categorias','filiais','estoque',
   'forn360','produtos','cotacoes','impacto','inflacao',
   'fiscal','financeiro','adiantamentos','servicos','qualidade'];
 
-_ABAS_KEYS.forEach(pg => { pages[pg] = () => _renderPage(pg); });
+_ABAS_KEYS.filter(pg => !_ABAS_SKIP.has(pg)).forEach(pg => {
+  pages[pg] = () => _renderPage(pg);
+});
 """
 
 # ── Injeção no HTML ───────────────────────────────────────────────────────────
