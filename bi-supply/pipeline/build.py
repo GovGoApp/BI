@@ -1280,7 +1280,6 @@ function _openDD(btn,fk){
   });
 
   document.getElementById('flt-all').addEventListener('change',e=>{
-    const vis=[...document.querySelectorAll('#flt-list label:not([style*="display: none"]) input,[#flt-list label:not([style]) input')];
     const allInputs=[...document.querySelectorAll('#flt-list input')];
     if(e.target.checked){
       allInputs.forEach(cb=>{ cb.checked=true; if(!_F[fk].includes(cb.value)) _F[fk].push(cb.value); });
