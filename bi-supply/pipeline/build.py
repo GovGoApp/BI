@@ -489,7 +489,7 @@ function _renderPage(pageKey) {
     const {col, col_span, row, row_span} = e.layout;
     const data = window._BI_DATA ? window._BI_DATA[e.variavel_js] : undefined;
     const content = _renderElemento(e, data);
-    const handle = `<div class="grid-editor-handle" data-id="${e.id}" title="${e.id}">⠿ ${e.variavel_js}</div>`;
+    const handle = `<div class="grid-editor-handle" data-id="${e.id}" title="${e.id}">⠿</div>`;
     return `<div class="grid-element" data-id="${e.id}"
          style="grid-column:${col}/span ${col_span};grid-row:${row}/span ${row_span};position:relative">
       ${handle}${content}
@@ -526,11 +526,16 @@ body.edit-mode .grid-element {
 }
 body.edit-mode .grid-element:hover  { outline-color: var(--blue) !important; }
 body.edit-mode .grid-element.ed-drag { opacity:.35; }
-body.edit-mode .grid-element.ed-over {
-  outline: 2px solid var(--blue) !important;
-  background: rgba(37,99,235,.07);
-}
 body.edit-mode .grid-element.ed-hidden { opacity:.18; }
+
+/* ghost de posicionamento */
+#ed-ghost {
+  pointer-events: none;
+  border: 2px dashed var(--blue);
+  border-radius: 6px;
+  background: rgba(37,99,235,.08);
+  z-index: 50;
+}
 
 /* action bar */
 .ed-bar {
@@ -550,13 +555,15 @@ body.edit-mode .ed-bar { display:flex; }
 
 /* resize handle */
 .ed-rz {
-  display: none;
-  position: absolute; bottom:3px; right:3px;
-  width:12px; height:12px;
-  background:var(--blue); border-radius:2px;
-  cursor:se-resize; z-index:30; opacity:.7;
+  position: absolute; bottom:2px; right:2px;
+  width:16px; height:16px;
+  background:var(--blue); border-radius:3px;
+  cursor:se-resize; z-index:30;
+  color:#fff; font-size:12px; line-height:1;
+  display:none; align-items:center; justify-content:center;
+  user-select:none;
 }
-body.edit-mode .ed-rz { display:block; }
+body.edit-mode .ed-rz { display:flex; }
 
 /* editable text */
 body.edit-mode [contenteditable="true"] {
@@ -577,267 +584,257 @@ EDITOR_JS = r"""
 (function() {
 'use strict';
 
-const _st   = {};   // { pk: { overrides: { id: {...} } } }
-let _undo   = null; // { pk, overrides, dom }
+const _st   = {};
+let _undo   = null;
 let _mode   = false;
-let _src    = null; // elemento sendo arrastado
+let _src    = null;
+let _gCol   = 1, _gRow = 1;   // posição do ghost atual
 let _svgInp = null, _svgTgt = null;
 
-// ── Página ativa ─────────────────────────────────────────────────────────────
-function _pk() {
-  const a = document.querySelector('.tab.active[data-page]');
-  return a ? a.dataset.page : '';
-}
+function _pk() { const a=document.querySelector('.tab.active[data-page]'); return a?a.dataset.page:''; }
+function _ens(pk) { if (!_st[pk]) _st[pk]={overrides:{}}; return _st[pk]; }
+function _ov(pk,id,p) { _ens(pk); if(!_st[pk].overrides[id]) _st[pk].overrides[id]={}; Object.assign(_st[pk].overrides[id],p); }
+function _ovT(pk,id,tp) { _ens(pk); const ov=_st[pk].overrides; if(!ov[id]) ov[id]={}; if(!ov[id].texto) ov[id].texto={}; Object.assign(ov[id].texto,tp); }
 
-// ── Estado por página ─────────────────────────────────────────────────────────
-function _ens(pk) {
-  if (!_st[pk]) _st[pk] = { overrides: {} };
-  return _st[pk];
-}
-
-function _ov(pk, id, patch) {
-  _ens(pk);
-  if (!_st[pk].overrides[id]) _st[pk].overrides[id] = {};
-  Object.assign(_st[pk].overrides[id], patch);
-}
-
-function _ovTxt(pk, id, tp) {
-  _ens(pk);
-  const ov = _st[pk].overrides;
-  if (!ov[id]) ov[id] = {};
-  if (!ov[id].texto) ov[id].texto = {};
-  Object.assign(ov[id].texto, tp);
-}
-
-// ── Layout CSS ────────────────────────────────────────────────────────────────
 function _getL(el) {
-  const cm = (el.style.gridColumn || '').match(/(\d+)\s*\/\s*span\s*(\d+)/);
-  const rm = (el.style.gridRow    || '').match(/(\d+)\s*\/\s*span\s*(\d+)/);
-  return { col: cm?+cm[1]:1, col_span: cm?+cm[2]:1, row: rm?+rm[1]:1, row_span: rm?+rm[2]:1 };
+  const cm=(el.style.gridColumn||'').match(/(\d+)\s*\/\s*span\s*(\d+)/);
+  const rm=(el.style.gridRow   ||'').match(/(\d+)\s*\/\s*span\s*(\d+)/);
+  return {col:cm?+cm[1]:1,col_span:cm?+cm[2]:1,row:rm?+rm[1]:1,row_span:rm?+rm[2]:1};
 }
+function _setL(el,l) { el.style.gridColumn=`${l.col}/span ${l.col_span}`; el.style.gridRow=`${l.row}/span ${l.row_span}`; }
 
-function _setL(el, l) {
-  el.style.gridColumn = `${l.col} / span ${l.col_span}`;
-  el.style.gridRow    = `${l.row} / span ${l.row_span}`;
-}
-
-// ── Salvar snapshot para undo ─────────────────────────────────────────────────
 function _snap(pk) {
-  const dom = {};
-  document.querySelectorAll('.grid-element').forEach(el => {
-    const id = el.dataset.id; if (!id) return;
-    dom[id] = { gc: el.style.gridColumn, gr: el.style.gridRow, hid: el.classList.contains('ed-hidden') };
+  const dom={};
+  document.querySelectorAll('.grid-element').forEach(el=>{
+    const id=el.dataset.id; if(!id) return;
+    dom[id]={gc:el.style.gridColumn,gr:el.style.gridRow,hid:el.classList.contains('ed-hidden')};
   });
-  const ov = (_st[pk] || {}).overrides || {};
-  _undo = { pk, overrides: JSON.parse(JSON.stringify(ov)), dom };
+  _undo={pk,overrides:JSON.parse(JSON.stringify((_st[pk]||{}).overrides||{})),dom};
 }
 
-// ── Drag / drop SWAP ──────────────────────────────────────────────────────────
+// ── Ghost de posição ──────────────────────────────────────────────────────────
+function _ghost(grid) {
+  let g=document.getElementById('ed-ghost');
+  if (!g) { g=document.createElement('div'); g.id='ed-ghost'; grid.appendChild(g); }
+  return g;
+}
+function _rmGhost() { const g=document.getElementById('ed-ghost'); if(g) g.remove(); }
+
+// ── Drag / drop ───────────────────────────────────────────────────────────────
 function _initDnd() {
   document.addEventListener('dragstart', e => {
     if (!_mode) return;
-    const el = e.target.closest('.grid-element'); if (!el) return;
-    _src = el; el.classList.add('ed-drag');
-    e.dataTransfer.effectAllowed = 'move';
+    const el=e.target.closest('.grid-element'); if(!el) return;
+    _src=el; el.classList.add('ed-drag');
+    e.dataTransfer.effectAllowed='move';
+    // Mostrar ghost na posição inicial
+    const grid=el.closest('.page-grid'); if(!grid) return;
+    const L=_getL(el); _gCol=L.col; _gRow=L.row;
+    const g=_ghost(grid);
+    g.style.gridColumn=`${L.col}/span ${L.col_span}`;
+    g.style.gridRow   =`${L.row}/span ${L.row_span}`;
   });
 
   document.addEventListener('dragend', () => {
-    if (_src) _src.classList.remove('ed-drag'); _src = null;
-    document.querySelectorAll('.ed-over').forEach(x => x.classList.remove('ed-over'));
+    if(_src) _src.classList.remove('ed-drag');
+    _src=null; _rmGhost();
   });
 
   document.addEventListener('dragover', e => {
-    if (!_mode || !_src) return;
-    const el = e.target.closest('.grid-element');
-    if (!el || el === _src) return;
-    e.preventDefault();
-    document.querySelectorAll('.ed-over').forEach(x => x.classList.remove('ed-over'));
-    el.classList.add('ed-over');
+    if (!_mode||!_src) return;
+    const grid=_src.closest('.page-grid'); if(!grid) return;
+    const r=grid.getBoundingClientRect();
+    // Aceitar drop somente dentro do grid
+    if (e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) return;
+    e.preventDefault(); e.dataTransfer.dropEffect='move';
+    // Calcular célula alvo a partir das coordenadas do mouse
+    const colW=r.width/16, rowH=50; // 40px row + 10px gap
+    const col=Math.max(1,Math.min(16,Math.floor((e.clientX-r.left)/colW)+1));
+    const row=Math.max(1,Math.min(40,Math.floor((e.clientY-r.top )/rowH)+1));
+    if (col===_gCol&&row===_gRow) return;
+    _gCol=col; _gRow=row;
+    const L=_getL(_src);
+    const g=_ghost(grid);
+    g.style.gridColumn=`${col}/span ${L.col_span}`;
+    g.style.gridRow   =`${row}/span ${L.row_span}`;
   });
 
   document.addEventListener('drop', e => {
-    if (!_mode || !_src) return;
-    const tgt = e.target.closest('.grid-element');
-    if (!tgt || tgt === _src) return;
+    if (!_mode||!_src) return;
+    const grid=_src.closest('.page-grid'); if(!grid) return;
+    const r=grid.getBoundingClientRect();
+    if (e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) return;
     e.preventDefault();
-    const pk = _pk(); _snap(pk);
-    const sL = _getL(_src), tL = _getL(tgt);
-    _setL(_src, tL); _setL(tgt, sL);
-    _ov(pk, _src.dataset.id, { col:tL.col, col_span:tL.col_span, row:tL.row, row_span:tL.row_span });
-    _ov(pk, tgt.dataset.id,  { col:sL.col, col_span:sL.col_span, row:sL.row, row_span:sL.row_span });
-    tgt.classList.remove('ed-over');
+    const pk=_pk(); _snap(pk);
+    const srcL=_getL(_src); const tc=_gCol,tr=_gRow;
+    // Verificar sobreposição com outro elemento
+    let tgt=null;
+    document.querySelectorAll('.grid-element').forEach(el=>{
+      if(el===_src) return;
+      const l=_getL(el);
+      if(tc<l.col+l.col_span && tc+srcL.col_span>l.col &&
+         tr<l.row+l.row_span && tr+srcL.row_span>l.row) tgt=el;
+    });
+    if (tgt) {
+      // SWAP quando cai em cima de outro elemento
+      const tL=_getL(tgt);
+      _setL(_src,tL); _setL(tgt,srcL);
+      _ov(pk,_src.dataset.id,{col:tL.col,col_span:tL.col_span,row:tL.row,row_span:tL.row_span});
+      _ov(pk,tgt.dataset.id, {col:srcL.col,col_span:srcL.col_span,row:srcL.row,row_span:srcL.row_span});
+    } else {
+      // MOVER LIVRE para posição vazia
+      _setL(_src,{...srcL,col:tc,row:tr});
+      _ov(pk,_src.dataset.id,{col:tc,col_span:srcL.col_span,row:tr,row_span:srcL.row_span});
+    }
+    _rmGhost();
   });
 }
 
 // ── Resize ────────────────────────────────────────────────────────────────────
-function _attachRz(el, rz) {
+function _attachRz(el,rz) {
   rz.addEventListener('mousedown', e => {
     e.preventDefault(); e.stopPropagation();
-    const pk = _pk(); _snap(pk);
-    const gW = (el.closest('.page-grid') || {offsetWidth: 640}).offsetWidth;
-    const CP = Math.floor(gW / 16), RP = 40;
-    const L0 = _getL(el), sx = e.clientX, sy = e.clientY;
-
-    const mv = ev => {
-      const nc = Math.max(1, Math.min(17 - L0.col, L0.col_span + Math.round((ev.clientX-sx)/CP)));
-      const nr = Math.max(1, Math.min(40,           L0.row_span + Math.round((ev.clientY-sy)/RP)));
-      _setL(el, { ...L0, col_span:nc, row_span:nr });
+    const pk=_pk(); _snap(pk);
+    const gW=(el.closest('.page-grid')||{offsetWidth:640}).offsetWidth;
+    const CP=Math.floor(gW/16), RP=50;
+    const L0=_getL(el), sx=e.clientX, sy=e.clientY;
+    const mv=ev=>{
+      const nc=Math.max(1,Math.min(17-L0.col,L0.col_span+Math.round((ev.clientX-sx)/CP)));
+      const nr=Math.max(1,Math.min(40,         L0.row_span+Math.round((ev.clientY-sy)/RP)));
+      _setL(el,{...L0,col_span:nc,row_span:nr});
     };
-    const up = () => {
-      document.removeEventListener('mousemove', mv);
-      document.removeEventListener('mouseup', up);
-      const L = _getL(el);
-      _ov(pk, el.dataset.id, { col:L.col, col_span:L.col_span, row:L.row, row_span:L.row_span });
+    const up=()=>{
+      document.removeEventListener('mousemove',mv);
+      document.removeEventListener('mouseup',up);
+      const L=_getL(el);
+      _ov(pk,el.dataset.id,{col:L.col,col_span:L.col_span,row:L.row,row_span:L.row_span});
     };
-    document.addEventListener('mousemove', mv);
-    document.addEventListener('mouseup', up);
+    document.addEventListener('mousemove',mv);
+    document.addEventListener('mouseup',up);
   });
 }
 
 // ── Inline text editing ───────────────────────────────────────────────────────
 function _onBlur(e) {
-  if (!_mode) return;
-  const node = e.target, el = node.closest('.grid-element'); if (!el) return;
-  const pk = _pk(), id = el.dataset.id || '', txt = node.textContent.trim();
-  if (node.matches('.card-h h3'))      _ovTxt(pk, id, { titulo: txt });
-  else if (node.matches('.card-h .sub')) _ovTxt(pk, id, { subtitulo: txt });
-  else if (node.tagName === 'TH') {
-    const k = node.dataset.key;
-    if (k) { const c = { ...(_st[pk]?.overrides[id]?.texto?.colunas||{}), [k]:txt }; _ovTxt(pk,id,{colunas:c}); }
+  if(!_mode) return;
+  const node=e.target,el=node.closest('.grid-element');if(!el) return;
+  const pk=_pk(),id=el.dataset.id||'',txt=node.textContent.trim();
+  if (node.matches('.card-h h3'))        _ovT(pk,id,{titulo:txt});
+  else if (node.matches('.card-h .sub')) _ovT(pk,id,{subtitulo:txt});
+  else if (node.tagName==='TH') {
+    const k=node.dataset.key;
+    if(k){const c={...(_st[pk]?.overrides[id]?.texto?.colunas||{}),[k]:txt};_ovT(pk,id,{colunas:c});}
   }
-  if (_mode) node.addEventListener('blur', _onBlur, {once:true});
+  if(_mode) node.addEventListener('blur',_onBlur,{once:true});
 }
-
 function _enText(on) {
-  document.querySelectorAll('.grid-element .card-h h3, .grid-element .card-h .sub, .grid-element table th').forEach(n => {
-    n.contentEditable = on ? 'true' : 'false';
-    if (on) n.addEventListener('blur', _onBlur, {once:true});
+  document.querySelectorAll('.grid-element .card-h h3,.grid-element .card-h .sub,.grid-element table th').forEach(n=>{
+    n.contentEditable=on?'true':'false';
+    if(on) n.addEventListener('blur',_onBlur,{once:true});
   });
 }
 
 // ── SVG floating input ────────────────────────────────────────────────────────
 function _initSvgInp() {
-  const inp = document.createElement('input');
-  inp.id = 'ed-svg-inp';
-  inp.style.cssText = 'position:fixed;z-index:9999;display:none;padding:2px 6px;border:2px solid var(--blue);border-radius:4px;font-size:11px;font-family:inherit;background:var(--surface);color:var(--text);min-width:80px';
-  document.body.appendChild(inp);
-  _svgInp = inp;
-  inp.addEventListener('blur',    _commitSvg);
-  inp.addEventListener('keydown', e => {
-    if (e.key==='Enter')  { _commitSvg(); e.preventDefault(); }
-    if (e.key==='Escape') { inp.style.display='none'; _svgTgt=null; }
-  });
-  document.addEventListener('click', e => {
-    if (_svgInp && _svgInp.style.display!=='none' && e.target!==_svgInp) _commitSvg();
-  });
+  const inp=document.createElement('input');
+  inp.id='ed-svg-inp';
+  inp.style.cssText='position:fixed;z-index:9999;display:none;padding:2px 6px;border:2px solid var(--blue);border-radius:4px;font-size:11px;font-family:inherit;background:var(--surface);color:var(--text);min-width:80px';
+  document.body.appendChild(inp); _svgInp=inp;
+  inp.addEventListener('blur',_commitSvg);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){_commitSvg();e.preventDefault();}if(e.key==='Escape'){inp.style.display='none';_svgTgt=null;}});
+  document.addEventListener('click',e=>{if(_svgInp&&_svgInp.style.display!=='none'&&e.target!==_svgInp)_commitSvg();});
 }
-
 function _onSvgClick(e) {
-  if (!_mode) return;
-  const t = e.currentTarget, r = t.getBoundingClientRect();
-  _svgTgt = t;
-  _svgInp.value = t.textContent;
-  _svgInp.style.left = r.left+'px'; _svgInp.style.top = (r.top-4)+'px';
-  _svgInp.style.display = 'block';
-  _svgInp.focus(); _svgInp.select();
+  if(!_mode) return;
+  const t=e.currentTarget,r=t.getBoundingClientRect();
+  _svgTgt=t;_svgInp.value=t.textContent;
+  _svgInp.style.left=r.left+'px';_svgInp.style.top=(r.top-4)+'px';
+  _svgInp.style.display='block';_svgInp.focus();_svgInp.select();
   e.stopPropagation();
 }
-
 function _commitSvg() {
-  if (!_svgTgt) return;
-  const v = _svgInp.value.trim(); if (v) _svgTgt.textContent = v;
-  _svgInp.style.display = 'none'; _svgTgt = null;
+  if(!_svgTgt) return;
+  const v=_svgInp.value.trim();if(v)_svgTgt.textContent=v;
+  _svgInp.style.display='none';_svgTgt=null;
 }
-
 function _enSvg(on) {
-  document.querySelectorAll('.grid-element svg text').forEach(t => {
-    if (on) { t.style.cursor='text';  t.addEventListener('click', _onSvgClick); }
-    else    { t.style.cursor='';      t.removeEventListener('click', _onSvgClick); }
+  document.querySelectorAll('.grid-element svg text').forEach(t=>{
+    if(on){t.style.cursor='text';t.addEventListener('click',_onSvgClick);}
+    else{t.style.cursor='';t.removeEventListener('click',_onSvgClick);}
   });
 }
 
 // ── Decorar elementos ─────────────────────────────────────────────────────────
 function _decorate() {
-  document.querySelectorAll('.grid-element').forEach(el => {
-    if (el.querySelector('.ed-bar')) return;
-    const id = el.dataset.id || '';
-
-    const bar = document.createElement('div');
-    bar.className = 'ed-bar';
-    bar.innerHTML = `<button class="ed-icn" title="Ocultar/Mostrar">👁</button>`;
+  document.querySelectorAll('.grid-element').forEach(el=>{
+    if(el.querySelector('.ed-bar')) return;
+    const id=el.dataset.id||'';
+    const bar=document.createElement('div');
+    bar.className='ed-bar';
+    bar.innerHTML='<button class="ed-icn" title="Ocultar/Mostrar">👁</button>';
     el.appendChild(bar);
-    bar.querySelector('.ed-icn').onclick = e => {
-      e.stopPropagation();
-      const pk = _pk(); _snap(pk);
-      const hid = el.classList.toggle('ed-hidden');
-      _ov(pk, id, { visivel: !hid });
+    bar.querySelector('.ed-icn').onclick=e=>{
+      e.stopPropagation();const pk=_pk();_snap(pk);
+      const hid=el.classList.toggle('ed-hidden');_ov(pk,id,{visivel:!hid});
     };
-
-    const rz = document.createElement('div');
-    rz.className = 'ed-rz'; rz.title = 'Redimensionar';
-    el.appendChild(rz);
-    _attachRz(el, rz);
+    const rz=document.createElement('div');
+    rz.className='ed-rz';rz.title='Redimensionar';rz.textContent='⇲';
+    el.appendChild(rz);_attachRz(el,rz);
   });
 }
 
-// ── Toggle modo edição ────────────────────────────────────────────────────────
+// ── Toggle ────────────────────────────────────────────────────────────────────
 function _toggle() {
-  _mode = !_mode;
-  document.body.classList.toggle('edit-mode', _mode);
-  const btn = document.getElementById('ed-toggle');
-  if (btn) { btn.textContent = _mode ? '✕ Sair' : '✎ Editar layout'; btn.classList.toggle('ed-active', _mode); }
-  const tb = document.getElementById('ed-tb'); if (tb) tb.style.display = _mode ? 'flex' : 'none';
-  document.querySelectorAll('.grid-element').forEach(el => { el.draggable = _mode; });
-  if (_mode) _decorate();
-  _enText(_mode);
-  _enSvg(_mode);
+  _mode=!_mode;
+  document.body.classList.toggle('edit-mode',_mode);
+  const btn=document.getElementById('ed-toggle');
+  if(btn){btn.textContent=_mode?'✕ Sair':'✎ Editar layout';btn.classList.toggle('ed-active',_mode);}
+  const tb=document.getElementById('ed-tb');if(tb)tb.style.display=_mode?'flex':'none';
+  document.querySelectorAll('.grid-element').forEach(el=>{el.draggable=_mode;});
+  if(_mode) _decorate();
+  _enText(_mode);_enSvg(_mode);
 }
 
 // ── Undo ──────────────────────────────────────────────────────────────────────
 function _doUndo() {
-  if (!_undo) return;
-  const { pk, overrides, dom } = _undo; _undo = null;
-  _st[pk] = { overrides };
-  document.querySelectorAll('.grid-element').forEach(el => {
-    const id = el.dataset.id; if (!id || !dom[id]) return;
-    const s = dom[id];
-    if (s.gc) el.style.gridColumn = s.gc;
-    if (s.gr) el.style.gridRow    = s.gr;
-    el.classList.toggle('ed-hidden', !!s.hid);
+  if(!_undo) return;
+  const{pk,overrides,dom}=_undo;_undo=null;
+  _st[pk]={overrides};
+  document.querySelectorAll('.grid-element').forEach(el=>{
+    const id=el.dataset.id;if(!id||!dom[id]) return;
+    const s=dom[id];
+    if(s.gc)el.style.gridColumn=s.gc;if(s.gr)el.style.gridRow=s.gr;
+    el.classList.toggle('ed-hidden',!!s.hid);
   });
 }
 
-// ── Salvar JSON ───────────────────────────────────────────────────────────────
+// ── Save ──────────────────────────────────────────────────────────────────────
 function _save() {
-  const pk = _pk(); if (!pk) { alert('Aba desconhecida.'); return; }
-  const ov = (_st[pk]||{}).overrides||{};
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify({overrides:ov},null,2)],{type:'application/json'}));
-  a.download = pk+'.layout.json'; a.click(); URL.revokeObjectURL(a.href);
+  const pk=_pk();if(!pk){alert('Aba desconhecida.');return;}
+  const ov=(_st[pk]||{}).overrides||{};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({overrides:ov},null,2)],{type:'application/json'}));
+  a.download=pk+'.layout.json';a.click();URL.revokeObjectURL(a.href);
 }
 
-// ── Injetar botões no topbar ──────────────────────────────────────────────────
+// ── Inject topbar ─────────────────────────────────────────────────────────────
 function _inject() {
-  const stamp = document.querySelector('.topbar .stamp'); if (!stamp) return;
-  const par = stamp.parentNode;
-
-  const btn = document.createElement('button');
-  btn.id='ed-toggle'; btn.className='btn'; btn.textContent='✎ Editar layout';
-  btn.style.marginLeft='auto'; btn.onclick=_toggle;
-  par.insertBefore(btn, stamp);
-
-  const tb = document.createElement('div');
-  tb.id='ed-tb'; tb.style.cssText='display:none;gap:6px;align-items:center;margin-left:4px';
-  tb.innerHTML=`<button class="btn" id="ed-undo">↩ Desfazer</button><button class="btn" id="ed-sav">⬇ Salvar JSON</button>`;
-  par.insertBefore(tb, stamp);
-
-  document.getElementById('ed-undo').onclick = _doUndo;
-  document.getElementById('ed-sav').onclick  = _save;
+  const stamp=document.querySelector('.topbar .stamp');if(!stamp) return;
+  const par=stamp.parentNode;
+  const btn=document.createElement('button');
+  btn.id='ed-toggle';btn.className='btn';btn.textContent='✎ Editar layout';
+  btn.style.marginLeft='auto';btn.onclick=_toggle;
+  par.insertBefore(btn,stamp);
+  const tb=document.createElement('div');
+  tb.id='ed-tb';tb.style.cssText='display:none;gap:6px;align-items:center;margin-left:4px';
+  tb.innerHTML='<button class="btn" id="ed-undo">↩ Desfazer</button><button class="btn" id="ed-sav">⬇ Salvar JSON</button>';
+  par.insertBefore(tb,stamp);
+  document.getElementById('ed-undo').onclick=_doUndo;
+  document.getElementById('ed-sav').onclick=_save;
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-function _init() { _inject(); _initDnd(); _initSvgInp(); }
-if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',_init);
+function _init(){_inject();_initDnd();_initSvgInp();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_init);
 else _init();
 })();
 """
