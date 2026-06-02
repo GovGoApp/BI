@@ -152,21 +152,162 @@ function renderBars(containerEl) {
   });
 }
 
-/* ── Sparklines SVG ──────────────────────────────────────────── */
-function renderSparkline(canvas, values, color) {
-  if (!canvas || !values?.length) return;
-  const vals = values.map(Number).filter(v => !isNaN(v));
-  if (!vals.length) return;
-  const W = canvas.clientWidth || 80; const H = canvas.clientHeight || 32;
-  const mn = Math.min(...vals); const mx = Math.max(...vals);
-  const range = mx - mn || 1;
-  const pts = vals.map((v, i) => {
-    const x = (i / (vals.length - 1)) * W;
-    const y = H - ((v - mn) / range) * (H - 4) - 2;
-    return `${x},${y}`;
+/* ── Sparklines SVG (inline, com círculo no ponto final) ─────── */
+function svgSpark(arr, color) {
+  color = color || '#2563eb';
+  const w=160, h=36, p=2;
+  const vals = arr.map(Number).filter(v => !isNaN(v));
+  if (!vals.length) return '';
+  const mn=Math.min(...vals), mx=Math.max(...vals);
+  const span=Math.max(0.0001,mx-mn);
+  const pts=vals.map((v,i)=>{
+    const x=p+i*(w-2*p)/(vals.length-1);
+    const y=h-p-((v-mn)/span)*(h-2*p);
+    return x.toFixed(1)+','+y.toFixed(1);
   }).join(' ');
-  canvas.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  canvas.innerHTML = `<polyline points="${pts}" fill="none" stroke="${color||'var(--blue)'}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const last=pts.trim().split(' ').pop().split(',');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:36px;display:block">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="2.4" fill="${color}"/>
+  </svg>`;
+}
+
+function renderSparkline(canvas, values, color) {
+  if (!canvas) return;
+  const html = svgSpark(values || [], color);
+  canvas.outerHTML = html; // substitui canvas por SVG
+}
+
+/* ── Gráfico de linhas SVG (GL) ─────────────────────────────── */
+function svgLineChart(series, opts) {
+  // series: [{label, data:[{x,y}], color}]
+  // opts: {width, height, paddingL, paddingR, paddingT, paddingB}
+  const o = opts || {};
+  const W=600, H=180, pL=o.pL||35, pR=o.pR||10, pT=o.pT||15, pB=o.pB||28;
+  const iW=W-pL-pR, iH=H-pT-pB;
+
+  if (!series?.length) return '';
+
+  const allY = series.flatMap(s => s.data.map(p => Number(p.y)||0));
+  const allX = series[0].data.map(p => p.x);
+  const minY=Math.min(0,...allY), maxY=Math.max(...allY)||1;
+  const colors = ['#2563eb','#16a34a','#a16207','#b91c1c'];
+
+  const toX = (i) => pL + (i/(allX.length-1))*iW;
+  const toY = (v) => pT + iH - ((Number(v)-minY)/(maxY-minY))*iH;
+
+  // Grid lines (4)
+  let lines='';
+  for (let i=0;i<4;i++) {
+    const y = pT + (i/3)*iH;
+    const val = maxY - (i/3)*(maxY-minY);
+    lines += `<line x1="${pL}" x2="${W-pR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#eef2f7"/>`;
+    lines += `<text x="${pL-4}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#94a3b8" font-family="Segoe UI">${_fmtY(val)}</text>`;
+  }
+
+  // X labels
+  let xlabels='';
+  const step = Math.max(1, Math.floor(allX.length/12));
+  allX.forEach((lbl,i) => {
+    if (i%step===0 || i===allX.length-1)
+      xlabels += `<text x="${toX(i).toFixed(1)}" y="${H-5}" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Segoe UI">${lbl}</text>`;
+  });
+
+  // Series
+  let paths='', gradients='';
+  series.forEach((s, si) => {
+    const c = s.color || colors[si%colors.length];
+    const pts = s.data.map((p,i) => `${toX(i).toFixed(1)},${toY(p.y).toFixed(1)}`).join(' ');
+    const first = `${toX(0).toFixed(1)},${toY(s.data[0]?.y||0).toFixed(1)}`;
+    const last  = `${toX(s.data.length-1).toFixed(1)},${toY(s.data[s.data.length-1]?.y||0).toFixed(1)}`;
+    const gid = `gl${si}`;
+    gradients += `<linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${c}" stop-opacity=".15"/>
+      <stop offset="100%" stop-color="${c}" stop-opacity="0"/>
+    </linearGradient>`;
+    // área preenchida
+    paths += `<path d="M${pts.split(' ').join(' L')} L${toX(s.data.length-1).toFixed(1)},${(pT+iH).toFixed(1)} L${pL},${(pT+iH).toFixed(1)} Z" fill="url(#${gid})"/>`;
+    // linha
+    paths += `<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="1.8"/>`;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
+    <defs>${gradients}</defs>
+    ${lines}${paths}${xlabels}
+  </svg>`;
+}
+
+function _fmtY(v) {
+  if (Math.abs(v)>=1e6) return (v/1e6).toFixed(0)+'M';
+  if (Math.abs(v)>=1e3) return (v/1e3).toFixed(0)+'K';
+  return v.toFixed(0);
+}
+
+/* ── Gráfico de barras SVG (GB) ─────────────────────────────── */
+function svgBarChart(data, xKey, yKey, opts) {
+  const o = opts || {};
+  const W=600, H=o.height||160, pL=40, pR=10, pT=15, pB=28;
+  const color = o.color || '#2563eb';
+  if (!data?.length) return '';
+
+  const vals = data.map(r => Number(r[yKey])||0);
+  const maxY = Math.max(...vals)||1;
+  const bW   = Math.floor((W-pL-pR)/data.length * 0.65);
+  const gap  = Math.floor((W-pL-pR)/data.length * 0.35);
+
+  let bars='', labels='', ylines='';
+  for (let i=0;i<3;i++) {
+    const y=pT+(i/2)*(H-pT-pB);
+    ylines+=`<line x1="${pL}" x2="${W-pR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#eef2f7"/>`;
+    const v=maxY-(i/2)*maxY;
+    ylines+=`<text x="${pL-4}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#94a3b8">${_fmtY(v)}</text>`;
+  }
+
+  data.forEach((r,i) => {
+    const x = pL + i*((W-pL-pR)/data.length) + gap/2;
+    const v = Number(r[yKey])||0;
+    const bH = ((v/maxY)*(H-pT-pB));
+    const y  = H-pB-bH;
+    bars   += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${color}" rx="2" opacity="0.85"/>`;
+    labels += `<text x="${(x+bW/2).toFixed(1)}" y="${(H-5)}" text-anchor="middle" font-size="9" fill="#94a3b8">${String(r[xKey]).slice(-7)}</text>`;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
+    ${ylines}${bars}${labels}
+  </svg>`;
+}
+
+/* ── Gráfico empilhado SVG (GE) ─────────────────────────────── */
+function svgStackedChart(data, xKey, stackKeys, colors, opts) {
+  const o = opts||{};
+  const W=600, H=o.height||160, pL=40, pR=10, pT=15, pB=28;
+  const dfltColors=['#b91c1c','#f59e0b','#2563eb','#16a34a','#6366f1'];
+
+  if (!data?.length) return '';
+  const totals=data.map(r=>stackKeys.reduce((s,k)=>s+(Number(r[k])||0),0));
+  const maxT=Math.max(...totals)||1;
+  const bW=Math.floor((W-pL-pR)/data.length*0.65);
+  const gap=Math.floor((W-pL-pR)/data.length*0.35);
+
+  let bars='', labels='';
+  data.forEach((r,i)=>{
+    const x=pL+i*((W-pL-pR)/data.length)+gap/2;
+    let yOff=H-pB;
+    stackKeys.forEach((k,ki)=>{
+      const v=Number(r[k])||0;
+      const bH=(v/maxT)*(H-pT-pB);
+      if(bH>0){
+        const c=(colors||dfltColors)[ki%dfltColors.length];
+        bars+=`<rect x="${x.toFixed(1)}" y="${(yOff-bH).toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${c}" opacity="0.8"/>`;
+        yOff-=bH;
+      }
+    });
+    labels+=`<text x="${(x+bW/2).toFixed(1)}" y="${H-5}" text-anchor="middle" font-size="9" fill="#94a3b8">${String(r[xKey]).slice(-7)}</text>`;
+  });
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
+    ${bars}${labels}
+  </svg>`;
 }
 
 /* ── Gráfico de barras simples ───────────────────────────────── */
