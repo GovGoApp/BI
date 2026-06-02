@@ -1264,7 +1264,7 @@ function _openDD(btn,fk){
     <div class="flt-dd-foot"><span class="flt-dd-cnt">${sel.length} selecionado${sel.length!==1?'s':''}</span><button class="flt-dd-clr">Limpar</button></div>`;
 
   const r=btn.getBoundingClientRect();
-  dd.style.cssText=`display:flex;left:${r.left}px;top:${r.bottom+3}px;min-width:${Math.max(r.width,180)}px`;
+  dd.style.cssText=`position:fixed;z-index:9999;display:flex;flex-direction:column;left:${r.left}px;top:${r.bottom+3}px;min-width:${Math.max(r.width,180)}px;max-height:300px`;
 
   requestAnimationFrame(()=>{
     const dr=dd.getBoundingClientRect();
