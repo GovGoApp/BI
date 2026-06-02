@@ -902,19 +902,517 @@ function _inject() {
 }
 
 function _init() {
-  _loadAll();          // restaura estado do localStorage
+  _loadAll();
   _inject();
   _initDnd();
   _initSvgInp();
   _watchTabs();
-  // Aplica layout salvo para a aba inicial
   const pk=_pk(); if(pk) _applyLayout(pk);
+  // Expõe funções para o módulo de filtros
+  window._BI_EDITOR={applyLayout:_applyLayout,decorate:_decorate,enText:_enText,enSvg:_enSvg};
 }
 
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_init);
 else _init();
 })();
 """
+
+# ── CSS dos filtros ───────────────────────────────────────────────────────────
+
+FILTER_CSS = """
+/* ── Filtros BI — gerado por build.py ── */
+.filters .row   { grid-template-columns: repeat(9,  minmax(0,1fr)) !important; }
+.filters .row2  { grid-template-columns: repeat(13, minmax(0,1fr)) !important; }
+@media (max-width:1200px){
+  .filters .row  { grid-template-columns: repeat(5, minmax(0,1fr)) !important; }
+  .filters .row2 { grid-template-columns: repeat(7, minmax(0,1fr)) !important; }
+}
+button.pick.active { background:var(--blue-soft);border-color:var(--blue);color:var(--blue); }
+button.pick.active .v { color:var(--blue);font-weight:700; }
+
+/* Dropdown multi-select */
+#flt-dd {
+  position:fixed; z-index:1000;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,.14);
+  display:flex; flex-direction:column; max-height:300px; min-width:160px;
+  font-size:12.5px;
+}
+.flt-dd-srch { padding:7px 7px 5px; border-bottom:1px solid var(--line-soft); }
+.flt-dd-srch input {
+  width:100%; box-sizing:border-box; padding:4px 8px;
+  border:1px solid var(--border); border-radius:5px;
+  font-size:12px; font-family:inherit;
+  background:var(--bg,#f8fafc); color:var(--text);
+}
+.flt-dd-opts { overflow-y:auto; flex:1; padding:3px 0; }
+.flt-dd-all {
+  display:flex; align-items:center; gap:7px;
+  padding:5px 10px; cursor:pointer; font-weight:600;
+  border-bottom:1px solid var(--line-soft); margin-bottom:3px;
+}
+#flt-dd-list label {
+  display:flex; align-items:center; gap:7px;
+  padding:3px 10px; cursor:pointer; border-radius:4px; margin:0 3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#flt-dd-list label:hover,.flt-dd-all:hover { background:var(--blue-soft); }
+#flt-dd-list input[type=checkbox],.flt-dd-all input[type=checkbox] {
+  accent-color:var(--blue); width:13px; height:13px; flex-shrink:0;
+}
+.flt-dd-foot {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:5px 10px; border-top:1px solid var(--line-soft); gap:8px;
+}
+.flt-dd-cnt { font-size:11px; color:var(--muted); }
+.flt-dd-clr { font-size:11px; font-weight:600; color:var(--blue); background:0; border:0; cursor:pointer; }
+.flt-dd-clr:hover { color:#dc2626; }
+"""
+
+# ── JS dos filtros ────────────────────────────────────────────────────────────
+
+FILTER_JS = r"""
+/* ── Filtros BI — gerado por build.py ── */
+(function(){
+'use strict';
+
+const _LS = 'bi_filters';
+const _REGS = {
+  N:  ['AC','AM','AP','PA','RO','RR','TO'],
+  NE: ['AL','BA','CE','MA','PB','PE','PI','RN','SE'],
+  CO: ['DF','GO','MS','MT'],
+  SE: ['ES','MG','RJ','SP'],
+  S:  ['PR','RS','SC'],
+};
+const _ABC  = ['AAA','AA','A','B','C'];
+const _SCP  = ['Em Aberto','Baixado'];
+const _SAD  = ['ADIANTAMENTO CONCILIADO','ADIANTAMENTO PENDENTE','ADIANTAMENTO ?'];
+
+// ── Estado ────────────────────────────────────────────────────────────────────
+const _F0 = ()=>({
+  empresa:[],negocio:[],regiao:[],uf:[],filial:[],
+  ano:[],periodo:[],abc_forn:[],fornecedor:[],
+  cat1:[],cat2:[],cat3:[],cat4:[],cat5:[],
+  produto:[],id:[],abc_prod:[],abc_id:[],
+  status_cot:[],status_cp:[],status_ad:[],alerta:[]
+});
+let _F=_F0();
+
+function _loadF(){ try{ const s=localStorage.getItem(_LS); if(s) _F=Object.assign(_F0(),JSON.parse(s)); }catch(e){} }
+function _saveF(){ try{ localStorage.setItem(_LS,JSON.stringify(_F)); }catch(e){} }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function _BD(k){ return ((window._BI_DATA_RAW)||{})[k]||[]; }
+function _BDF(k){ return (window._BI_DATA||{})[k]||[]; }
+function _sum(a,k){ return a.reduce((s,r)=>s+(parseFloat(r[k])||0),0); }
+function _uniq(a,k){ return [...new Set(a.map(r=>r[k]).filter(Boolean))]; }
+function _yr(s){ const m=String(s||'').match(/(\d{4})/); return m?m[1]:null; }
+function _effUfs(){
+  if (_F.uf.length) return _F.uf;
+  if (_F.regiao.length) return _F.regiao.flatMap(r=>_REGS[r]||[]);
+  return [];
+}
+
+// ── Predicado de filtro ───────────────────────────────────────────────────────
+function _pred(r){
+  if (!r) return false;
+  const eu=_effUfs();
+  if (_F.empresa.length){
+    const e=r.empresa?[r.empresa]:(r.empresas||'').split('|').map(x=>x.trim()).filter(Boolean);
+    if (!e.some(x=>_F.empresa.includes(x))) return false;
+  }
+  if (_F.negocio.length  && r.negocio     && !_F.negocio.includes(r.negocio))    return false;
+  if (eu.length          && r.uf          && !eu.includes(r.uf))                  return false;
+  if (_F.filial.length){ const f=r.filial||r.nome||''; if(f&&!_F.filial.includes(f)) return false; }
+  for(let i=1;i<=5;i++){ const k=`cat${i}`; if(_F[k].length&&r[k]&&!_F[k].includes(r[k])) return false; }
+  if (_F.fornecedor.length && r.fornecedor && !_F.fornecedor.includes(r.fornecedor)) return false;
+  if (_F.produto.length   && r.produto    && !_F.produto.includes(r.produto))     return false;
+  if (_F.id.length){ const id=r.id||r.cdproduto||''; if(id&&!_F.id.includes(id)) return false; }
+  if (_F.abc_forn.length  && r.curva      && !_F.abc_forn.includes(r.curva))      return false;
+  if (_F.abc_prod.length  && r.curva_prod && !_F.abc_prod.includes(r.curva_prod)) return false;
+  if (_F.abc_id.length    && r.curva_id   && !_F.abc_id.includes(r.curva_id))     return false;
+  if (_F.periodo.length   && r.mesano     && !_F.periodo.includes(r.mesano))      return false;
+  if (_F.ano.length       && r.mesano     && !_F.ano.includes(_yr(r.mesano)))     return false;
+  if (_F.status_cp.length && r.statuspag  && !_F.status_cp.includes(r.statuspag)) return false;
+  if (_F.status_ad.length && r.status_conciliacao && !_F.status_ad.includes(r.status_conciliacao)) return false;
+  return true;
+}
+
+// ── Recálculo de KPIs ─────────────────────────────────────────────────────────
+const _KC={
+  RESUMO_K01_TOTAL_COMPRADO: ()=>({total_comprado_operacional:_sum(_BDF('RESUMO_R01_POR_MES'),'spend'),crescimento_yoy_pct:0}),
+  RESUMO_K02_FORNECEDORES:   ()=>{const s=_BDF('RESUMO_R04_TOP_FORNECEDOR');return{fornecedores_ativos:s.length,ids_unicos:s.length};},
+  RESUMO_K04_IMPACTO:        ()=>({imp_cot_total:_sum(_BDF('RESUMO_R03_TOP_CATEGORIA'),'imp_cot')}),
+  RESUMO_K05_OPORTUNIDADE:   ()=>({imp_cot_total:_sum(_BDF('RESUMO_R03_TOP_CATEGORIA'),'imp_cot')}),
+  RESUMO_K07_FISCAL:         ()=>({fornecedores_ativos:_BDF('RESUMO_R04_TOP_FORNECEDOR').length}),
+  RESUMO_K08_CP:             ()=>({cp_aberto:_sum(_BDF('RESUMO_R04_TOP_FORNECEDOR'),'cp_aberto'),cp_titulos:_BDF('RESUMO_R04_TOP_FORNECEDOR').filter(r=>parseFloat(r.cp_aberto||0)>0).length}),
+  OPORTUNIDADE_K01_TOTAL:    ()=>({imp_cot_total:_sum(_BDF('OPORTUNIDADE_R01_TABELA'),'imp_cot')}),
+  OPORTUNIDADE_K03_ACIMA:    ()=>({ids_comprados_acima_minimo:_BDF('OPORTUNIDADE_R01_TABELA').filter(r=>parseFloat(r.imp_cot||0)>0).length}),
+  OPORTUNIDADE_K04_PCT:      ()=>{const s=_BDF('OPORTUNIDADE_R01_TABELA');const t=s.length||1;return{pct_linhas_acima_minimo:(s.filter(r=>parseFloat(r.imp_cot||0)>0).length/t*100).toFixed(1)};},
+  FILIAL_K01_TOTAL:          ()=>({total_comprado:_sum(_BDF('FILIAL_R01_RANKING'),'spend')}),
+  FILIAL_K02_MEDIA:          ()=>{const s=_BDF('FILIAL_R01_RANKING');return{compra_media_por_filial:s.length?_sum(s,'spend')/s.length:0};},
+  FILIAL_K03_MAIOR:          ()=>({maior_filial:(_BDF('FILIAL_R01_RANKING').slice().sort((a,b)=>(parseFloat(b.spend)||0)-(parseFloat(a.spend)||0))[0]||{}).nome||'—'}),
+  FILIAL_K04_MAIOR_UF:       ()=>{const m={};_BDF('FILIAL_R01_RANKING').forEach(r=>{m[r.uf]=(m[r.uf]||0)+(parseFloat(r.spend)||0);});const t=Object.entries(m).sort((a,b)=>b[1]-a[1])[0]||[];return{maior_uf:t[0]||'—'};},
+  FILIAL_K05_NEGOCIO:        ()=>{const m={};_BDF('FILIAL_R01_RANKING').forEach(r=>{m[r.negocio]=(m[r.negocio]||0)+(parseFloat(r.spend)||0);});const t=Object.entries(m).sort((a,b)=>b[1]-a[1])[0]||[];return{maior_negocio:t[0]||'—'};},
+  FORNECEDOR_K01_ATIVOS:     ()=>({fornecedores_ativos:_BDF('FORNECEDOR_R01_TABELA').length}),
+  FORNECEDOR_K02_SPEND:      ()=>({spend_curva_aaa_aa_a:_sum(_BDF('FORNECEDOR_R01_TABELA').filter(r=>['AAA','AA','A'].includes(r.curva)),'spend_total')}),
+  FORNECEDOR_K03_PCT:        ()=>{const s=_BDF('FORNECEDOR_R01_TABELA');const t=_sum(s,'spend_total')||1;return{pct_spend_top:(_sum(s.filter(r=>['AAA','AA','A'].includes(r.curva)),'spend_total')/t*100).toFixed(1)};},
+  FORNECEDOR_K04_CP:         ()=>({forn_com_cp_aberto:_BDF('FORNECEDOR_R01_TABELA').filter(r=>parseFloat(r.cp_aberto||0)>0).length}),
+  FORNECEDOR_K05_AD:         ()=>({forn_com_ad_pendente:_BDF('FORNECEDOR_R01_TABELA').filter(r=>parseFloat(r.ad_pendente||0)>0).length}),
+  PRODUTO_K01_TOTAL:         ()=>({total_ids:_BDF('PRODUTO_R01_TABELA').length}),
+  PRODUTO_K02_PMP:           ()=>{const s=_BDF('PRODUTO_R01_TABELA');return{pmp_medio_cesta:s.length?_sum(s,'pmp_atual')/s.length:0};},
+  PRODUTO_K03_VAR:           ()=>({ids_variacao_pmp_gt10pct:_BDF('PRODUTO_R01_TABELA').filter(r=>Math.abs(parseFloat(r.var_pmp_pct||0))>10).length}),
+  PRODUTO_K05_INF:           ()=>{const s=_BDF('PRODUTO_R01_TABELA');return{inflacao_media_cesta:s.length?(_sum(s,'var_pmp_pct')/s.length).toFixed(1):0};},
+  IMPACTO_K01_TOTAL:         ()=>({imp_cot_total:_sum(_BDF('IMPACTO_R03_TOP_ID'),'imp_cot')}),
+  IMPACTO_K02_IDS:           ()=>({ids_com_impacto:_BDF('IMPACTO_R03_TOP_ID').filter(r=>parseFloat(r.imp_cot||0)>0).length}),
+  IMPACTO_K03_PCT:           ()=>{const s=_BDF('IMPACTO_R03_TOP_ID');const t=s.length||1;return{pct_linhas_acima_minimo:(s.filter(r=>parseFloat(r.imp_cot||0)>0).length/t*100).toFixed(1)};},
+  IMPACTO_K04_UF:            ()=>({uf_lider:(_BDF('IMPACTO_R02_UF').slice().sort((a,b)=>(parseFloat(b.imp_cot)||0)-(parseFloat(a.imp_cot)||0))[0]||{}).uf||'—'}),
+  IMPACTO_K05_PROD:          ()=>({top_produto_nome:(_BDF('IMPACTO_R03_TOP_ID').slice().sort((a,b)=>(parseFloat(b.imp_cot)||0)-(parseFloat(a.imp_cot)||0))[0]||{}).produto||'—'}),
+  INFLACAO_K01_MEDIA:        ()=>{const s=_BDF('INFLACAO_R04_POR_CAT');return{inflacao_media_pct:s.length?(_sum(s,'inflacao_media_pct')/s.length).toFixed(1):0};},
+  INFLACAO_K02_EXP:          ()=>({exposicao_monetaria_12m:_sum(_BDF('INFLACAO_R02_MES_RS'),'exposicao_rs')}),
+  INFLACAO_K04_CAT:          ()=>({cat2_mais_inflada:(_BDF('INFLACAO_R04_POR_CAT').slice().sort((a,b)=>(parseFloat(b.inflacao_media_pct)||0)-(parseFloat(a.inflacao_media_pct)||0))[0]||{}).cat2||'—'}),
+  FINANCEIRO_K01_ABERTO:     ()=>({cp_aberto_total:_sum(_BDF('FINANCEIRO_R02_FORN'),'cp_aberto')}),
+  FINANCEIRO_K02_TIT:        ()=>({cp_titulos:_sum(_BDF('FINANCEIRO_R02_FORN'),'titulos')}),
+  FINANCEIRO_K03_VENC:       ()=>({cp_vencido:_sum(_BDF('FINANCEIRO_R02_FORN'),'cp_vencido')}),
+  ADIANTAMENTO_K01_TOTAL:    ()=>{const s=_BDF('ADIANTAMENTO_R02_EMP');return{ad_total_12m:_sum(s,'pendente')+_sum(s,'conciliado')};},
+  ADIANTAMENTO_K02_CONC:     ()=>({conciliado:_sum(_BDF('ADIANTAMENTO_R02_EMP'),'conciliado')}),
+  ADIANTAMENTO_K03_PEND:     ()=>({pendente:_sum(_BDF('ADIANTAMENTO_R02_EMP'),'pendente')}),
+  ADIANTAMENTO_K04_PCT:      ()=>{const s=_BDF('ADIANTAMENTO_R02_EMP');const t=(_sum(s,'pendente')+_sum(s,'conciliado'))||1;return{pct_conciliado:(_sum(s,'conciliado')/t*100).toFixed(1)};},
+  ADIANTAMENTO_K05_N:        ()=>({n_pendente:_BDF('ADIANTAMENTO_R06_FORN').filter(r=>parseFloat(r.pendente||0)>0).length}),
+  SERVICO_K01_TOTAL:         ()=>({total_servicos:_sum(_BDF('SERVICO_R01_UF'),'spend')}),
+  SERVICO_K02_FORN:          ()=>({fornecedores_servicos:_BDF('SERVICO_R04_FORN').length}),
+  SERVICO_K03_UFS:           ()=>({ufs_atendidas:_BDF('SERVICO_R01_UF').length}),
+  SERVICO_K05_CAT:           ()=>({maior_categoria:(_BDF('SERVICO_R03_CAT').slice().sort((a,b)=>(parseFloat(b.spend)||0)-(parseFloat(a.spend)||0))[0]||{}).categoria||'—'}),
+};
+
+// ── Opções dos filtros ────────────────────────────────────────────────────────
+const _OPTS={
+  empresa:    ()=>{
+    const a=_uniq(_BD('ADIANTAMENTO_R02_EMP'),'empresa');
+    const b=_uniq(_BD('RESUMO_R08_POR_FILIAL'),'empresa');
+    return [...new Set([...a,...b])].filter(Boolean).sort();
+  },
+  negocio:    ()=>_uniq(_BD('FILIAL_R01_RANKING'),'negocio').sort(),
+  regiao:     ()=>Object.keys(_REGS),
+  uf:         ()=>{
+    let u=_F.regiao.length?_F.regiao.flatMap(r=>_REGS[r]||[]):_uniq(_BD('FILIAL_R01_RANKING'),'uf');
+    return [...new Set(u)].sort();
+  },
+  filial:     ()=>{
+    let d=_BD('FILIAL_R01_RANKING');
+    const eu=_effUfs();
+    if(eu.length) d=d.filter(r=>eu.includes(r.uf));
+    if(_F.negocio.length) d=d.filter(r=>_F.negocio.includes(r.negocio));
+    if(_F.empresa.length) d=d.filter(r=>_F.empresa.includes(r.empresa));
+    return _uniq(d,'nome').sort();
+  },
+  ano:        ()=>['2024','2025','2026'],
+  periodo:    ()=>{
+    let a=_uniq(_BD('RESUMO_R01_POR_MES'),'mesano');
+    if(_F.ano.length) a=a.filter(m=>_F.ano.includes(_yr(m)));
+    return a;
+  },
+  abc_forn:   ()=>_ABC,
+  fornecedor: ()=>{
+    let d=_BD('FORNECEDOR_R01_TABELA');
+    if(_F.abc_forn.length) d=d.filter(r=>_F.abc_forn.includes(r.curva));
+    return _uniq(d,'fornecedor').sort().slice(0,300);
+  },
+  cat1:       ()=>_uniq(_BD('CAT_R01_HIERARQUIA'),'cat1').filter(Boolean).sort(),
+  cat2:       ()=>{let d=_BD('CAT_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));return _uniq(d,'cat2').filter(Boolean).sort();},
+  cat3:       ()=>{let d=_BD('CAT_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));return _uniq(d,'cat3').filter(Boolean).sort();},
+  cat4:       ()=>{let d=_BD('CAT_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));if(_F.cat3.length)d=d.filter(r=>_F.cat3.includes(r.cat3));return _uniq(d,'cat4').filter(Boolean).sort();},
+  cat5:       ()=>{let d=_BD('CAT_R01_HIERARQUIA');['cat1','cat2','cat3','cat4'].forEach((k,i)=>{if(_F[k].length)d=d.filter(r=>_F[k].includes(r[k]));});return _uniq(d,'cat5').filter(Boolean).sort();},
+  produto:    ()=>{
+    let d=_BD('PRODUTO_R01_TABELA');
+    if(_F.abc_prod.length) d=d.filter(r=>_F.abc_prod.includes(r.curva_prod||r.curva_id));
+    for(let i=1;i<=5;i++){const k=`cat${i}`;if(_F[k].length)d=d.filter(r=>_F[k].includes(r[k]));}
+    return _uniq(d,'produto').sort().slice(0,300);
+  },
+  id:         ()=>{
+    let d=_BD('PRODUTO_R01_TABELA');
+    if(_F.produto.length) d=d.filter(r=>_F.produto.includes(r.produto));
+    if(_F.abc_id.length) d=d.filter(r=>_F.abc_id.includes(r.curva_id));
+    return _uniq(d,'cdproduto').filter(Boolean).sort().slice(0,300);
+  },
+  abc_prod:   ()=>_ABC,
+  abc_id:     ()=>_ABC,
+  status_cot: ()=>['Com cotação','Sem cotação','Mono-cotação'],
+  status_cp:  ()=>_SCP,
+  status_ad:  ()=>_SAD,
+  alerta:     ()=>['OK','CP aberto','Sem cotação','Fiscal'],
+};
+
+// ── Cascatas: quando fk muda, limpa seleções inválidas downstream ─────────────
+const _CASC={
+  regiao:['uf','filial'], empresa:['filial'], negocio:['filial'], uf:['filial'],
+  ano:['periodo'],
+  cat1:['cat2','cat3','cat4','cat5','produto','id'],
+  cat2:['cat3','cat4','cat5','produto','id'],
+  cat3:['cat4','cat5','produto','id'],
+  cat4:['cat5','produto','id'],
+  cat5:['produto','id'],
+  produto:['id'],
+  abc_forn:['fornecedor'], abc_prod:['produto','id'], abc_id:['id'],
+};
+
+function _cascade(fk){
+  (_CASC[fk]||[]).forEach(dep=>{
+    const opts=_OPTS[dep]();
+    _F[dep]=_F[dep].filter(v=>opts.includes(v));
+  });
+}
+
+// ── Aplicar filtros + re-render ───────────────────────────────────────────────
+function _applyF(){
+  if(!window._BI_DATA_RAW && window._BI_DATA)
+    window._BI_DATA_RAW=Object.assign({},window._BI_DATA);
+
+  // Restaurar dados originais
+  Object.keys(window._BI_DATA_RAW||{}).forEach(k=>{ window._BI_DATA[k]=window._BI_DATA_RAW[k]; });
+
+  const active=Object.values(_F).some(v=>v.length>0);
+  if(active){
+    // Filtrar arrays
+    Object.keys(window._BI_DATA).forEach(k=>{
+      const d=window._BI_DATA[k];
+      if(Array.isArray(d)) window._BI_DATA[k]=d.filter(_pred);
+    });
+    // Recalcular KPIs
+    Object.keys(_KC).forEach(k=>{
+      if(k in (window._BI_DATA_RAW||{}))
+        try{ window._BI_DATA[k]=_KC[k](); }catch(e){}
+    });
+  }
+
+  // Re-renderizar aba
+  const pk=document.querySelector('.tab.active[data-page]')?.dataset.page;
+  if(pk){
+    const pg=document.getElementById('page');
+    if(pg&&typeof pages!=='undefined'&&pages[pk]){
+      pg.innerHTML=pages[pk]();
+      if(window._BI_EDITOR){
+        window._BI_EDITOR.applyLayout(pk);
+        if(document.body.classList.contains('edit-mode')){
+          window._BI_EDITOR.decorate();
+          window._BI_EDITOR.enText(true);
+          window._BI_EDITOR.enSvg(true);
+        }
+      }
+    }
+  }
+
+  _refreshUI();
+  _refreshChips();
+}
+
+// ── UI: botões de filtro ───────────────────────────────────────────────────────
+const _LBL={
+  empresa:'Todas',negocio:'Todos',regiao:'Todas',uf:'Todas',filial:'Todas',
+  ano:'Todos',periodo:'Todos',abc_forn:'Todos',fornecedor:'Todos',
+  cat1:'Todas',cat2:'Todas',cat3:'Todas',cat4:'Todas',cat5:'Todas',
+  produto:'Todos',id:'Todos',abc_prod:'Todos',abc_id:'Todos',
+  status_cot:'Todos',status_cp:'Todos',status_ad:'Todos',alerta:'Todos'
+};
+
+function _refreshUI(){
+  document.querySelectorAll('[data-fk]').forEach(btn=>{
+    const fk=btn.dataset.fk; const sel=_F[fk]||[];
+    const v=btn.querySelector('.v'); if(!v) return;
+    if(!sel.length){ v.textContent=_LBL[fk]||'Todos'; btn.classList.remove('active'); }
+    else if(sel.length===1){ v.textContent=String(sel[0]).length>22?String(sel[0]).slice(0,20)+'…':sel[0]; btn.classList.add('active'); }
+    else{ v.textContent=`${sel.length} sel.`; btn.classList.add('active'); }
+  });
+}
+
+// ── UI: chips de filtros ativos ────────────────────────────────────────────────
+const _CLBL={
+  empresa:'Empresa',negocio:'Negócio',regiao:'Região',uf:'UF',filial:'Filial',
+  ano:'Ano',periodo:'Período',abc_forn:'ABC forn.',fornecedor:'Fornecedor',
+  cat1:'CAT1',cat2:'CAT2',cat3:'CAT3',cat4:'CAT4',cat5:'CAT5',
+  produto:'Produto',id:'ID',abc_prod:'ABC prod.',abc_id:'ABC ID',
+  status_cot:'Status cot.',status_cp:'Status CP',status_ad:'Status AD',alerta:'Alerta'
+};
+
+function _refreshChips(){
+  const el=document.getElementById('appliedTags'); if(!el) return;
+  el.innerHTML=Object.entries(_F)
+    .filter(([,v])=>v.length>0)
+    .map(([k,v])=>`<span class="pill" data-fk="${k}">${_CLBL[k]}: ${v.length>2?v.length+' sel.':v.join(', ')}<span class="x" style="margin-left:4px;opacity:.7;cursor:pointer">✕</span></span>`)
+    .join('');
+  el.querySelectorAll('.pill').forEach(p=>{
+    p.addEventListener('click',()=>{ _F[p.dataset.fk]=[]; _cascade(p.dataset.fk); _saveF(); _applyF(); });
+  });
+}
+
+// ── Dropdown multi-select ──────────────────────────────────────────────────────
+let _ddFk=null;
+
+function _openDD(btn,fk){
+  if(_ddFk===fk){ _closeDD(); return; }
+  _closeDD();
+  _ddFk=fk;
+  const opts=(_OPTS[fk]?_OPTS[fk]():[]);
+  const sel=_F[fk]||[];
+  const dd=document.getElementById('flt-dd');
+  const allChk=opts.length>0&&opts.every(o=>sel.includes(o));
+
+  dd.innerHTML=`
+    <div class="flt-dd-srch"><input id="flt-q" placeholder="Buscar…" autocomplete="off"></div>
+    <div class="flt-dd-opts">
+      <label class="flt-dd-all"><input type="checkbox" id="flt-all" ${allChk?'checked':''}><span>Selecionar todos</span></label>
+      <div id="flt-list">${opts.map(o=>`<label><input type="checkbox" value="${o}" ${sel.includes(String(o))?'checked':''}><span>${o}</span></label>`).join('')}</div>
+    </div>
+    <div class="flt-dd-foot"><span class="flt-dd-cnt">${sel.length} selecionado${sel.length!==1?'s':''}</span><button class="flt-dd-clr">Limpar</button></div>`;
+
+  const r=btn.getBoundingClientRect();
+  dd.style.cssText=`display:flex;left:${r.left}px;top:${r.bottom+3}px;min-width:${Math.max(r.width,180)}px`;
+
+  requestAnimationFrame(()=>{
+    const dr=dd.getBoundingClientRect();
+    if(dr.right>window.innerWidth-8) dd.style.left=(window.innerWidth-dr.width-8)+'px';
+    if(dr.bottom>window.innerHeight-8) dd.style.top=(r.top-dr.height-3)+'px';
+  });
+
+  document.getElementById('flt-q').addEventListener('input',e=>{
+    const q=e.target.value.toLowerCase();
+    document.querySelectorAll('#flt-list label').forEach(l=>{
+      l.style.display=l.querySelector('span').textContent.toLowerCase().includes(q)?'':'none';
+    });
+  });
+
+  document.getElementById('flt-all').addEventListener('change',e=>{
+    const vis=[...document.querySelectorAll('#flt-list label:not([style*="display: none"]) input,[#flt-list label:not([style]) input')];
+    const allInputs=[...document.querySelectorAll('#flt-list input')];
+    if(e.target.checked){
+      allInputs.forEach(cb=>{ cb.checked=true; if(!_F[fk].includes(cb.value)) _F[fk].push(cb.value); });
+    } else {
+      const vals=allInputs.map(cb=>cb.value);
+      _F[fk]=_F[fk].filter(v=>!vals.includes(v));
+      allInputs.forEach(cb=>cb.checked=false);
+    }
+    _updCnt();
+  });
+
+  document.getElementById('flt-list').addEventListener('change',e=>{
+    if(e.target.type!=='checkbox') return;
+    const v=e.target.value;
+    if(e.target.checked){ if(!_F[fk].includes(v)) _F[fk].push(v); }
+    else _F[fk]=_F[fk].filter(x=>x!==v);
+    _updCnt();
+  });
+
+  dd.querySelector('.flt-dd-clr').addEventListener('click',()=>{
+    _F[fk]=[];
+    document.querySelectorAll('#flt-list input').forEach(cb=>cb.checked=false);
+    document.getElementById('flt-all').checked=false;
+    _updCnt();
+  });
+
+  function _updCnt(){
+    const c=(_F[fk]||[]).length;
+    dd.querySelector('.flt-dd-cnt').textContent=`${c} selecionado${c!==1?'s':''}`;
+  }
+
+  dd._onClose=()=>{ _cascade(fk); _saveF(); _applyF(); };
+}
+
+function _closeDD(){
+  const dd=document.getElementById('flt-dd');
+  if(_ddFk&&dd._onClose) dd._onClose();
+  dd.style.display='none'; dd._onClose=null; _ddFk=null;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function _init(){
+  // Cria div do dropdown
+  const dd=document.createElement('div'); dd.id='flt-dd'; dd.style.display='none';
+  document.body.appendChild(dd);
+
+  // Fecha dropdown ao clicar fora
+  document.addEventListener('click',e=>{
+    if(_ddFk&&!document.getElementById('flt-dd').contains(e.target)&&!e.target.closest('[data-fk]'))
+      _closeDD();
+  });
+
+  // Wiring: botões de filtro
+  document.querySelectorAll('[data-fk]').forEach(btn=>{
+    btn.addEventListener('click',e=>{ e.stopPropagation(); _openDD(btn,btn.dataset.fk); });
+  });
+
+  // Limpar filtros
+  const clr=document.getElementById('filtersClear');
+  if(clr) clr.addEventListener('click',()=>{ _F=_F0(); _saveF(); _applyF(); });
+
+  // Backup inicial dos dados
+  if(window._BI_DATA&&!window._BI_DATA_RAW)
+    window._BI_DATA_RAW=Object.assign({},window._BI_DATA);
+
+  // Restaurar filtros salvos
+  _loadF();
+  _refreshUI();
+  _refreshChips();
+
+  // Se há filtros salvos, aplicar
+  if(Object.values(_F).some(v=>v.length>0)) _applyF();
+
+  // Integrar com troca de aba
+  document.querySelectorAll('.tab[data-page]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      setTimeout(()=>{
+        if(Object.values(_F).some(v=>v.length>0)) _applyF();
+      }, 90);
+    });
+  });
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_init);
+else _init();
+})();
+"""
+
+# ── Substituição do HTML dos filtros ──────────────────────────────────────────
+
+def replace_filter_html(html):
+    """Substitui o bloco .filters do v4 com as novas linhas de filtros."""
+    new_filters = """<div class="filters" id="filters">
+    <div class="row" id="filterRow1">
+      <div class="f"><label>Empresa</label><button class="pick" data-fk="empresa"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Negócio</label><button class="pick" data-fk="negocio"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Região</label><button class="pick" data-fk="regiao"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>UF</label><button class="pick" data-fk="uf"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Filial</label><button class="pick" data-fk="filial"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Ano</label><button class="pick" data-fk="ano"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Período</label><button class="pick" data-fk="periodo"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>ABC fornecedor</label><button class="pick" data-fk="abc_forn"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Fornecedor</label><button class="pick" data-fk="fornecedor"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+    </div>
+    <div class="row row2" id="filterRow2">
+      <div class="f"><label>CAT 1</label><button class="pick" data-fk="cat1"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>CAT 2</label><button class="pick" data-fk="cat2"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>CAT 3</label><button class="pick" data-fk="cat3"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>CAT 4</label><button class="pick" data-fk="cat4"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>CAT 5</label><button class="pick" data-fk="cat5"><span class="v">Todas</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Produto</label><button class="pick" data-fk="produto"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>ID</label><button class="pick" data-fk="id"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>ABC produto</label><button class="pick" data-fk="abc_prod"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>ABC ID</label><button class="pick" data-fk="abc_id"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Status cotação</label><button class="pick" data-fk="status_cot"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Status CP</label><button class="pick" data-fk="status_cp"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Status AD</label><button class="pick" data-fk="status_ad"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f"><label>Tipo alerta</label><button class="pick" data-fk="alerta"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+    </div>
+    <div class="filter-foot">
+      <div><button class="filters-toggle open" id="advToggle"><span>Filtros avançados</span><span class="chev">▾</span></button></div>
+      <div class="applied" id="appliedTags"></div>
+      <button class="filters-clear" id="filtersClear">Limpar filtros</button>
+    </div>
+  </div>"""
+    return re.sub(
+        r'<div class="filters" id="filters">[\s\S]*?(?=\s*<!-- ===== Page)',
+        new_filters + '\n\n  ',
+        html, count=1
+    )
 
 # ── Injeção no HTML ───────────────────────────────────────────────────────────
 
@@ -1049,9 +1547,11 @@ def main():
     print(f"  {n_consts} elementos com dados injetados")
 
     print("Injetando no HTML...")
+    html = replace_filter_html(html)
     html = inject_css(html, GRID_CSS)
     html = inject_css(html, EDITOR_CSS)
-    html = inject_before_script_end(html, js_injection + "\n" + RENDERER_JS + "\n" + EDITOR_JS)
+    html = inject_css(html, FILTER_CSS)
+    html = inject_before_script_end(html, js_injection + "\n" + RENDERER_JS + "\n" + EDITOR_JS + "\n" + FILTER_JS)
     html = update_timestamp(html)
 
     out = DIST / "index.html"
