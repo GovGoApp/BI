@@ -922,7 +922,7 @@ else _init();
 FILTER_CSS = """
 /* ── Filtros BI — gerado por build.py ── */
 .filters .row   { grid-template-columns: repeat(9,  minmax(0,1fr)) !important; }
-.filters .row2  { grid-template-columns: repeat(13, minmax(0,1fr)) !important; }
+.filters .row2  { grid-template-columns: repeat(12, minmax(0,1fr)) !important; }
 @media (max-width:1200px){
   .filters .row  { grid-template-columns: repeat(5, minmax(0,1fr)) !important; }
   .filters .row2 { grid-template-columns: repeat(7, minmax(0,1fr)) !important; }
@@ -982,7 +982,7 @@ const _REGS = {
   SE: ['ES','MG','RJ','SP'],
   S:  ['PR','RS','SC'],
 };
-const _ABC  = ['AAA','AA','A','B','C'];
+const _ABC  = ['AAA','AA','A','B','BB','C','CC','CCC'];
 const _SCP  = ['Em Aberto','Baixado'];
 const _SAD  = ['ADIANTAMENTO CONCILIADO','ADIANTAMENTO PENDENTE','ADIANTAMENTO ?'];
 
@@ -1024,8 +1024,12 @@ function _pred(r){
   if (_F.filial.length){ const f=r.filial||r.nome||''; if(f&&!_F.filial.includes(f)) return false; }
   for(let i=1;i<=5;i++){ const k=`cat${i}`; if(_F[k].length&&r[k]&&!_F[k].includes(r[k])) return false; }
   if (_F.fornecedor.length && r.fornecedor && !_F.fornecedor.includes(r.fornecedor)) return false;
-  if (_F.produto.length   && r.produto    && !_F.produto.includes(r.produto))     return false;
-  if (_F.id.length){ const id=r.id||r.cdproduto||''; if(id&&!_F.id.includes(id)) return false; }
+  if (_F.produto.length) {
+    const sI=new Set(_F.produto.map(v=>v.split(' - ')[0]));
+    const sN=new Set(_F.produto.map(v=>v.split(' - ').slice(1).join(' - ')));
+    const ri=String(r.cdproduto||r.id||''), rn=String(r.produto||'');
+    if ((ri||rn) && !sI.has(ri) && !sN.has(rn)) return false;
+  }
   if (_F.abc_forn.length  && r.curva      && !_F.abc_forn.includes(r.curva))      return false;
   if (_F.abc_prod.length  && r.curva_prod && !_F.abc_prod.includes(r.curva_prod)) return false;
   if (_F.abc_id.length    && r.curva_id   && !_F.abc_id.includes(r.curva_id))     return false;
@@ -1116,23 +1120,19 @@ const _OPTS={
     if(_F.abc_forn.length) d=d.filter(r=>_F.abc_forn.includes(r.curva));
     return _uniq(d,'fornecedor').sort().slice(0,300);
   },
-  cat1:       ()=>_uniq(_BD('CAT_R01_HIERARQUIA'),'cat1').filter(Boolean).sort(),
-  cat2:       ()=>{let d=_BD('CAT_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));return _uniq(d,'cat2').filter(Boolean).sort();},
-  cat3:       ()=>{let d=_BD('CAT_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));return _uniq(d,'cat3').filter(Boolean).sort();},
-  cat4:       ()=>{let d=_BD('CAT_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));if(_F.cat3.length)d=d.filter(r=>_F.cat3.includes(r.cat3));return _uniq(d,'cat4').filter(Boolean).sort();},
-  cat5:       ()=>{let d=_BD('CAT_R01_HIERARQUIA');['cat1','cat2','cat3','cat4'].forEach((k,i)=>{if(_F[k].length)d=d.filter(r=>_F[k].includes(r[k]));});return _uniq(d,'cat5').filter(Boolean).sort();},
+  cat1:       ()=>_uniq(_BD('CATEGORIA_R01_HIERARQUIA'),'cat1').filter(Boolean).sort(),
+  cat2:       ()=>{let d=_BD('CATEGORIA_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));return _uniq(d,'cat2').filter(Boolean).sort();},
+  cat3:       ()=>{let d=_BD('CATEGORIA_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));return _uniq(d,'cat3').filter(Boolean).sort();},
+  cat4:       ()=>{let d=_BD('CATEGORIA_R01_HIERARQUIA');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));if(_F.cat3.length)d=d.filter(r=>_F.cat3.includes(r.cat3));return _uniq(d,'cat4').filter(Boolean).sort();},
+  cat5:       ()=>{let d=_BD('CATEGORIA_R01_HIERARQUIA');['cat1','cat2','cat3','cat4'].forEach(k=>{if(_F[k].length)d=d.filter(r=>_F[k].includes(r[k]));});return _uniq(d,'cat5').filter(Boolean).sort();},
   produto:    ()=>{
     let d=_BD('PRODUTO_R01_TABELA');
     if(_F.abc_prod.length) d=d.filter(r=>_F.abc_prod.includes(r.curva_prod||r.curva_id));
+    if(_F.abc_id.length)   d=d.filter(r=>_F.abc_id.includes(r.curva_id));
     for(let i=1;i<=5;i++){const k=`cat${i}`;if(_F[k].length)d=d.filter(r=>_F[k].includes(r[k]));}
-    return _uniq(d,'produto').sort().slice(0,300);
+    return [...new Set(d.map(r=>`${r.cdproduto} - ${r.produto}`).filter(Boolean))].sort().slice(0,300);
   },
-  id:         ()=>{
-    let d=_BD('PRODUTO_R01_TABELA');
-    if(_F.produto.length) d=d.filter(r=>_F.produto.includes(r.produto));
-    if(_F.abc_id.length) d=d.filter(r=>_F.abc_id.includes(r.curva_id));
-    return _uniq(d,'cdproduto').filter(Boolean).sort().slice(0,300);
-  },
+  id:         ()=>[],
   abc_prod:   ()=>_ABC,
   abc_id:     ()=>_ABC,
   status_cot: ()=>['Com cotação','Sem cotação','Mono-cotação'],
@@ -1145,13 +1145,12 @@ const _OPTS={
 const _CASC={
   regiao:['uf','filial'], empresa:['filial'], negocio:['filial'], uf:['filial'],
   ano:['periodo'],
-  cat1:['cat2','cat3','cat4','cat5','produto','id'],
-  cat2:['cat3','cat4','cat5','produto','id'],
-  cat3:['cat4','cat5','produto','id'],
-  cat4:['cat5','produto','id'],
-  cat5:['produto','id'],
-  produto:['id'],
-  abc_forn:['fornecedor'], abc_prod:['produto','id'], abc_id:['id'],
+  cat1:['cat2','cat3','cat4','cat5','produto'],
+  cat2:['cat3','cat4','cat5','produto'],
+  cat3:['cat4','cat5','produto'],
+  cat4:['cat5','produto'],
+  cat5:['produto'],
+  abc_forn:['fornecedor'], abc_prod:['produto'], abc_id:['produto'],
 };
 
 function _cascade(fk){
@@ -1391,7 +1390,6 @@ def replace_filter_html(html):
       <div class="f"><label>CAT 4</label><button class="pick" data-fk="cat4"><span class="v">Todas</span><span class="caret">▾</span></button></div>
       <div class="f"><label>CAT 5</label><button class="pick" data-fk="cat5"><span class="v">Todas</span><span class="caret">▾</span></button></div>
       <div class="f"><label>Produto</label><button class="pick" data-fk="produto"><span class="v">Todos</span><span class="caret">▾</span></button></div>
-      <div class="f"><label>ID</label><button class="pick" data-fk="id"><span class="v">Todos</span><span class="caret">▾</span></button></div>
       <div class="f"><label>ABC produto</label><button class="pick" data-fk="abc_prod"><span class="v">Todos</span><span class="caret">▾</span></button></div>
       <div class="f"><label>ABC ID</label><button class="pick" data-fk="abc_id"><span class="v">Todos</span><span class="caret">▾</span></button></div>
       <div class="f"><label>Status cotação</label><button class="pick" data-fk="status_cot"><span class="v">Todos</span><span class="caret">▾</span></button></div>
