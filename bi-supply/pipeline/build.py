@@ -290,7 +290,7 @@ function _renderGL(elem, data) {
   const xlabels = data.map((r, i) => {
     if (i % step !== 0 && i !== data.length - 1) return '';
     const x = pL + (i / (data.length - 1)) * iW;
-    return `<text x="${x.toFixed(1)}" y="${H-3}" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Segoe UI">${String(r[xk] || '').slice(-7)}</text>`;
+    return `<text x="${x.toFixed(1)}" y="${H-3}" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Segoe UI',Arial,sans-serif">${String(r[xk] || '').slice(-7)}</text>`;
   }).join('');
 
   const ptArr = pts.split(' ');
@@ -324,7 +324,7 @@ function _renderGB(elem, data) {
     const x = pL + i * (iW / data.length) + (iW / data.length - bW) / 2;
     const v = vals[i], bH = (v / maxV) * iH, y = pT + iH - bH;
     return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${color}" rx="2" opacity="0.85"/>
-      <text x="${(x+bW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="8" fill="#94a3b8">${String(r[xk]||'').slice(-7)}</text>`;
+      <text x="${(x+bW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="8" fill="#64748b">${String(r[xk]||'').slice(-7)}</text>`;
   }).join('');
 
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
@@ -352,7 +352,7 @@ function _renderGE(elem, data) {
       const v = parseFloat(r[k]) || 0, bH = (v / maxT) * iH;
       if (bH > 0) { rects += `<rect x="${x.toFixed(1)}" y="${(yOff-bH).toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${colors[ki%colors.length]}" opacity="0.85"/>`; yOff -= bH; }
     });
-    return rects + `<text x="${(x+bW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="8" fill="#94a3b8">${String(r[xk]||'').slice(-7)}</text>`;
+    return rects + `<text x="${(x+bW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="8" fill="#64748b">${String(r[xk]||'').slice(-7)}</text>`;
   }).join('');
 
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">${bars}</svg>`;
