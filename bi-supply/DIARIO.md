@@ -879,3 +879,34 @@ python nlsql/server.py   # Terminal 1
 ```
 
 ---
+
+## [2026-06-02] Passo 10 — Correções Aba Relatório
+
+**Commits:** `0a98a8d`, `0f3ef18`
+
+### Refatoração completa do layout (versão anterior estava errada)
+
+Inspiração: estudo aprofundado do `RelatoriosWorkspace.jsx` do GovGo v2.
+
+**Layout correto:** `grid-template-columns: 360px minmax(0,1fr)` — sidebar e main **simultâneos**, não abas alternadas.
+
+**Sidebar esquerda (360px):**
+- Botões Chat | Histórico para alternar modo (não são abas de resultado)
+- Chat: bolhas user (azul escuro, direita) + assistente (azul claro, esquerda) + input fixo no fundo (height:58px, 3 rows)
+- Histórico: 3 sub-abas (Chats | Relatórios | Favoritos) + lista clicável
+
+**Main direita:**
+- Barra de abas horizontal: uma aba por query (closable, count de linhas, spinner)
+- Botão `+` nova consulta + botão `🤖 Assistente` fixo à direita
+- Conteúdo: título 20px + subtítulo + bloco SQL dark (max 92px) + tabela (400px, 10 linhas/pág)
+
+**Design System:** `--blue`, `--text`, `--muted`, `--line`, `--head`, `--border`
+
+### Correções pós-feedback
+
+| Problema | Causa | Fix |
+|---|---|---|
+| "Failed to fetch" sem contexto | Servidor não rodando, erro genérico | Detecta string fetch/Failed/Network → fecha aba criada, exibe mensagem instrutiva |
+| Aba "Erro" aparece sem motivo | Toda query cria aba, inclusive falhas de rede | `_closeTab(tabId)` quando é erro de rede |
+| Histórico não atualiza | `GET /history` só rodava no primeiro init | Ao clicar em "📋 Histórico" sempre chama `refreshHist()` |
+| Assistente vazio quando servidor off | `GET /prompt` falhava silenciosamente | Exibe texto instrutivo na textarea: "Inicie com: python nlsql/server.py" |
