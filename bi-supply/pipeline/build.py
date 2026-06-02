@@ -116,25 +116,26 @@ def load_dim_categorias():
     return [{k: r.get(k,"") for k in ("cat1","cat2","cat3","cat4","cat5")} for r in rows]
 
 def load_dim_produtos():
-    """Carrega lista completa de produtos com nome e cat2 a partir do raw pmp_id_inf_12."""
-    p = RAW / "pmp_id_inf_12.csv"
+    """Carrega lista completa de produtos com curva_prod de pmp_prod_inf_12."""
+    p = RAW / "pmp_prod_inf_12.csv"
     if not p.exists():
-        # fallback: usar processado sem limite
+        p = RAW / "pmp_id_inf_12.csv"   # fallback sem curva_prod
+    if not p.exists():
         pp = PROC / "07_produto" / "07_produto_r01_tabela_principal.csv"
         if not pp.exists():
             return []
-        rows = rc(pp)
         return [{"cdproduto": r.get("cdproduto",""), "produto": r.get("produto",""),
-                 "cat2": r.get("cat2","")} for r in rows if r.get("cdproduto")]
+                 "cat2": r.get("cat2",""), "curva_prod": r.get("curva_prod","")}
+                for r in rc(pp) if r.get("cdproduto")]
     rows = rc(p)
     seen = set(); result = []
     for r in rows:
-        cd = r.get("CDPRODUTO_OFICIAL","").strip().lstrip("﻿")
+        cd = (r.get("﻿CDPRODUTO_OFICIAL","") or r.get("CDPRODUTO_OFICIAL","")).strip()
         nm = r.get("NMPRODUTO_OFICIAL","").strip()
-        c2 = r.get("CAT2","")
         if cd and nm and cd not in seen:
             seen.add(cd)
-            result.append({"cdproduto": cd, "produto": nm, "cat2": c2})
+            result.append({"cdproduto": cd, "produto": nm,
+                           "cat2": r.get("CAT2",""), "curva_prod": r.get("CURVA_PROD","").strip()})
     return result
 
 def load_all_indexes():
@@ -1010,7 +1011,7 @@ else _init();
 FILTER_CSS = """
 /* ── Filtros BI — gerado por build.py ── */
 .filters .row   { grid-template-columns: repeat(9,  minmax(0,1fr)) !important; }
-.filters .row2  { grid-template-columns: repeat(13, minmax(0,1fr)) !important; }
+.filters .row2  { grid-template-columns: repeat(9,  minmax(0,1fr)) !important; }
 @media (max-width:1200px){
   .filters .row  { grid-template-columns: repeat(5, minmax(0,1fr)) !important; }
   .filters .row2 { grid-template-columns: repeat(7, minmax(0,1fr)) !important; }
@@ -1227,11 +1228,14 @@ const _OPTS={
   cat4:       ()=>{let d=_BD('DIM_CATEGORIAS');if(_F.cat1.length)d=d.filter(r=>_F.cat1.includes(r.cat1));if(_F.cat2.length)d=d.filter(r=>_F.cat2.includes(r.cat2));if(_F.cat3.length)d=d.filter(r=>_F.cat3.includes(r.cat3));return _uniq(d,'cat4').filter(Boolean).sort();},
   cat5:       ()=>{let d=_BD('DIM_CATEGORIAS');['cat1','cat2','cat3','cat4'].forEach(k=>{if(_F[k].length)d=d.filter(r=>_F[k].includes(r[k]));});return _uniq(d,'cat5').filter(Boolean).sort();},
   produto:    ()=>{
-    // Usa DIM_PRODUTOS (lista completa) filtrada pelo _vc2 já computado
     let d=_BD('DIM_PRODUTOS');
-    if(_F.abc_prod.length) d=d.filter(r=>_F.abc_prod.includes(r.curva_prod||r.curva_id));
-    if(_F.abc_id.length)   d=d.filter(r=>_F.abc_id.includes(r.curva_id));
+    if(_F.abc_prod.length) d=d.filter(r=>_F.abc_prod.includes(r.curva_prod));
     if(_vc2!==null) d=d.filter(r=>_vc2.has(r.cat2));
+    // Bidirecional com ID: se ID selecionado, restringe ao produto daquele ID
+    if(_F.id.length){
+      const sC=new Set(_F.id.map(v=>v.split(' - ')[0].slice(4))); // cdproduto = id[4:]
+      d=d.filter(r=>sC.has(r.cdproduto));
+    }
     return [...new Set(d.map(r=>`${r.cdproduto} - ${r.produto}`).filter(Boolean))].sort().slice(0,500);
   },
   id:         ()=>{
@@ -1259,14 +1263,14 @@ const _OPTS={
 
 // ── Cascatas: quando fk muda, limpa seleções inválidas downstream ─────────────
 const _CASC={
-  regiao:['uf','filial'], empresa:['filial'], negocio:['filial'], uf:['filial'],
+  regiao:['uf','filial','id'], empresa:['filial','id'], negocio:['filial'], uf:['filial','id'],
   ano:['periodo'],
   cat1:['cat2','cat3','cat4','cat5','produto','id'],
   cat2:['cat3','cat4','cat5','produto','id'],
   cat3:['cat4','cat5','produto','id'],
   cat4:['cat5','produto','id'],
   cat5:['produto','id'],
-  produto:['id'],
+  produto:['id'], id:['produto'],
   abc_forn:['fornecedor'], abc_prod:['produto','id'], abc_id:['id'],
 };
 
@@ -1513,10 +1517,10 @@ def replace_filter_html(html):
       <div class="f"><label>ID</label><button class="pick" data-fk="id"><span class="v">Todos</span><span class="caret">▾</span></button></div>
       <div class="f"><label>ABC produto</label><button class="pick" data-fk="abc_prod"><span class="v">Todos</span><span class="caret">▾</span></button></div>
       <div class="f"><label>ABC ID</label><button class="pick" data-fk="abc_id"><span class="v">Todos</span><span class="caret">▾</span></button></div>
-      <div class="f"><label>Status cotação</label><button class="pick" data-fk="status_cot"><span class="v">Todos</span><span class="caret">▾</span></button></div>
-      <div class="f"><label>Status CP</label><button class="pick" data-fk="status_cp"><span class="v">Todos</span><span class="caret">▾</span></button></div>
-      <div class="f"><label>Status AD</label><button class="pick" data-fk="status_ad"><span class="v">Todos</span><span class="caret">▾</span></button></div>
-      <div class="f"><label>Tipo alerta</label><button class="pick" data-fk="alerta"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f" style="display:none"><label>Status cotação</label><button class="pick" data-fk="status_cot"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f" style="display:none"><label>Status CP</label><button class="pick" data-fk="status_cp"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f" style="display:none"><label>Status AD</label><button class="pick" data-fk="status_ad"><span class="v">Todos</span><span class="caret">▾</span></button></div>
+      <div class="f" style="display:none"><label>Tipo alerta</label><button class="pick" data-fk="alerta"><span class="v">Todos</span><span class="caret">▾</span></button></div>
     </div>
     <div class="filter-foot">
       <div><button class="filters-toggle open" id="advToggle"><span>Filtros avançados</span><span class="chev">▾</span></button></div>
