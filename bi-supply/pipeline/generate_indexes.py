@@ -39,9 +39,9 @@ def e(id_, vjs, tipo, titulo, dados, config, col, col_span, row, row_span,
         }
     }
 
-def ep(id_, vjs, tipo, titulo, dados, config, col_span=16, row_span=6,
-       subtitulo="", zoho=""):
-    """Elemento só em data/processed — sem posição ainda."""
+def ep(id_, vjs, tipo, titulo, dados, config, col=1, col_span=16, row=None, row_span=6,
+       subtitulo="", zoho="", visivel=True):
+    """Elemento de data/processed — posicionado abaixo dos elementos v4."""
     return {
         "id": id_,
         "variavel_js": vjs,
@@ -52,9 +52,9 @@ def ep(id_, vjs, tipo, titulo, dados, config, col_span=16, row_span=6,
         "dados": dados,
         "config": config,
         "layout": {
-            "col": None, "col_span": col_span,
-            "row": None, "row_span": row_span,
-            "visivel": False,
+            "col": col, "col_span": col_span,
+            "row": row, "row_span": row_span,
+            "visivel": visivel if row is not None else False,
             "origem": "processed",
         }
     }
@@ -144,7 +144,7 @@ IDX_04 = {
         e("04_filial_r03_mes",      "FILIAL_R03_MES",      "GL","Top 3 Filiais × Mês", "04_filial_r03_top3_por_mes.csv",{"x":"mesano","y":"spend","serie_key":"cdfilial"}, col=12,col_span=5,row=4,row_span=5,zoho="NFE"),
         e("04_filial_r04_cat",      "FILIAL_R04_CAT",      "T","Filial × Categoria",   "04_filial_r04_por_categoria.csv",{"colunas":[{"key":"cdfilial"},{"key":"cat2","cls":"nm"},{"key":"spend","cls":"num","fmt":"brl"}]}, col=12,col_span=5,row=9,row_span=5,zoho="NFE"),
         # Tipo B
-        ep("04_filial_r05_forn",    "FILIAL_R05_FORN",     "T","Filial × Fornecedor",  "04_filial_r05_por_fornecedor.csv",{"colunas":[{"key":"cdfilial"},{"key":"fornecedor","cls":"nm"},{"key":"spend","cls":"num","fmt":"brl"}]},col_span=16,row_span=6,zoho="NFE"),
+        ep("04_filial_r05_forn",    "FILIAL_R05_FORN",     "T","Filial × Fornecedor",  "04_filial_r05_por_fornecedor.csv",{"colunas":[{"key":"cdfilial"},{"key":"fornecedor","cls":"nm"},{"key":"spend","cls":"num","fmt":"brl"}]},col=1,col_span=16,row=14,row_span=6,zoho="NFE"),
     ]
 }
 
@@ -169,8 +169,8 @@ IDX_06 = {
         e("06_fornecedor_k05_ad",      "FORNECEDOR_K05_AD",      "KPI","Forn. com AD Pendente", "06_fornecedor_k00_kpis.json",{"chave":"forn_com_ad_pendente","fmt":"num","state":"warn"}, col=13,col_span=4,row=1,row_span=3,zoho="AD_v3"),
         e("06_fornecedor_r01_tabela",  "FORNECEDOR_R01_TABELA",  "TE","Tabela Fornecedor 360",  "06_fornecedor_r01_tabela_principal.csv",{"colunas":[{"key":"fornecedor","label":"Fornecedor","cls":"nm"},{"key":"curva","label":"Curva"},{"key":"empresas","label":"Empresas"},{"key":"spend_total","label":"Spend","cls":"num","fmt":"brl"},{"key":"imp_cot","label":"IMP_COT","cls":"num","fmt":"brl"},{"key":"cp_aberto","label":"CP Aberto","cls":"num","fmt":"brl"},{"key":"ad_pendente","label":"AD Pend.","cls":"num","fmt":"brl"}],"expandable":True},col=1,col_span=16,row=4,row_span=12,subtitulo="expandir para ver detalhe",zoho="NFE · CP · AD_v3"),
         # Tipo B
-        ep("06_fornecedor_r02_cat",    "FORNECEDOR_R02_CAT",     "T","Fornecedor × Categoria",  "06_fornecedor_r02_por_categoria.csv",{"colunas":[{"key":"fornecedor","cls":"nm"},{"key":"cat2"},{"key":"spend","cls":"num","fmt":"brl"}]},col_span=16,row_span=6),
-        ep("06_fornecedor_r03_prod",   "FORNECEDOR_R03_PROD",    "T","Produtos por Fornecedor", "06_fornecedor_r03_produto_por_forn.csv",{"colunas":[{"key":"fornecedor","cls":"nm"},{"key":"produto","cls":"nm"},{"key":"spend","cls":"num","fmt":"brl"}]},col_span=16,row_span=6),
+        ep("06_fornecedor_r02_cat",    "FORNECEDOR_R02_CAT",     "T","Fornecedor × Categoria",  "06_fornecedor_r02_por_categoria.csv",{"colunas":[{"key":"fornecedor","cls":"nm"},{"key":"cat2"},{"key":"spend","cls":"num","fmt":"brl"}]},col=1,col_span=16,row=16,row_span=6),
+        ep("06_fornecedor_r03_prod",   "FORNECEDOR_R03_PROD",    "T","Produtos por Fornecedor", "06_fornecedor_r03_produto_por_forn.csv",{"colunas":[{"key":"fornecedor","cls":"nm"},{"key":"produto","cls":"nm"},{"key":"spend","cls":"num","fmt":"brl"}]},col=1,col_span=16,row=23,row_span=6),
     ]
 }
 
@@ -285,7 +285,7 @@ IDX_12 = {
         e("12_financeiro_r01_aging", "FINANCEIRO_R01_AGING", "T","Aging de CP",       "12_financeiro_r01_aging.csv",{"colunas":[{"key":"faixa_dias","cls":"nm"},{"key":"valor","cls":"num","fmt":"brl"},{"key":"titulos","cls":"num"}]},col=1,col_span=8,row=9,row_span=6,zoho="CP"),
         e("12_financeiro_r02_forn",  "FINANCEIRO_R02_FORN",  "T","CP por Fornecedor", "12_financeiro_r02_por_fornecedor.csv",{"colunas":[{"key":"fornecedor","cls":"nm"},{"key":"curva"},{"key":"cp_aberto","cls":"num","fmt":"brl"},{"key":"cp_vencido","cls":"num","fmt":"brl"},{"key":"titulos","cls":"num"}]},col=9,col_span=8,row=9,row_span=6,zoho="CP"),
         # Tipo B
-        ep("12_financeiro_r04_saldo","FINANCEIRO_R04_SALDO","T","Saldo Semanal 2026",  "12_financeiro_r04_saldo_semanal_2026.csv",{"colunas":[{"key":"fornecedor","cls":"nm"},{"key":"semana"},{"key":"saldo","cls":"num","fmt":"brl"}]},col_span=16,row_span=6),
+        ep("12_financeiro_r04_saldo","FINANCEIRO_R04_SALDO","T","Saldo Semanal 2026",  "12_financeiro_r04_saldo_semanal_2026.csv",{"colunas":[{"key":"fornecedor","cls":"nm"},{"key":"semana"},{"key":"saldo","cls":"num","fmt":"brl"}]},col=1,col_span=16,row=15,row_span=6),
     ]
 }
 
@@ -305,7 +305,7 @@ IDX_13 = {
         e("13_adiantamento_r06_forn", "ADIANTAMENTO_R06_FORN", "T","AD por Fornecedor",   "13_adiantamento_r06_por_fornecedor.csv",{"colunas":[{"key":"fornecedor","cls":"nm"},{"key":"pendente","cls":"num","fmt":"brl"},{"key":"conciliado","cls":"num","fmt":"brl"},{"key":"registros","cls":"num"}]},col=12,col_span=5,row=4,row_span=5,zoho="AD_v3"),
         # Tipo B
         ep("13_adiantamento_r03_mes", "ADIANTAMENTO_R03_MES",  "GL","AD por Mês",          "13_adiantamento_r03_por_mes.csv",{"x":"mesano","stacks":["pendente","conciliado"]},col_span=8,row_span=5),
-        ep("13_adiantamento_r04_uf",  "ADIANTAMENTO_R04_UF",   "HL","AD por UF",            "13_adiantamento_r04_por_uf.csv",{"label":"uf","value":"valor_total"},col_span=8,row_span=5),
+        ep("13_adiantamento_r04_uf",  "ADIANTAMENTO_R04_UF",   "HL","AD por UF",            "13_adiantamento_r04_por_uf.csv",{"label":"uf","value":"valor_total"},col=1,col_span=8,row=15,row_span=5),
         ep("13_adiantamento_r05_cat", "ADIANTAMENTO_R05_CAT",  "T","AD por Categoria",      "13_adiantamento_r05_por_categoria.csv",{"colunas":[{"key":"categoria","cls":"nm"},{"key":"pendente","cls":"num","fmt":"brl"},{"key":"conciliado","cls":"num","fmt":"brl"}]},col_span=8,row_span=5),
     ]
 }
@@ -355,9 +355,47 @@ INDEXES = {
     "13_adiantamento": IDX_13, "14_servico": IDX_14, "15_dados": IDX_15,
 }
 
+
+# Posições definitivas dos 22 elementos processed-only
+# Formato: id -> (col, col_span, row, row_span)
+PROCESSED_POSITIONS = {
+    "02_oportunidade_r02_por_cat":  (1, 16, 19, 4),
+    "03_categoria_r04_top_forn":    (1, 16, 18, 6),
+    "03_categoria_r05_top_prod":    (1, 16, 25, 6),
+    "04_filial_r05_forn":           (1, 16, 14, 6),
+    "06_fornecedor_r02_cat":        (1, 16, 16, 6),
+    "06_fornecedor_r03_prod":       (1, 16, 23, 6),
+    "07_produto_r02_pmp_cat":       (1, 16, 19, 6),
+    "08_cotacao_r05_min_forn":      (1, 16, 15, 6),
+    "08_cotacao_r06_rel":           (1, 16, 22, 6),
+    "08_cotacao_r07_precos":        (1, 16, 29, 6),
+    "08_cotacao_r08_prod":          (1, 16, 36, 6),
+    "08_cotacao_r09_matriz":        (1, 16, 43, 6),
+    "08_cotacao_r10_le3":           (1, 16, 50, 6),
+    "09_impacto_r04_forn":          (1, 16, 17, 6),
+    "09_impacto_r05_prod_min":      (1, 16, 24, 6),
+    "10_inflacao_r07_forn":         (1, 16, 20, 6),
+    "10_inflacao_r08_cat_prod":     (1, 16, 27, 6),
+    "12_financeiro_r04_saldo":      (1, 16, 15, 6),
+    "13_adiantamento_r03_mes":      (1, 16,  9, 5),
+    "13_adiantamento_r04_uf":       (1,  8, 15, 5),
+    "13_adiantamento_r05_cat":      (1, 16, 21, 6),
+    "14_servico_r05_cat5":          (1, 16, 17, 6),
+}
+
+
 def main():
     total_v4 = total_proc = 0
     for folder, idx in INDEXES.items():
+        # Aplicar posições aos elementos processed
+        for elem in idx.get("elementos", []):
+            l = elem.get("layout", {})
+            if l.get("origem") == "processed" and elem["id"] in PROCESSED_POSITIONS:
+                col, col_span, row, row_span = PROCESSED_POSITIONS[elem["id"]]
+                l["col"] = col; l["col_span"] = col_span
+                l["row"] = row; l["row_span"] = row_span
+                l["visivel"] = True
+
         path = PROC / folder / f"{folder}_00_index.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(idx, ensure_ascii=False, indent=2), encoding="utf-8")
