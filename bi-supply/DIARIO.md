@@ -9,6 +9,95 @@ Registro técnico de todas as alterações do projeto, ordenado do mais recente 
 
 ---
 
+## [2026-06-02] Passo 8 — Sistema de filtros multi-select
+
+**Commit:** `298a06c`
+
+### O que foi feito
+
+Sistema completo de filtros interativos injetado no dashboard pelo `build.py`.
+
+### Nova estrutura de filtros
+
+**Linha 1 (9 filtros):** Empresa · Negócio · Região · UF · Filial · Ano · Período · ABC fornecedor · Fornecedor
+
+**Linha 2 (13 filtros, colapsável):** CAT1 · CAT2 · CAT3 · CAT4 · CAT5 · Produto · ID · ABC produto · ABC ID · Status cotação · Status CP · Status AD · Tipo alerta
+
+### Componente multi-select
+
+- Botão mostra `Todos` ou `N sel.` ou valor único
+- Dropdown com busca, `Selecionar todos`, checkboxes, contador e `Limpar`
+- Um único `div#flt-dd` reposicionado dinamicamente abaixo do botão ativo
+- Fecha ao clicar fora; aplica filtros ao fechar
+
+### Persistência e estado
+
+- Estado `_F` salvo em `localStorage['bi_filters']`
+- Filtros restaurados e aplicados automaticamente ao abrir o dashboard
+- Chips clicáveis na `filter-foot` mostram filtros ativos; clicar num chip remove aquele filtro
+- "Limpar filtros" reseta tudo e salva estado vazio
+
+### Arquitetura de dados
+
+```
+window._BI_DATA_RAW  ← cópia inicial (preservada)
+       ↓ _applyF()
+window._BI_DATA      ← dados filtrados (usados pelo renderer)
+       ↓ pages[pk]()
+DOM                  ← re-renderizado com dados filtrados
+```
+
+### Predicado de filtro (`_pred`)
+
+Aplica todos os filtros ativos a cada linha de dados. Colunas mapeadas:
+
+| Filtro | Coluna |
+|---|---|
+| empresa | `empresa` ou `empresas` (pipe-separated) |
+| negocio | `negocio` |
+| uf | `uf` (+ expansão de `regiao`) |
+| filial | `filial` ou `nome` |
+| cat1–5 | `cat1`–`cat5` |
+| fornecedor | `fornecedor` |
+| produto | `produto` |
+| id | `id` ou `cdproduto` |
+| abc_forn/prod/id | `curva`, `curva_prod`, `curva_id` |
+| periodo | `mesano` |
+| ano | ano extraído de `mesano` |
+| status_cp | `statuspag` |
+| status_ad | `status_conciliacao` |
+
+### Recálculo de KPIs (`_KC`)
+
+38 KPIs deriváveis recalculados em runtime a partir dos dados de linha já filtrados. Exemplos:
+
+- `FILIAL_K01_TOTAL` → `SUM(FILIAL_R01_RANKING.spend)` após filtro
+- `IMPACTO_K04_UF` → `MAX(IMPACTO_R02_UF, imp_cot).uf` após filtro
+- `ADIANTAMENTO_K04_PCT` → `SUM(conciliado) / (SUM(pendente) + SUM(conciliado))`
+
+~10 KPIs mantêm valor original (cross-source ou dependentes de data): `produtos_unicos`, `pct_com_cotacao`, `ids_sem_cotacao_12m`, `cp_a_vencer_7d`, `cp_critico_120d`, etc.
+
+### Cascatas (`_CASC`)
+
+| Filtro pai | Restringe opções de |
+|---|---|
+| Região | UF, Filial |
+| Empresa, Negócio, UF | Filial |
+| CAT1 → CAT2 → … → CAT5 | cada nível seguinte + Produto + ID |
+| Produto | ID |
+| ABC fornecedor | Fornecedor |
+| ABC produto | Produto, ID |
+| ABC ID | ID |
+| Ano | Período |
+
+### Integração com Editor (`_BI_EDITOR`)
+
+`window._BI_EDITOR = { applyLayout, decorate, enText, enSvg }` exposto pelo EDITOR_JS.
+
+Após re-render por filtro, FILTER_JS chama `_BI_EDITOR.applyLayout(pk)` para restaurar overrides de layout, e re-decora elementos se o modo edição estiver ativo.
+
+---
+
 ## [2026-06-01] Fundação do projeto bi-supply
 
 ### O que foi feito
