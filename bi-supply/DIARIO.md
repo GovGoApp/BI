@@ -348,3 +348,38 @@ CURVA ABC FORN - TOTAL · CURVA ID - TODAS · CURVA PROD - TODAS ·
 INFLAÇÃO · PMP_ID_INF_12 · PMP_PROD_INF_12 ·
 CP · CP_MOV · CP_SEMANA · CP_SALDO_2026_v2 ·
 AD_v3 · FILIAIS_SUPPLY · TAB_PROD · FAT_SUP
+
+
+---
+
+## [2026-06-02] Fase 3 — Sistema unificado de elementos (passos 1-3)
+
+### Abordagem correta do build.py
+O build.py usa design/BI Suprimentos v4.html como template base.
+Substitui apenas arrays JS mockados. Estrutura HTML/CSS/JS: 100% intacta.
+
+### Auditoria (pipeline/audit_elements.py)
+87 acoes: 38 conectar, 27 criar+conectar, 22 adicionar ao v4, 1 rule-based.
+
+### Sistema unificado definido
+Grid: 16 colunas x 40px por row_span.
+Cada elemento: id, variavel_js, tipo, dados, config, layout.
+layout.origem = v4 -> posicionado no grid.
+layout.origem = processed -> sem posicao, painel lateral do editor.
+variavel_js = nome da constante JS que build.py injeta.
+
+### pipeline/generate_indexes.py
+Gera os 15 00_index.json completos:
+136 elementos total: 114 com layout (v4) + 22 sem posicao (processed).
+
+### Decisoes tecnicas
+1. Grid 16 colunas x 40px fixo (ajustavel pelo usuario depois)
+2. Elementos Tipo B (visivel:false) -> painel lateral do editor
+3. Ciclo: editar no browser -> salvar layout.json -> build.py -> HTML novo
+4. v4.html nao modificado — adaptacoes injetadas pelo build.py
+
+### Proximos passos
+- Passo 4: build.py loop unificado
+- Passo 5: renderer CSS Grid substituindo pages.XXX()
+- Passo 6: elementos processed-only nas paginas
+- Passo 7: editor drag/resize no grid
