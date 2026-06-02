@@ -1742,7 +1742,8 @@ RELATORIO_CSS = """
 }
 .rel-rtab {
   flex: 0 0 auto;
-  padding: 8px 12px;
+  position: relative;
+  padding: 8px 24px 8px 12px; /* padding-right extra para o × */
   margin-top: 6px;
   font-size: 12px;
   font-weight: 500;
@@ -1754,11 +1755,11 @@ RELATORIO_CSS = """
   display: flex;
   align-items: center;
   gap: 6px;
-  max-width: 220px;
-  overflow: hidden;
+  max-width: 230px;
 }
+.rel-rtab:not(.has-x) { padding-right: 12px; }
 .rel-rtab.active { color: var(--text); background: #fff; border-color: var(--line); border-bottom-color: #fff; }
-.rel-rtab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.rel-rtab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
 .rel-rtab-count {
   font-size: 10.5px; font-weight: 600;
   padding: 1px 5px; background: var(--line); border-radius: 8px;
@@ -1766,12 +1767,15 @@ RELATORIO_CSS = """
 }
 .rel-rtab.active .rel-rtab-count { background: var(--blue); color: #fff; }
 .rel-rtab-x {
-  flex-shrink: 0; width: 14px; height: 14px;
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 14px; height: 14px;
   border: 0; background: transparent; color: var(--muted);
-  cursor: pointer; font-size: 12px; padding: 0;
+  cursor: pointer; font-size: 11px; padding: 0;
   display: flex; align-items: center; justify-content: center; border-radius: 3px;
+  line-height: 1;
 }
-.rel-rtab-x:hover { background: var(--line); }
+.rel-rtab-x:hover { background: var(--line); color: var(--text); }
 .rel-sp {
   width: 10px; height: 10px;
   border: 2px solid var(--line); border-top-color: var(--blue);
@@ -1850,8 +1854,8 @@ const PAGE_SZ = 10;
 
 // ── Estado ─────────────────────────────────────────────────────────────────
 const _S = {
-  tabs: [{id:'intro', title:'Nova consulta', st:'idle', count:0, closable:false}],
-  activeId: 'intro',
+  tabs: [],
+  activeId: null,
   reports: {},
   chatId: null,
   msgs: [],
@@ -1992,7 +1996,7 @@ function _renderTabs(){
     const spin=t.st==='running'?'<span class="rel-sp"></span>':'';
     const cnt=(t.st!=='running'&&t.count>0)?`<span class="rel-rtab-count">${t.count}</span>`:'';
     const cls=t.closable?`<button class="rel-rtab-x" onclick="event.stopPropagation();window._RL.closeTab('${t.id}')">×</button>`:'';
-    return `<button class="rel-rtab${act?' active':''}" onclick="window._RL.openTab('${t.id}')">${spin}<span class="rel-rtab-title">${_esc(t.title)}</span>${cnt}${cls}</button>`;
+    return `<button class="rel-rtab${act?' active':''}${t.closable?' has-x':''}" onclick="window._RL.openTab('${t.id}')">${spin}<span class="rel-rtab-title">${_esc(t.title)}</span>${cnt}${cls}</button>`;
   }).join('');
   el.innerHTML=ts+
     '<button class="rel-new-tab" title="Nova consulta" onclick="window._RL.newQuery()">+</button>'+
@@ -2003,7 +2007,7 @@ function _renderTabs(){
 function _renderContent(){
   const el=$('rel-content'); if(!el) return;
   if(_S.activeId==='__prompt'){ _renderPrompt(el); return; }
-  if(_S.activeId==='intro'||!_S.reports[_S.activeId]){
+  if(!_S.activeId||!_S.reports[_S.activeId]){
     el.innerHTML='<div class="rel-intro"><strong>BI de Suprimentos · Relatório</strong><br><br>Use o chat à esquerda para fazer perguntas em português.<br>O SQL gerado e os resultados aparecem aqui, em abas.<br><br><em>Exemplos:</em><br>· "Top 10 fornecedores por gasto em SP"<br>· "Quantos IDs únicos comprados em 2025?"<br>· "Impacto de cotação por categoria no último trimestre"</div>';
     return;
   }
@@ -2081,7 +2085,7 @@ function _renderSide(){
 window._RL = {
   openTab:  id => _openTab(id),
   closeTab: id => _closeTab(id),
-  newQuery: () => { _openTab('intro'); setTimeout(()=>{ const t=$('rel-q');if(t)t.focus(); },60); },
+  newQuery: () => { _S.activeId=null; _renderTabs(); _renderContent(); setTimeout(()=>{ const t=$('rel-q');if(t)t.focus(); },60); },
   page:     (id,p) => { _S.pages[id]=Math.max(0,p); _renderContent(); },
   export_:  id => { const r=_S.reports[id]; if(r?.id) window.open(`${_RL}/export/${r.id}`,'_blank'); },
   fav:      async id => { const r=_S.reports[id]; if(!r) return; const res=await _api('POST',`/favorites/${r.id}`); if(res.ok){r.saved=res.saved;_renderContent();} },
