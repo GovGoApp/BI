@@ -927,8 +927,6 @@ FILTER_CSS = """
   .filters .row  { grid-template-columns: repeat(5, minmax(0,1fr)) !important; }
   .filters .row2 { grid-template-columns: repeat(7, minmax(0,1fr)) !important; }
 }
-button.pick.active { background:var(--blue-soft);border-color:var(--blue);color:var(--blue); }
-button.pick.active .v { color:var(--blue);font-weight:700; }
 
 /* Dropdown multi-select */
 #flt-dd {
@@ -951,15 +949,15 @@ button.pick.active .v { color:var(--blue);font-weight:700; }
   padding:5px 10px; cursor:pointer; font-weight:600;
   border-bottom:1px solid var(--line-soft); margin-bottom:3px;
 }
-#flt-dd-list label {
+#flt-list label {
   display:flex; align-items:center; gap:7px;
   padding:3px 10px; cursor:pointer; border-radius:4px; margin:0 3px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-#flt-dd-list label:hover,.flt-dd-all:hover { background:var(--blue-soft); }
-#flt-dd-list input[type=checkbox],.flt-dd-all input[type=checkbox] {
-  accent-color:var(--blue); width:13px; height:13px; flex-shrink:0;
+#flt-list label:hover, .flt-dd-all:hover { background:var(--blue-soft); }
+#flt-list input[type=checkbox], .flt-dd-all input[type=checkbox] {
+  accent-color:var(--blue); width:13px; height:13px; flex-shrink:0; cursor:pointer;
 }
+#flt-list label span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .flt-dd-foot {
   display:flex; align-items:center; justify-content:space-between;
   padding:5px 10px; border-top:1px solid var(--line-soft); gap:8px;
