@@ -378,8 +378,181 @@ Gera os 15 00_index.json completos:
 3. Ciclo: editar no browser -> salvar layout.json -> build.py -> HTML novo
 4. v4.html nao modificado — adaptacoes injetadas pelo build.py
 
-### Proximos passos
-- Passo 4: build.py loop unificado
-- Passo 5: renderer CSS Grid substituindo pages.XXX()
-- Passo 6: elementos processed-only nas paginas
-- Passo 7: editor drag/resize no grid
+---
+
+## [2026-06-02] Fase 3 — Passos 4-5: build.py unificado + renderer CSS Grid
+
+**Commits:** `bb5a656`, `9512f5b`, `b6795a5`
+
+### pipeline/build.py (≈660 linhas)
+
+Pipeline de build completo com injeção de dados reais:
+
+1. Lê `design/BI Suprimentos v4.html` como template base (nunca modificado)
+2. Carrega todos os `00_index.json` de `data/processed/`
+3. Substitui arrays mockados do v4 (`FORN`, `PRODS`, `OPP`, `FILIAIS`, `CAT_VAL`, `CAT_INF`) com dados reais
+4. Injeta `window._BI_DATA[variavel_js] = dados` para cada elemento (registry global)
+5. Injeta `const ABAS_INDEX = {...}` com config completa de layout de todas as abas
+6. Injeta CSS do grid e renderer JS
+7. Salva `dist/index.html`
+
+**Decisão arquitetural:** usar `window._BI_DATA[key]` em vez de `const NOME = ...` porque constantes JS não se anexam ao `window`, tornando impossível o acesso dinâmico por nome no renderer.
+
+**Limites por tipo** para controlar tamanho do HTML:
+
+| Tipo | Limite |
+|---|---:|
+| GL, HL | 50, 20 linhas |
+| GB, GE | 24 linhas |
+| T | 50 linhas |
+| TE | 100 linhas |
+| MX | 200 linhas |
+| TB | 150 linhas |
+
+### RENDERER_JS (injetado no HTML)
+
+Renderer unificado substituindo todos os `pages.XXX()` do v4, exceto `categorias` e `estoque` que preservam implementação original (cascata interativa e filtros complexos):
+
+```javascript
+const _ABAS_SKIP = new Set(['categorias','estoque']);
+_ABAS_KEYS.filter(pg => !_ABAS_SKIP.has(pg)).forEach(pg => {
+  pages[pg] = () => _renderPage(pg);
+});
+```
+
+Renderers implementados: `_renderKPI`, `_renderHL`, `_renderT`, `_renderTE`, `_renderGL`, `_renderGB`, `_renderGE`, `_renderMX`.
+
+### GRID_CSS (injetado no HTML)
+
+```css
+.page-grid {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  grid-auto-rows: 40px;
+  gap: 10px;
+}
+```
+
+---
+
+## [2026-06-02] Fase 3 — Passo 6: 22 elementos processed posicionados
+
+**Commits:** `e6d5781`, `55dd4d9`, `5d5422f`
+
+### generate_indexes.py — posicionamento dos elementos processed
+
+Os 22 elementos gerados pelo `transform.py` (que não existiam no mock v4) foram todos posicionados no grid via `PROCESSED_POSITIONS` em `generate_indexes.py`:
+
+```python
+PROCESSED_POSITIONS = {
+    "02_oportunidade_r02_por_cat":  (1, 16, 19, 4),
+    "03_categoria_r04_top_forn":    (1, 16, 18, 6),
+    # ... 22 entradas totais
+}
+```
+
+### KPI row_span reduzido
+
+KPIs estavam com `row_span=3` (120px — muito alto). Corrigido para `row_span=2` (80px) em todas as 15 abas.
+
+Todos os elementos de cada aba foram deslocados -1 linha para compensar.
+
+### Correções técnicas
+
+| Problema | Causa | Solução |
+|---|---|---|
+| `window[e.variavel_js]` undefined | `const` não se anexa ao `window` | `window._BI_DATA[key]` registry |
+| `pages.categorias` quebrada | Renderer sobrescrevia a cascata interativa | `_ABAS_SKIP = new Set(['categorias','estoque'])` |
+| KPI height voltava ao rebuild | Valor não estava no source do generate_indexes.py | KPI row_span=2 baked no source |
+| HTML com 8 MB | Sem limite de linhas por elemento | MAX_ROWS por tipo (T:50, TE:100, etc.) |
+
+---
+
+## [2026-06-02] Correção: fontes SVG fora do Design System
+
+**Commit:** `e30f927`
+
+Eixos dos gráficos SVG usavam `fill="#94a3b8"` e `font-family` incorreto.
+
+**Corrigido para:**
+- `fill="#64748b"` (= CSS `--muted` do Design System)
+- `font-family="'Segoe UI',Arial,sans-serif"` (stack completo)
+
+---
+
+## [2026-06-02] Fase 3 — Passo 7: editor visual de layout
+
+**Commits:** `658aae4`, `4ebc90f`, `f06304d`
+
+### Editor injetado no dist/index.html pelo build.py
+
+Botão `✎ Editar layout` adicionado ao topbar via JS. Ao ativar o modo edição (`body.edit-mode`):
+
+**Drag e drop livre:**
+- Arrastar qualquer elemento mostra um ghost azul tracejado indicando a posição alvo
+- Drop em espaço vazio → move o elemento livremente
+- Drop sobre outro elemento → SWAP completo de posições
+- Posição calculada por coordenadas do mouse relativas ao grid (colW = gridWidth/16, rowH = 50px)
+
+**Resize:**
+- Handle `⇲` no canto inferior direito de cada elemento
+- Drag do handle → ajusta `col_span` e `row_span` em tempo real
+- Posição relativa ao grid: `CP = gridWidth/16`, `RP = 50`
+
+**Visibilidade:**
+- Botão `👁` na action bar de cada elemento
+- Toggle `ed-hidden` → opacidade 18%
+- Persiste `visivel: false` no override
+
+**Edição de textos:**
+- Títulos (`h3` em `.card-h`) e subtítulos (`.sub`) → `contentEditable`
+- Headers de tabela (`th[data-key]`) → `contentEditable`; `data-key` injetado pelo renderer
+- Labels de eixo SVG → input flutuante posicionado sobre o texto via `getBoundingClientRect()`
+
+**Persistência (`localStorage`):**
+- Cada ação auto-salva em `localStorage['bi_layout_{page_key}']`
+- Ao carregar a página: `_loadAll()` restaura todos os estados salvos
+- Ao trocar de aba: `_applyLayout(pk)` re-aplica overrides após o renderer rodar (setTimeout 60ms)
+- Flash `✓ salvo` aparece brevemente na toolbar após cada save
+
+**Undo:**
+- Snapshot do DOM (gridColumn, gridRow, visibility) antes de cada ação
+- Botão `↩ Desfazer` restaura DOM e `_st` sem re-render
+
+**Exportar JSON:**
+- Botão `⬇ Exportar JSON` baixa `{page_key}.layout.json`
+- Formato compatível com `apply_layout_overrides()` no `build.py`
+- Ao copiar para `dashboard/tabs/` e rodar `build.py`, mudanças persistem no próximo build
+
+### apply_layout_overrides() no build.py
+
+```python
+def apply_layout_overrides(indexes):
+    for _, idx in indexes.items():
+        page_key = idx.get("data_page", "")
+        layout_file = TABS_DIR / f"{page_key}.layout.json"
+        if not layout_file.exists(): continue
+        overrides = rj(layout_file).get("overrides", {})
+        for elem in idx.get("elementos", []):
+            eid = elem.get("id", "")
+            if eid not in overrides: continue
+            ov = overrides[eid]
+            for k in ("col", "col_span", "row", "row_span", "visivel"):
+                if k in ov: elem["layout"][k] = ov[k]
+            if "texto" in ov:
+                txt = ov["texto"]
+                if "titulo"    in txt: elem["titulo"]    = txt["titulo"]
+                if "subtitulo" in txt: elem["subtitulo"] = txt["subtitulo"]
+                if "colunas"   in txt:
+                    for col in elem.get("config", {}).get("colunas", []):
+                        if col.get("key") in txt["colunas"]:
+                            col["label"] = txt["colunas"][col["key"]]
+    return indexes
+```
+
+### Estado atual do dist/index.html
+
+- 721 KB, 15 abas funcionais
+- 132 elementos com dados reais injetados
+- 136 elementos no total (4 sem dados — rule-based ou hardcoded no v4)
+- Editor funcional: drag livre, resize, visibilidade, textos, SVG labels, auto-save
