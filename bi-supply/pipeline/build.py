@@ -2756,139 +2756,170 @@ if(typeof pages!=='undefined'){
 # ── Runtime: elementos NL-SQL nas abas (localStorage, sem servidor) ───────────
 
 ELEMENTS_RUNTIME_JS = r"""
-/* ── Elementos NL-SQL — runtime injection + drawer ── */
+/* -- Biblioteca de Elementos: runtime injection + drawer -- */
 (function(){
 'use strict';
 
-const _NL_KEY = 'bi_nlsql_elements';
-function _nlEls(){ try{ return JSON.parse(localStorage.getItem(_NL_KEY)||'[]'); }catch(e){ return []; } }
+const _NL_KEY='bi_nlsql_elements';
+function _nlEls(){try{return JSON.parse(localStorage.getItem(_NL_KEY)||'[]');}catch(e){return[];}}
 
-// Injeta _BI_DATA para todos os elementos salvos (roda na carga da página)
 function _injectNlData(){
-  window._BI_DATA = window._BI_DATA || {};
-  _nlEls().forEach(el=>{ if(el.variavel_js) window._BI_DATA[el.variavel_js]=el.rows_snapshot||[]; });
+  window._BI_DATA=window._BI_DATA||{};
+  _nlEls().forEach(el=>{if(el.variavel_js)window._BI_DATA[el.variavel_js]=el.rows_snapshot||[];});
 }
 _injectNlData();
 
-function _currentPage(){
-  const a=document.querySelector('.tab.active[data-page]'); return a?a.dataset.page:null;
+function _getLayoutLS(pg){try{return JSON.parse(localStorage.getItem('bi_layout_'+pg)||'{}')}catch(e){return{};}}
+function _setLayoutOv(pg,id,ov){
+  const lo=_getLayoutLS(pg);
+  lo.overrides=lo.overrides||{};
+  lo.overrides[id]={...(lo.overrides[id]||{}),...ov};
+  localStorage.setItem('bi_layout_'+pg,JSON.stringify(lo));
 }
-function _abaLabel(tab){
-  return (typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[tab]?.label)||tab;
+
+function _currentPage(){const a=document.querySelector('.tab.active[data-page]');return a?a.dataset.page:null;}
+function _abaLabel(tab){return(typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[tab]?.label)||tab;}
+function _isInGrid(e){const l=e?.layout;return!!(l&&l.row&&l.row<90&&l.visivel!==false);}
+
+function _lastRow(pg){
+  const rows=(ABAS_INDEX?.[pg]?.elementos||[]).filter(e=>_isInGrid(e));
+  return rows.length?Math.max(...rows.map(e=>(e.layout.row||1)+(e.layout.row_span||2))):2;
 }
-function _inGrid(id,pg){
-  if(typeof ABAS_INDEX==='undefined') return false;
-  const eid='nlel_'+id.slice(0,8);
-  const el=ABAS_INDEX[pg]?.elementos?.find(e=>e.id===eid);
-  return !!(el&&el.layout?.row&&el.layout.row<90);
+
+function _rerender(pg){
+  if(typeof render==='function')render(pg);
+  else if(typeof pages!=='undefined'&&pages[pg]){const c=document.getElementById('page');if(c)c.innerHTML=pages[pg]();}
+  setTimeout(()=>{
+    if(window._BI_EDITOR?.applyLayout)window._BI_EDITOR.applyLayout(pg);
+    if(window._BI_EDITOR?.decorate)window._BI_EDITOR.decorate();
+    _rebuildDrawer();
+  },80);
 }
+
+function _insertElem(id,pg){
+  if(typeof ABAS_INDEX==='undefined')return;
+  const tabData=ABAS_INDEX[pg];if(!tabData)return;
+  if(!tabData.elementos)tabData.elementos=[];
+  let elem=tabData.elementos.find(e=>e.id===id);
+  if(!elem){
+    const nlEl=_nlEls().find(e=>'nlel_'+e.id.slice(0,8)===id);
+    if(!nlEl)return;
+    window._BI_DATA=window._BI_DATA||{};
+    window._BI_DATA[nlEl.variavel_js]=nlEl.rows_snapshot||[];
+    elem={id,variavel_js:nlEl.variavel_js,tipo:nlEl.tipo,titulo:nlEl.title,
+          subtitulo:'',config:nlEl.config||{},dados:null,
+          layout:{col:1,col_span:10,row:99,row_span:6,visivel:false,origem:'nlsql'}};
+    tabData.elementos.push(elem);
+  }
+  if(elem.layout?.origem==='nlsql'){
+    const nlEl=_nlEls().find(e=>'nlel_'+e.id.slice(0,8)===id||e.variavel_js===elem.variavel_js);
+    if(nlEl){window._BI_DATA=window._BI_DATA||{};window._BI_DATA[elem.variavel_js]=nlEl.rows_snapshot||[];}
+  }
+  const lr=_lastRow(pg);
+  elem.layout={...(elem.layout||{}),col:1,col_span:10,row:lr,row_span:6,visivel:true};
+  _setLayoutOv(pg,id,{col:1,col_span:10,row:lr,row_span:6,visivel:true});
+  _rerender(pg);
+}
+
+function _removeElem(id,pg){
+  const tabData=ABAS_INDEX?.[pg];if(!tabData)return;
+  const elem=tabData.elementos?.find(e=>e.id===id);if(!elem)return;
+  elem.layout={...(elem.layout||{}),row:99,visivel:false};
+  _setLayoutOv(pg,id,{row:99,visivel:false});
+  _rerender(pg);
+}
+
+const _ICONS={
+  KPI:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  GL:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 17 8 10 13 14 19 6"/></svg>',
+  GB:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>',
+  GE:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="4" height="17" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="4" width="4" height="17" rx="1"/></svg>',
+  HL:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="16" height="4" rx="1"/><rect x="3" y="10" width="11" height="4" rx="1"/><rect x="3" y="16" width="7" height="4" rx="1"/></svg>',
+  T:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>',
+  TE:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>',
+  MX:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  FU:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 4h18l-7 8v7l-4-2v-5L3 4z"/></svg>',
+  AL:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+};
+const _NAMES={KPI:'KPI',GL:'Linhas',GB:'Barras',GE:'Empilhado',HL:'Ranking',T:'Tabela',TE:'Tabela+',MX:'Matriz',FU:'Funil',AL:'Alertas',TB:'Categorias'};
 
 let _drawerOpen=false;
 
-function _rebuildPuller(){
-  document.getElementById('_nl_drawer')?.remove();
-  const pg=_currentPage(); if(!pg) return;
-  const els=_nlEls().filter(e=>e.destination_tab===pg);
-  if(!els.length) return;  // sem elementos para esta aba
-  if(!document.body.classList.contains('edit-mode')) return;  // so em modo edicao
-
-  const isEdit=true;
-
-  // Icons (replicados aqui pois _VIZ_ICON vive no IIFE do Relatorio)
-  const _ICONS={KPI:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',GL:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 17 8 10 13 14 19 6"/></svg>',GB:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>',HL:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="16" height="4" rx="1"/><rect x="3" y="10" width="11" height="4" rx="1"/><rect x="3" y="16" width="7" height="4" rx="1"/></svg>',T:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>',MX:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',FU:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 4h18l-7 8v7l-4-2v-5L3 4z"/></svg>'};
-  const _NAMES={KPI:'KPI',GL:'Linhas',GB:'Barras',GE:'Empilhado',HL:'Ranking',T:'Tabela',TE:'Tabela+',MX:'Matriz',FU:'Funil'};
-
-  const items=els.map(e=>{
-    const added=_inGrid(e.id,pg);
-    const icon=_ICONS[e.tipo]||_ICONS['T'];
-    const name=_NAMES[e.tipo]||e.tipo;
-    const btn=added
-      ?'<span style="font-size:10.5px;color:#16a34a;font-weight:600">No grid</span>'
-      :`<button onclick="window._NL.insertElem('${e.id}')" style="padding:3px 9px;font-size:11px;font-weight:700;border:1px solid var(--blue);border-radius:5px;cursor:pointer;background:var(--blue,#2563eb);color:#fff">Inserir</button>`;
-    return `<div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">
-      <span style="flex-shrink:0;color:var(--blue);display:flex;align-items:center;padding-top:2px">${icon}</span>
-      <div style="flex:1;min-width:0">
-        <div class="rel-hi-title">${e.title||'Elemento'}</div>
-        <div class="rel-hi-sub">${name}</div>
-      </div>
-      <div style="flex-shrink:0;align-self:center">${btn}</div></div>`;
-  }).join('');
-
-  const hint='';
-
-  const d=document.createElement('div');
-  d.id='_nl_drawer';
-  d.innerHTML=`
-    <div id="_nl_pull" onclick="window._NL.toggleDrawer()" title="Da Consulta — ${_abaLabel(pg)}"
-      style="position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:601;cursor:pointer;
-             background:var(--blue,#2563eb);color:#fff;border-radius:0 6px 6px 0;
-             padding:14px 5px;writing-mode:vertical-rl;font-size:10px;font-weight:700;
-             letter-spacing:.07em;box-shadow:2px 2px 8px rgba(0,0,0,.18);user-select:none">
-      Da Consulta&nbsp;${els.length}
-    </div>
-    <div id="_nl_panel" style="position:fixed;left:0;top:0;bottom:0;width:0;overflow:hidden;
-           transition:width .2s ease;z-index:600;background:#fff;border-right:1px solid var(--line);
-           box-shadow:4px 0 20px rgba(0,0,0,.1)">
-      <div style="padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;width:270px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
-                    letter-spacing:.06em;margin-bottom:8px">Da Consulta — ${_abaLabel(pg)}</div>
-        ${hint}${items}
-      </div>
-    </div>`;
-  document.body.appendChild(d);
-  if(_drawerOpen){
-    const p=document.getElementById('_nl_panel'); if(p) p.style.width='270px';
-  }
+function _chipHtml(origem){
+  const isNl=origem==='nlsql';
+  return '<span style="padding:1px 5px;border-radius:6px;font-size:9.5px;font-weight:700;'
+    +(isNl?'background:#eff6ff;color:#2563eb':'background:#f1f5f9;color:#64748b')
+    +'">'+( isNl?'Relat\u00f3rio':'BI')+'</span>';
 }
 
-window._NL = {
-  toggleDrawer: ()=>{
-    _drawerOpen=!_drawerOpen;
-    const p=document.getElementById('_nl_panel'); if(p) p.style.width=_drawerOpen?'270px':'0';
-  },
+function _cardHtml(e,action){
+  const icon=_ICONS[e.tipo]||_ICONS['T'];
+  const name=_NAMES[e.tipo]||e.tipo;
+  const chip=_chipHtml(e.layout?.origem||'v4');
+  const isI=action==='insert';
+  const fn=isI?'insertElem':'removeElem';
+  const st=isI?'background:var(--blue,#2563eb);color:#fff;border-color:var(--blue)':'background:#fff;color:#dc2626;border-color:#fca5a5';
+  return '<div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">'+
+    '<span style="flex-shrink:0;color:var(--blue);display:flex;align-items:center;padding-top:2px">'+icon+'</span>'+
+    '<div style="flex:1;min-width:0">'+
+    '<div class="rel-hi-title">'+( e.titulo||e.id)+'</div>'+
+    '<div class="rel-hi-sub">'+name+' '+chip+'</div>'+
+    '</div>'+
+    '<div style="flex-shrink:0;align-self:center"><button onclick="window._NL.'+fn+'(\''+ e.id+'\')" '+
+    'style="padding:3px 9px;font-size:11px;font-weight:700;border:1px solid;border-radius:5px;cursor:pointer;'+st+'">'+
+    (isI?'Inserir':'Retirar')+'</button></div></div>';
+}
 
-  insertElem: id=>{
-    const el=_nlEls().find(e=>e.id===id); if(!el) return;
-    const pg=_currentPage(); if(!pg) return;
-    if(typeof ABAS_INDEX==='undefined') return;
-    const tabData=ABAS_INDEX[pg]; if(!tabData) return;
-    if(!tabData.elementos) tabData.elementos=[];
+function _secHtml(label,items,action){
+  if(!items.length)return '';
+  return '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 4px">'+label+' ('+items.length+')</div>'
+    +items.map(e=>_cardHtml(e,action)).join('');
+}
 
-    window._BI_DATA=window._BI_DATA||{};
-    window._BI_DATA[el.variavel_js]=el.rows_snapshot||[];
+function _rebuildDrawer(){
+  document.getElementById('_nl_drawer')?.remove();
+  const pg=_currentPage();if(!pg)return;
+  if(!document.body.classList.contains('edit-mode'))return;
+  if(typeof ABAS_INDEX==='undefined')return;
+  const tabData=ABAS_INDEX[pg];if(!tabData)return;
+  const allElems=tabData.elementos||[];
+  const inAbas=new Set(allElems.map(e=>e.id));
+  const pendingNl=_nlEls()
+    .filter(e=>e.destination_tab===pg&&!inAbas.has('nlel_'+e.id.slice(0,8)))
+    .map(e=>({id:'nlel_'+e.id.slice(0,8),tipo:e.tipo,titulo:e.title,layout:{row:99,visivel:false,origem:'nlsql'}}));
+  const all=[...allElems,...pendingNl];
+  const inGrid=all.filter(e=>_isInGrid(e));
+  const avail=all.filter(e=>!_isInGrid(e));
+  if(!inGrid.length&&!avail.length)return;
+  const body=_secHtml('No grid',inGrid,'remove')+_secHtml('Dispon\u00edveis',avail,'insert');
+  const lbl=_abaLabel(pg);
+  const d=document.createElement('div');
+  d.id='_nl_drawer';
+  d.innerHTML=
+    '<div id="_nl_pull" onclick="window._NL.toggleDrawer()" '+
+    'style="position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:601;cursor:pointer;'+
+    'background:var(--blue,#2563eb);color:#fff;border-radius:0 6px 6px 0;'+
+    'padding:14px 5px;writing-mode:vertical-rl;font-size:10px;font-weight:700;'+
+    'letter-spacing:.07em;box-shadow:2px 2px 8px rgba(0,0,0,.18);user-select:none">Biblioteca</div>'+
+    '<div id="_nl_panel" style="position:fixed;left:0;top:0;bottom:0;width:0;overflow:hidden;'+
+    'transition:width .2s ease;z-index:600;background:#fff;border-right:1px solid var(--line);'+
+    'box-shadow:4px 0 20px rgba(0,0,0,.1)">'+
+    '<div style="padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;width:270px">'+
+    '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">Biblioteca &mdash; '+lbl+'</div>'+
+    body+'</div></div>';
+  document.body.appendChild(d);
+  if(_drawerOpen){const p=document.getElementById('_nl_panel');if(p)p.style.width='270px';}
+}
 
-    const eid='nlel_'+el.id.slice(0,8);
-    if(!tabData.elementos.find(e=>e.id===eid)){
-      const rows=tabData.elementos.filter(e=>e.layout?.row);
-      const lastRow=rows.length?Math.max(...rows.map(e=>(e.layout.row||1)+(e.layout.row_span||2))):2;
-      tabData.elementos.push({
-        id:eid, variavel_js:el.variavel_js, tipo:el.tipo,
-        titulo:el.title, subtitulo:'', config:el.config||{}, dados:null,
-        layout:{col:1,col_span:10,row:lastRow,row_span:6,visivel:true,origem:'nlsql'}
-      });
-    }
-    // render(pg) injeta no DOM; pages[pg]() apenas retorna HTML
-    if(typeof render==='function') render(pg);
-    else if(typeof pages!=='undefined'&&pages[pg]){ const c=document.getElementById('page'); if(c) c.innerHTML=pages[pg](); }
-    setTimeout(()=>{
-      if(window._BI_EDITOR?.applyLayout) window._BI_EDITOR.applyLayout(pg);
-      if(window._BI_EDITOR?.decorate)    window._BI_EDITOR.decorate();
-      _rebuildPuller();
-    },80);
-  },
+window._NL={
+  toggleDrawer:()=>{_drawerOpen=!_drawerOpen;const p=document.getElementById('_nl_panel');if(p)p.style.width=_drawerOpen?'270px':'0';},
+  insertElem:id=>{const pg=_currentPage();if(pg)_insertElem(id,pg);},
+  removeElem:id=>{const pg=_currentPage();if(pg)_removeElem(id,pg);},
 };
 
-// Reconstrói ao entrar/sair do modo edição
-new MutationObserver(()=>_rebuildPuller())
-  .observe(document.body,{attributes:true,attributeFilter:['class']});
-
-// Reconstrói ao trocar de aba
-document.addEventListener('click',e=>{
-  if(e.target.closest('.tab[data-page]')) setTimeout(_rebuildPuller,150);
-});
-
-// Constrói na carga inicial
-setTimeout(_rebuildPuller,400);
+new MutationObserver(()=>_rebuildDrawer()).observe(document.body,{attributes:true,attributeFilter:['class']});
+document.addEventListener('click',e=>{if(e.target.closest('.tab[data-page]'))setTimeout(_rebuildDrawer,150);});
+setTimeout(_rebuildDrawer,400);
 
 })();
 """
