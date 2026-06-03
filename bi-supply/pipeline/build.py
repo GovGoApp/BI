@@ -1835,25 +1835,24 @@ RELATORIO_CSS = """
 .rel-err { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 14px; color: #dc2626; font-size: 13px; margin-bottom: 12px; }
 /* ── Barra de visualização / classificação ── */
 .rel-viz-bar {
-  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
-  padding: 8px 0 10px; border-bottom: 1px solid rgba(226,232,240,.5); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 8px 12px; border: 1.5px solid #bfdbfe; border-radius: 8px;
+  background: #eff6ff; margin-bottom: 14px;
 }
-.rel-viz-bar-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-right: 2px; flex-shrink: 0; }
+.rel-viz-bar-lbl { font-size: 10px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; flex-shrink: 0; }
 .rel-viz-btn {
-  padding: 3px 9px; font-size: 11px; font-weight: 600;
-  color: var(--muted); background: var(--head,#f1f5f9);
-  border: 1px solid var(--line); border-radius: 6px;
-  cursor: pointer; display: inline-flex; align-items: center; gap: 4px; line-height: 1.4;
+  padding: 4px 10px; font-size: 11px; font-weight: 600;
+  color: var(--blue); background: #fff;
+  border: 1.5px solid #bfdbfe; border-radius: 6px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px; line-height: 1.4;
 }
-.rel-viz-btn:hover { background: #eff6ff; color: var(--blue); border-color: #bfdbfe; }
+.rel-viz-btn:hover { background: #dbeafe; border-color: var(--blue); }
 .rel-viz-btn.active { color: #fff; background: var(--blue); border-color: var(--blue); }
-.rel-viz-pct { font-size: 9.5px; font-weight: 500; opacity: .82; }
-.rel-viz-reason { font-size: 10.5px; color: var(--muted); font-style: italic; margin: 0 0 10px; line-height: 1.4; }
+.rel-viz-pct { font-size: 9.5px; font-weight: 500; opacity: .8; }
 .rel-viz-preview {
   background: var(--head,#f1f5f9); border: 1px solid var(--line); border-radius: 10px;
   padding: 14px 16px; margin-bottom: 12px; min-height: 100px; overflow: hidden;
 }
-.rel-viz-preview-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
 /* Assistente sidebar panel */
 .rel-asst-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .rel-asst-sub-btn { padding: 5px 4px; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--head,#f1f5f9); border: 1px solid var(--line); border-radius: 7px; cursor: pointer; text-align: center; }
@@ -1903,6 +1902,23 @@ const _SVG_TRASH   = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none
 const _SVG_CODE    = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
 const _SVG_COPY    = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 const _SVG_SPIN    = '<span class="rel-sp" style="width:13px;height:13px;border-width:2px"></span>';
+
+// ── Ícones e nomes dos tipos de elemento ─────────────────────────────────────
+const _VIZ_ICON = {
+  KPI: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  GL:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 17 8 10 13 14 19 6"/></svg>',
+  GB:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>',
+  GE:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="4" height="17" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="4" width="4" height="17" rx="1"/><line x1="3" y1="10" x2="7" y2="10" stroke-width="1"/><line x1="10" y1="14" x2="14" y2="14" stroke-width="1"/></svg>',
+  HL:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4"  width="16" height="4" rx="1"/><rect x="3" y="10" width="11" height="4" rx="1"/><rect x="3" y="16" width="7"  height="4" rx="1"/></svg>',
+  T:   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>',
+  TE:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>',
+  MX:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3"  y="3"  width="7" height="7" rx="1"/><rect x="14" y="3"  width="7" height="7" rx="1"/><rect x="3"  y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  FU:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 4h18l-7 8v7l-4-2v-5L3 4z"/></svg>',
+};
+const _VIZ_NAME = {
+  KPI:'KPI', GL:'Linhas', GB:'Barras', GE:'Empilhado',
+  HL:'Ranking', T:'Tabela', TE:'Tabela+', MX:'Matriz', FU:'Funil',
+};
 
 // ── Estado ─────────────────────────────────────────────────────────────────
 const _S = {
@@ -2105,20 +2121,20 @@ async function _classify(tid){
 
 function _renderVizBar(tid){
   const cls=_S.classify[tid];
-  // Ainda não iniciou (será disparado após renderContent)
-  if(!cls) return '';
-  // Carregando
-  if(cls.loading) return `<div class="rel-viz-bar"><span class="rel-sp" style="width:10px;height:10px;border-width:2px"></span><span style="font-size:11px;color:var(--muted);margin-left:6px">Analisando visualização…</span></div>`;
-  // Sem sugestões
+  // Ainda não iniciou OU carregando → spinner (mesma UI)
+  if(!cls||cls.loading) return `<div class="rel-viz-bar"><span class="rel-sp" style="width:10px;height:10px;border-width:2px;flex-shrink:0"></span><span style="font-size:11px;color:var(--blue);margin-left:6px">Analisando visualização…</span></div>`;
+  // Sem sugestões → barra some
   if(!cls.suggestions.length) return '';
   const active=cls.activeType||'table';
-  const tbl=`<button class="rel-viz-btn${active==='table'?' active':''}" onclick="window._RL.setVizType('${tid}','table')">Tabela</button>`;
   const btns=cls.suggestions.map(s=>{
     const pct=Math.round((s.confidence||0)*100);
     const act=active===s.tipo?' active':'';
-    return `<button class="rel-viz-btn${act}" onclick="window._RL.setVizType('${tid}','${s.tipo}')" title="${_esc(s.reason||'')}">${s.tipo}<span class="rel-viz-pct">${pct}%</span></button>`;
+    const icon=_VIZ_ICON[s.tipo]||'';
+    const name=_VIZ_NAME[s.tipo]||s.tipo;
+    // Clicar no tipo ativo deseleciona (volta à tabela)
+    return `<button class="rel-viz-btn${act}" onclick="window._RL.setVizType('${tid}','${s.tipo}')" title="${_esc(s.reason||'')}">${icon}${name}<span class="rel-viz-pct">${pct}%</span></button>`;
   }).join('');
-  return `<div class="rel-viz-bar"><span class="rel-viz-bar-lbl">Ver como</span>${tbl}${btns}</div>`;
+  return `<div class="rel-viz-bar"><span class="rel-viz-bar-lbl">Ver como</span>${btns}</div>`;
 }
 
 function _pivotGE(data,xKey,groupKey,valueKey){
@@ -2224,8 +2240,7 @@ function _renderContent(){
       // Preview do elemento sugerido
       const sg=(_S.classify[tid]?.suggestions||[]).find(s=>s.tipo===activeType);
       if(sg){
-        h+=`<div class="rel-viz-reason">${_esc(sg.reason||'')}</div>`;
-        h+=`<div class="rel-viz-preview"><div class="rel-viz-preview-lbl">${activeType}</div>${_renderPreview(activeType,sg.config,r.rows,r.columns)}</div>`;
+        h+=`<div class="rel-viz-preview">${_renderPreview(activeType,sg.config,r.rows,r.columns)}</div>`;
       }
     }
 
@@ -2352,7 +2367,8 @@ window._RL = {
 
   setVizType: (tid, tipo) => {
     if(!_S.classify[tid]) return;
-    _S.classify[tid].activeType=tipo;
+    // Toggle: clicar no tipo já ativo volta à tabela
+    _S.classify[tid].activeType = (_S.classify[tid].activeType===tipo) ? 'table' : tipo;
     if(_S.activeId===tid) _renderContent();
   },
 
