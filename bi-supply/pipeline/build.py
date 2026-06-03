@@ -1526,6 +1526,9 @@ RELATORIO_CSS = """
   height: calc(100vh - 140px);
   min-height: 480px;
   overflow: hidden;
+  background: var(--card,#fff);
+  border: 1px solid var(--line,#e2e8f0);
+  border-radius: 10px;
 }
 .rel-side {
   border-right: 1px solid var(--line,#e2e8f0);
@@ -1645,9 +1648,9 @@ RELATORIO_CSS = """
 }
 .rel-msg-meta { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
 .rel-icn-btn {
-  width: 20px; height: 18px;
-  border: 1px solid var(--border,#e2e8f0);
-  border-radius: 4px;
+  width: 26px; height: 26px;
+  border: 1px solid var(--line,#e2e8f0);
+  border-radius: 6px;
   background: #fff;
   cursor: pointer;
   display: inline-flex;
@@ -1993,13 +1996,13 @@ function _renderMsgs(){
           <div class="rel-hi-title">${_esc(m.refTitle||m.text||'Resultado')}</div>
           <div class="rel-hi-sub">${_ts(new Date().toISOString())}</div>
           <div class="rel-hi-meta">
-            <span class="rel-hi-chip ok">✓</span>
+            <span class="rel-hi-chip ok"></span>
             ${m.rowCount!=null?`<span>${m.rowCount.toLocaleString()} linha${m.rowCount!==1?'s':''}</span>`:''}
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-          <button class="rel-icn-btn" title="Ver resultado" onclick="event.stopPropagation();window._RL.openTab('${m.tabId||''}')">→</button>
-          ${safe?`<button class="rel-icn-btn" title="Copiar SQL" onclick="event.stopPropagation();navigator.clipboard.writeText(\`${safe}\`)">⎘</button>`:''}
+          <button class="rel-icn-btn" title="Ver resultado" onclick="event.stopPropagation();window._RL.openTab('${m.tabId||''}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
+          ${safe?`<button class="rel-icn-btn" title="Copiar SQL" onclick="event.stopPropagation();navigator.clipboard.writeText(\`${safe}\`)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></button>`:''}
         </div>
       </div>
     </div>`;
@@ -2020,7 +2023,7 @@ function _renderTabs(){
   }).join('');
   el.innerHTML=ts+
     '<button class="rel-new-tab" title="Nova consulta" onclick="window._RL.newQuery()">+</button>'+
-    `<button class="rel-asst-tab${isPrompt?' active':''}" onclick="window._RL.showPrompt()">🤖 Assistente</button>`;
+    `<button class="rel-asst-tab${isPrompt?' active':''}" onclick="window._RL.showPrompt()">Assistente</button>`;
 }
 
 // ── Render: conteúdo direita ────────────────────────────────────────────────
@@ -2039,7 +2042,7 @@ function _renderContent(){
   let h=`<h2 class="rel-r-title">${_esc(r.title||r.question||'Resultado')}</h2>`;
   if(r.subtitle) h+=`<div class="rel-r-sub">${_esc(r.subtitle)}</div>`;
   else h+='<div style="margin-bottom:14px"></div>';
-  if(r.status==='error') h+=`<div class="rel-err">❌ ${_esc(r.error||'Erro desconhecido')}</div>`;
+  if(r.status==='error') h+=`<div class="rel-err">${_esc(r.error||'Erro desconhecido')}</div>`;
   if(r.sql){
     const safe=r.sql.replace(/\\/g,'\\\\').replace(/`/g,"'");
     h+=`<div class="rel-sql-wrap"><div class="rel-sql-head"><span class="rel-sql-lbl">Comando SQL</span><button class="rel-sql-copy" onclick="navigator.clipboard.writeText(\`${safe}\`)">Copiar</button></div><pre class="rel-sql-pre">${_esc(r.sql)}</pre></div>`;
@@ -2060,7 +2063,7 @@ function _renderContent(){
     let pgr='';
     if(pgs>1) pgr=`<div class="rel-pager"><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',0)">«</button><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',${pg-1})">‹</button><span class="rel-pg-num">${pg+1}/${pgs}</span><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pg+1})">›</button><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pgs-1})">»</button></div>`;
     const sv=r.saved;
-    h+=`<div class="rel-tbl-wrap"><div class="rel-tbl-hd"><span class="rel-chip ok">✓ Executado</span><span class="rel-rows-info">${total.toLocaleString()} linha${total!==1?'s':''} · ${r.elapsedMs||0}ms</span><span class="rel-spacer"></span>${pgr}<button class="rel-act-btn" onclick="window._RL.export_('${tid}')">⬇ CSV</button><button class="rel-act-btn${sv?' saved':''}" onclick="window._RL.fav('${tid}')">${sv?'★ Salvo':'☆ Salvar'}</button></div><div class="rel-tbl-scroll"><table class="rel-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div></div>`;
+    h+=`<div class="rel-tbl-wrap"><div class="rel-tbl-hd"><span class="rel-chip ok">Executado</span><span class="rel-rows-info">${total.toLocaleString()} linha${total!==1?'s':''} · ${r.elapsedMs||0}ms</span><span class="rel-spacer"></span>${pgr}<button class="rel-act-btn" onclick="window._RL.export_('${tid}')">⬇ CSV</button><button class="rel-act-btn${sv?' saved':''}" onclick="window._RL.fav('${tid}')">${sv?'Salvo':'Salvar'}</button></div><div class="rel-tbl-scroll"><table class="rel-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div></div>`;
   }
   el.innerHTML=h;
 }
@@ -2068,7 +2071,7 @@ function _renderContent(){
 // ── Render: prompt editor ───────────────────────────────────────────────────
 function _renderPrompt(c){
   const mt=_S.promptUpdatedAt?'Atualizado: '+_ts(_S.promptUpdatedAt):'';
-  c.innerHTML=`<div class="rel-prompt-section"><div class="rel-prompt-hd"><span class="rel-prompt-info">📄 nlsql/prompts/bi_suprimentos_sql.md &nbsp;·&nbsp; ${mt}</span><button class="rel-act-btn" id="rl-psave">💾 Salvar</button><button class="rel-act-btn" id="rl-prst">↩ Restaurar</button></div><textarea class="rel-prompt-ta" id="rl-pta" spellcheck="false">${_esc(_S.promptContent)}</textarea></div>`;
+  c.innerHTML=`<div class="rel-prompt-section"><div class="rel-prompt-hd"><span class="rel-prompt-info">nlsql/prompts/bi_suprimentos_sql.md &nbsp;·&nbsp; ${mt}</span><button class="rel-act-btn" id="rl-psave">Salvar</button><button class="rel-act-btn" id="rl-prst">↩ Restaurar</button></div><textarea class="rel-prompt-ta" id="rl-pta" spellcheck="false">${_esc(_S.promptContent)}</textarea></div>`;
   $('rl-psave').onclick=async()=>{ const v=$('rl-pta').value; const r=await _api('POST','/prompt',{content:v}); if(r.ok){_S.promptContent=v;alert('Prompt salvo! Próximas consultas usam o novo prompt.');}else alert('Erro: '+(r.error||'')); };
   $('rl-prst').onclick=async()=>{ if(!confirm('Restaurar backup?')) return; const r=await _api('POST','/prompt/reset'); if(r.ok){const g=await _api('GET','/prompt');if(g.ok){_S.promptContent=g.content;_S.promptUpdatedAt=g.updatedAt;}_renderPrompt(c);}else alert('Sem backup.'); };
 }
@@ -2084,8 +2087,8 @@ function _renderHist(){
   const list=items.length?items.map(it=>{
     const isReport=it.type==='report';
     const btns=isReport?`<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-      <button class="rel-icn-btn" title="Atualizar resultado" onclick="event.stopPropagation();window._RL.histRefresh('${it.id}')">🔄</button>
-      <button class="rel-icn-btn" title="Apagar" onclick="event.stopPropagation();window._RL.histDel('${it.id}')">🗑</button>
+      <button class="rel-icn-btn" title="Atualizar resultado" onclick="event.stopPropagation();window._RL.histRefresh('${it.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg></button>
+      <button class="rel-icn-btn" title="Apagar" onclick="event.stopPropagation();window._RL.histDel('${it.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
     </div>`:'';
     return `<div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px" onclick="window._RL.histOpen('${it.id}','${it.type}')">
       <div style="flex:1;min-width:0">
@@ -2105,7 +2108,7 @@ function _renderHist(){
 // ── Render: sidebar chat ────────────────────────────────────────────────────
 function _renderChat(){
   const el=$('rel-side-body'); if(!el) return;
-  el.innerHTML=`<div class="rel-chat-section"><div class="rel-chat-hd"><div class="rel-chat-lbl">Chat</div><button class="btn" onclick="window._RL.newChat()" style="padding:3px 10px;font-size:11px">+ Novo</button></div><div class="rel-msgs" id="rel-msgs"></div></div><div class="rel-input-wrap"><div class="rel-input-box"><span class="rel-input-icon">💬</span><textarea class="rel-textarea" id="rel-q" rows="3" placeholder="Faça uma pergunta em português… Ex: Top 10 fornecedores por gasto em SP"></textarea><button class="rel-send" id="rel-send">Enviar</button></div><div class="rel-hint">Enter para enviar · Shift+Enter nova linha · ${_RL}</div></div>`;
+  el.innerHTML=`<div class="rel-chat-section"><div class="rel-chat-hd"><div class="rel-chat-lbl">Chat</div><button class="btn" onclick="window._RL.newChat()" style="padding:3px 10px;font-size:11px">+ Novo</button></div><div class="rel-msgs" id="rel-msgs"></div></div><div class="rel-input-wrap"><div class="rel-input-box"><span class="rel-input-icon"></span><textarea class="rel-textarea" id="rel-q" rows="3" placeholder="Faça uma pergunta em português… Ex: Top 10 fornecedores por gasto em SP"></textarea><button class="rel-send" id="rel-send">Enviar</button></div><div class="rel-hint">Enter para enviar · Shift+Enter nova linha · ${_RL}</div></div>`;
   const ta=$('rel-q'), btn=$('rel-send');
   if(ta) ta.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();_submit();} });
   if(btn) btn.addEventListener('click',_submit);
@@ -2187,8 +2190,8 @@ if(typeof pages!=='undefined'){
 <div class="rel-wrap">
   <aside class="rel-side">
     <div class="rel-side-top">
-      <button class="rel-mode-btn active" data-mode="chat">💬 Chat</button>
-      <button class="rel-mode-btn" data-mode="history">📋 Histórico</button>
+      <button class="rel-mode-btn active" data-mode="chat">Chat</button>
+      <button class="rel-mode-btn" data-mode="history">Histórico</button>
     </div>
     <div id="rel-side-body" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden"></div>
   </aside>
