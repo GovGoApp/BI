@@ -1002,7 +1002,8 @@ function _init() {
   const pk=_pk(); if(pk) _applyLayout(pk);
   // Expõe funções para o módulo de filtros
   window._BI_EDITOR={applyLayout:_applyLayout,decorate:_decorate,enText:_enText,enSvg:_enSvg,
-    setOv:(pk,id,data)=>{_ov(pk,id,data);_autoSave(pk);}};
+    setOv:(pk,id,data)=>{_ov(pk,id,data);_autoSave(pk);},
+    getOv:(pk,id)=>(_st[pk]?.overrides?.[id])||{}};
 }
 
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_init);
@@ -2783,10 +2784,19 @@ function _setLayoutOv(pg,id,ov){
 
 function _currentPage(){const a=document.querySelector('.tab.active[data-page]');return a?a.dataset.page:null;}
 function _abaLabel(tab){return(typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[tab]?.label)||tab;}
-function _isInGrid(e){const l=e?.layout;return!!(l&&l.row&&l.row<90&&l.visivel!==false);}
+function _isInGrid(e,pg){
+  const l=e?.layout;
+  if(!l||!l.row||l.row>=90||l.visivel===false) return false;
+  // Verificar override atual em _st (estado real, nao o original do ABAS_INDEX)
+  if(pg&&window._BI_EDITOR?.getOv){
+    const ov=window._BI_EDITOR.getOv(pg,e.id);
+    if((ov.row||0)>=90||ov.visivel===false) return false;
+  }
+  return true;
+}
 
 function _lastRow(pg){
-  const rows=(ABAS_INDEX?.[pg]?.elementos||[]).filter(e=>_isInGrid(e));
+  const rows=(ABAS_INDEX?.[pg]?.elementos||[]).filter(e=>_isInGrid(e,pg));
   return rows.length?Math.max(...rows.map(e=>(e.layout.row||1)+(e.layout.row_span||2))):2;
 }
 
@@ -2826,7 +2836,7 @@ function _insertElem(id,pg){
   const tipoUpper=(elem.tipo||'').toUpperCase();
   console.log('[insertElem]',{id,tipo:elem.tipo,tipoUpper,pg});
   if(tipoUpper==='KPI'){
-    const kpiCount=(tabData.elementos||[]).filter(e=>(e.tipo||'').toUpperCase()==='KPI'&&_isInGrid(e)).length;
+    const kpiCount=(tabData.elementos||[]).filter(e=>(e.tipo||'').toUpperCase()==='KPI'&&_isInGrid(e,pg)).length;
     col=(kpiCount%8)*2+1; row=Math.floor(kpiCount/8)*2+1; col_span=2; row_span=2;
     console.log('[insertElem KPI]',{kpiCount,col,row});
   } else {
@@ -2906,8 +2916,8 @@ function _rebuildDrawer(){
     .filter(e=>e.destination_tab===pg&&!inAbas.has('nlel_'+e.id.slice(0,8)))
     .map(e=>({id:'nlel_'+e.id.slice(0,8),tipo:e.tipo,titulo:e.title,layout:{row:99,visivel:false,origem:'nlsql'}}));
   const all=[...allElems,...pendingNl];
-  const inGrid=all.filter(e=>_isInGrid(e));
-  const avail=all.filter(e=>!_isInGrid(e));
+  const inGrid=all.filter(e=>_isInGrid(e,pg));
+  const avail=all.filter(e=>!_isInGrid(e,pg));
   if(!inGrid.length&&!avail.length)return;
   const body=_secHtml('No grid',inGrid,'remove')+_secHtml('Dispon\u00edveis',avail,'insert');
   const lbl=_abaLabel(pg);
