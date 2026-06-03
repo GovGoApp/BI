@@ -1959,7 +1959,7 @@ async function _submit(){
     if(res.history) _S.history=res.history;
     if(res.chats)   _S.chats=res.chats;
     _patchTab(tabId,{title:r.title||q.slice(0,40), st:r.status, count:r.rowCount||0});
-    if(am){ am.text=r.title||(r.status==='ok'?'Concluído':r.error||'Erro'); am.st=r.status; am.sql=r.sql; am.tabId=tabId; am.refTitle=r.title; am.rowCount=r.rowCount; }
+    if(am){ am.text=r.title||(r.status==='ok'?'Concluído':r.error||'Erro'); am.st=r.status; am.sql=r.sql; am.tabId=tabId; am.rid=r.id; am.refTitle=r.title; am.rowCount=r.rowCount; }
   } else {
     _patchTab(tabId,{title:'Erro',st:'error',count:0});
     if(am){ am.text=res.error||'Erro ao processar.'; am.st='error'; }
@@ -1990,19 +1990,21 @@ function _renderMsgs(){
 
     // Assistente com resultado ok: card igual aos boxes do histórico
     const safe=m.sql?m.sql.replace(/\\/g,'\\\\').replace(/`/g,"'"):'';
+    const SVG_REF='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg>';
+    const SVG_SQL='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
     return `<div class="rel-msg asst" style="width:95%">
-      <div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;cursor:default;width:100%;box-sizing:border-box" onclick="window._RL.openTab('${m.tabId||''}')">
+      <div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;width:100%;box-sizing:border-box" onclick="window._RL.openOrLoad('${m.tabId||''}','${m.rid||''}')">
         <div style="flex:1;min-width:0">
           <div class="rel-hi-title">${_esc(m.refTitle||m.text||'Resultado')}</div>
           <div class="rel-hi-sub">${_ts(new Date().toISOString())}</div>
           <div class="rel-hi-meta">
-            <span class="rel-hi-chip ok"></span>
+            <span class="rel-hi-chip ok">ok</span>
             ${m.rowCount!=null?`<span>${m.rowCount.toLocaleString()} linha${m.rowCount!==1?'s':''}</span>`:''}
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-          <button class="rel-icn-btn" title="Ver resultado" onclick="event.stopPropagation();window._RL.openTab('${m.tabId||''}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
-          ${safe?`<button class="rel-icn-btn" title="Copiar SQL" onclick="event.stopPropagation();navigator.clipboard.writeText(\`${safe}\`)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></button>`:''}
+          <button class="rel-icn-btn" title="Atualizar resultado" onclick="event.stopPropagation();window._RL.chatRefresh('${m.tabId||''}','${safe}')">${SVG_REF}</button>
+          ${safe?`<button class="rel-icn-btn" title="Copiar SQL" onclick="event.stopPropagation();navigator.clipboard.writeText(\`${safe}\`)">${SVG_SQL}</button>`:''}
         </div>
       </div>
     </div>`;
@@ -2142,6 +2144,21 @@ window._RL = {
     _renderTabs(); _renderContent();
   },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
+  // Abre tab existente ou carrega do histórico se a tab foi fechada
+  openOrLoad: (tabId, rid) => {
+    if(tabId && _S.tabs.find(t=>t.id===tabId)) { _openTab(tabId); }
+    else if(rid) { window._RL.histOpen(rid,'report'); }
+  },
+  // Re-executa SQL do card do chat e atualiza a tab
+  chatRefresh: async (tabId, sql) => {
+    if(!sql) return;
+    const res=await _api('POST','/execute',{sql});
+    if(res.ok && tabId){
+      if(_S.reports[tabId]){ _S.reports[tabId].rows=res.rows; _S.reports[tabId].rowCount=res.rowCount; _S.reports[tabId].elapsedMs=res.elapsedMs; }
+      const t=_S.tabs.find(t=>t.id===tabId); if(t) t.count=res.rowCount||0;
+      _renderTabs(); if(_S.activeId===tabId) _renderContent();
+    }
+  },
   histDel:    async id => {
     const res=await _api('DELETE',`/history/${id}`);
     if(res.ok){ _S.history=_S.history.filter(h=>h.id!==id); _renderHist(); }
