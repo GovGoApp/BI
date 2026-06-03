@@ -544,10 +544,13 @@ def get_elements():
 
 @app.route("/elements", methods=["POST"])
 def save_element():
-    body = request.get_json(force=True) or {}
-    if not str(body.get("title","")).strip():
+    body      = request.get_json(force=True) or {}
+    title     = str(body.get("title", "")).strip()
+    dest_tab  = str(body.get("destination_tab", "")).strip()
+
+    if not title:
         return jsonify({"ok": False, "error": "title é obrigatório"}), 400
-    if not str(body.get("destination_tab","")).strip():
+    if not dest_tab:
         return jsonify({"ok": False, "error": "destination_tab é obrigatório"}), 400
 
     els = _load_elements()
@@ -564,8 +567,8 @@ def save_element():
     el = {
         "id":              _uid(),
         "tipo":            str(body.get("tipo", "T")),
-        "title":           str(body.get("title", "")).strip(),
-        "destination_tab": str(body.get("destination_tab", "")),
+        "title":           title,
+        "destination_tab": dest_tab,
         "config":          body.get("config", {}),
         "sql":             str(body.get("sql", "")),
         "columns":         body.get("columns", []),
