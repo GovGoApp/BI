@@ -913,7 +913,7 @@ function _decorate() {
     if(el.querySelector('.ed-bar')) return;
     const id=el.dataset.id||'';
     const bar=document.createElement('div');bar.className='ed-bar';
-    bar.innerHTML='<button class="ed-icn" title="Retirar do grid" style="font-size:14px;font-weight:700;color:#dc2626">×</button>';
+    bar.innerHTML='<button class="ed-icn" title="Retirar do grid" style="font-size:15px;font-weight:600">×</button>';
     el.appendChild(bar);
     bar.querySelector('.ed-icn').onclick=e=>{
       e.stopPropagation();
@@ -2793,6 +2793,9 @@ function _rerender(pg){
   setTimeout(()=>{
     if(window._BI_EDITOR?.applyLayout)window._BI_EDITOR.applyLayout(pg);
     if(window._BI_EDITOR?.decorate)window._BI_EDITOR.decorate();
+    // Reatribui draggable=true nos novos elementos criados pelo re-render
+    if(document.body.classList.contains('edit-mode'))
+      document.querySelectorAll('.grid-element').forEach(el=>{el.draggable=true;});
     _rebuildDrawer();
   },80);
 }
