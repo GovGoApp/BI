@@ -1608,9 +1608,10 @@ RELATORIO_CSS = """
   bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 8px 12px 10px;
+  padding: 16px 12px 10px;
 }
 .rel-msg { display: flex; margin-bottom: 8px; width: 100%; overflow: hidden; }
+.rel-msg:first-child { margin-top: 4px; }
 .rel-msg.user { justify-content: flex-end; }
 .rel-msg.asst { justify-content: flex-start; }
 .rel-bubble {
@@ -1960,7 +1961,7 @@ async function _submit(){
   const uid='u'+Date.now();
   _S.msgs.push({id:uid, role:'user', text:q});
   const aid='a'+(Date.now()+1);
-  _S.msgs.push({id:aid, role:'asst', text:'Gerando SQL…', st:'running'});
+  _S.msgs.push({id:aid, role:'asst', text:'Gerando Relatório…', st:'running'});
   _renderMsgs();
 
   const tabId=_addTab(q.slice(0,40),'running');
@@ -2004,7 +2005,7 @@ function _renderMsgs(){
   el.innerHTML=_S.msgs.map(m=>{
     const isU=m.role==='user';
     if(isU) return `<div class="rel-msg user"><div class="rel-bubble">${_esc(m.text)}</div></div>`;
-    if(m.st==='running') return `<div class="rel-msg asst"><div class="rel-bubble"><span class="rel-sp" style="margin-right:6px;vertical-align:middle"></span>Gerando SQL…</div></div>`;
+    if(m.st==='running') return `<div class="rel-msg asst"><div class="rel-bubble" style="display:flex;align-items:center;gap:8px"><span class="rel-sp" style="width:14px;height:14px;border-width:2px;flex-shrink:0"></span><span>Gerando Relatório…</span></div></div>`;
     if(m.st==='error') return `<div class="rel-msg asst"><div class="rel-bubble err">${_esc(m.text)}</div></div>`;
 
     // Card de resultado — embute rid e tabId diretamente no onclick (sem lookup em _S.msgs)
