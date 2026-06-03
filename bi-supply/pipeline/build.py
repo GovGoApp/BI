@@ -1746,10 +1746,13 @@ RELATORIO_CSS = """
   scrollbar-width: thin;
   min-height: 44px;
 }
+/* Tab = wrapper div com flex (não button) para o × funcionar sem clipping */
 .rel-rtab {
   flex: 0 0 auto;
-  position: relative;
-  padding: 8px 24px 8px 12px; /* padding-right extra para o × */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px 6px 12px;
   margin-top: 6px;
   font-size: 12px;
   font-weight: 500;
@@ -1758,14 +1761,10 @@ RELATORIO_CSS = """
   border: 1px solid transparent;
   border-radius: 8px 8px 0 0;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
   max-width: 230px;
 }
-.rel-rtab:not(.has-x) { padding-right: 12px; }
 .rel-rtab.active { color: var(--text); background: #fff; border-color: var(--line); border-bottom-color: #fff; }
-.rel-rtab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+.rel-rtab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; flex: 1; min-width: 0; }
 .rel-rtab-count {
   font-size: 10.5px; font-weight: 600;
   padding: 1px 5px; background: var(--line); border-radius: 8px;
@@ -1773,11 +1772,10 @@ RELATORIO_CSS = """
 }
 .rel-rtab.active .rel-rtab-count { background: var(--blue); color: #fff; }
 .rel-rtab-x {
-  position: absolute;
-  top: 4px; right: 4px;
-  width: 14px; height: 14px;
+  flex-shrink: 0;
+  width: 16px; height: 16px;
   border: 0; background: transparent; color: var(--muted);
-  cursor: pointer; font-size: 11px; padding: 0;
+  cursor: pointer; font-size: 13px; padding: 0;
   display: flex; align-items: center; justify-content: center; border-radius: 3px;
   line-height: 1;
 }
@@ -1796,16 +1794,10 @@ RELATORIO_CSS = """
   display: flex; align-items: center; justify-content: center;
 }
 .rel-new-tab:hover { background: #eff6ff; }
-.rel-asst-tab {
-  flex-shrink: 0; margin-left: auto; margin-top: 6px;
-  padding: 6px 10px; font-size: 11px; font-weight: 600;
-  color: var(--muted); background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px 8px 0 0; cursor: pointer;
-}
-.rel-asst-tab.active { color: var(--blue); background: #fff; border-color: var(--line); border-bottom-color: #fff; }
 /* Conteúdo */
 .rel-content { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 24px 32px; }
+/* Assistente no main: sem padding extra, textarea preenche tudo */
+.rel-content.rel-asst-mode { padding: 0; display: flex; flex-direction: column; }
 .rel-intro { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
 .rel-r-title { font-size: 20px; font-weight: 600; color: var(--text); margin: 0 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rel-r-sub   { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -1840,12 +1832,17 @@ RELATORIO_CSS = """
 .rel-table tbody tr:first-child td { background: #eff6ff; }
 .rel-table tbody tr:hover td { background: rgba(37,99,235,.03); }
 .rel-err { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 14px; color: #dc2626; font-size: 13px; margin-bottom: 12px; }
-/* Prompt editor */
-.rel-prompt-section { display: flex; flex-direction: column; height: 100%; gap: 10px; }
-.rel-prompt-hd { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.rel-prompt-info { font-size: 12px; color: var(--muted); flex: 1; }
-.rel-prompt-ta { flex: 1; resize: none; font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; line-height: 1.5; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); min-height: 200px; }
-.rel-prompt-ta:focus { outline: none; border-color: var(--blue); }
+/* Assistente sidebar panel */
+.rel-asst-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.rel-asst-sub-btn { padding: 5px 4px; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--head,#f1f5f9); border: 1px solid var(--line); border-radius: 7px; cursor: pointer; text-align: center; }
+.rel-asst-sub-btn:not(:disabled):hover { background: #eff6ff; color: var(--blue); border-color: #bfdbfe; }
+.rel-asst-sub-btn:disabled { opacity: .4; cursor: default; }
+.rel-asst-sub-btn.dirty { color: var(--blue); background: #eff6ff; border-color: #bfdbfe; }
+.rel-asst-info-box { padding: 10px 12px; font-size: 11px; color: var(--muted); line-height: 1.5; flex-shrink: 0; border-bottom: 1px solid rgba(226,232,240,.4); }
+/* Prompt editor no main */
+.rel-prompt-section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.rel-prompt-ta { flex: 1; resize: none; font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; line-height: 1.5; padding: 14px 18px; border: 0; border-radius: 0; background: #fff; color: var(--text); outline: none; }
+.rel-prompt-ta:focus { outline: none; }
 /* Barra de progresso linear (durante atualização) */
 .rel-lp {
   height: 3px;
@@ -1899,6 +1896,7 @@ const _S = {
   pages: {},
   promptContent: '',
   promptUpdatedAt: '',
+  promptDirty: false,
   inited: false,
 };
 
@@ -2038,23 +2036,25 @@ function _renderMsgs(){
     </div>`;
   }).join('');
   requestAnimationFrame(()=>{ el.scrollTop=el.scrollHeight; });
-  // Event delegation
-  const msgsEl=$('rel-msgs');
-  if(msgsEl && !msgsEl._delegated){
-    msgsEl._delegated=true;
-    msgsEl.addEventListener('click', e=>{
+  // Event delegation — sempre re-attach para o elemento atual (pode ser re-criado)
+  if(!el._delegated){
+    el._delegated=true;
+    el.addEventListener('click', e=>{
       const btn=e.target.closest('[data-action]');
       const card=e.target.closest('.rel-chat-card');
       if(btn){
         e.stopPropagation();
-        const mid=btn.dataset.btnMid;  // data-btn-mid no botão
+        const mid=btn.dataset.btnMid;
         const act=btn.dataset.action;
         if(act==='refresh') window._RL.chatRefresh(mid);
         else if(act==='copy-sql') window._RL.copyMsgSQL(mid);
         return;
       }
-      // Click no card: usa data-tid e data-rid do próprio elemento (não precisa de _S.msgs)
-      if(card){ window._RL.openOrLoad(card.dataset.tid, card.dataset.rid); }
+      // Lookup no _S.msgs pelo data-mid (fonte de verdade, não HTML)
+      if(card){
+        const m=_S.msgs.find(m=>m.id===card.dataset.mid);
+        if(m) window._RL.openOrLoad(m.tabId, m.rid);
+      }
     });
   }
 }
@@ -2062,23 +2062,34 @@ function _renderMsgs(){
 // ── Render: barra de abas ───────────────────────────────────────────────────
 function _renderTabs(){
   const el=$('rel-tabs-bar'); if(!el) return;
-  const isPrompt=_S.activeId==='__prompt';
+  if(_S.sideMode==='assistant'){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='';
   const ts=_S.tabs.map(t=>{
     const act=t.id===_S.activeId;
     const spin=t.st==='running'?'<span class="rel-sp"></span>':'';
     const cnt=(t.st!=='running'&&t.count>0)?`<span class="rel-rtab-count">${t.count}</span>`:'';
-    const cls=t.closable?`<span class="rel-rtab-x" onclick="event.stopPropagation();window._RL.closeTab('${t.id}')">×</span>`:'';
-    return `<button class="rel-rtab${act?' active':''}${t.closable?' has-x':''}" onclick="window._RL.openTab('${t.id}')">${spin}<span class="rel-rtab-title">${_esc(t.title)}</span>${cnt}${cls}</button>`;
+    // div clicável + span × separado (não aninhado dentro de button)
+    const xcls=t.closable?`<span class="rel-rtab-x" data-close="${t.id}" title="Fechar">×</span>`:'';
+    return `<div class="rel-rtab${act?' active':''}" data-tid="${t.id}">${spin}<span class="rel-rtab-title">${_esc(t.title)}</span>${cnt}${xcls}</div>`;
   }).join('');
-  el.innerHTML=ts+
-    '<button class="rel-new-tab" title="Nova consulta" onclick="window._RL.newQuery()">+</button>'+
-    `<button class="rel-asst-tab${isPrompt?' active':''}" onclick="window._RL.showPrompt()">Assistente</button>`;
+  el.innerHTML=ts+'<button class="rel-new-tab" title="Nova consulta" onclick="window._RL.newQuery()">+</button>';
+  // Delegação na barra de abas
+  if(!el._tabsDelegated){
+    el._tabsDelegated=true;
+    el.addEventListener('click',e=>{
+      const x=e.target.closest('[data-close]');
+      if(x){ e.stopPropagation(); window._RL.closeTab(x.dataset.close); return; }
+      const tab=e.target.closest('.rel-rtab[data-tid]');
+      if(tab) window._RL.openTab(tab.dataset.tid);
+    });
+  }
 }
 
 // ── Render: conteúdo direita ────────────────────────────────────────────────
 function _renderContent(){
   const el=$('rel-content'); if(!el) return;
-  if(_S.activeId==='__prompt'){ _renderPrompt(el); return; }
+  if(_S.sideMode==='assistant'){ el.classList.add('rel-asst-mode'); _renderPrompt(el); return; }
+  el.classList.remove('rel-asst-mode');
   if(!_S.activeId||!_S.reports[_S.activeId]){
     el.innerHTML='<div class="rel-intro"><strong>BI de Suprimentos · Relatório</strong><br><br>Use o chat à esquerda para fazer perguntas em português.<br>O SQL gerado e os resultados aparecem aqui, em abas.<br><br><em>Exemplos:</em><br>· "Top 10 fornecedores por gasto em SP"<br>· "Quantos IDs únicos comprados em 2025?"<br>· "Impacto de cotação por categoria no último trimestre"</div>';
     return;
@@ -2117,12 +2128,34 @@ function _renderContent(){
   el.innerHTML=h;
 }
 
-// ── Render: prompt editor ───────────────────────────────────────────────────
+// ── Render: prompt editor (no main) ─────────────────────────────────────────
 function _renderPrompt(c){
-  const mt=_S.promptUpdatedAt?'Atualizado: '+_ts(_S.promptUpdatedAt):'';
-  c.innerHTML=`<div class="rel-prompt-section"><div class="rel-prompt-hd"><span class="rel-prompt-info">nlsql/prompts/bi_suprimentos_sql.md &nbsp;·&nbsp; ${mt}</span><button class="rel-act-btn" id="rl-psave">Salvar</button><button class="rel-act-btn" id="rl-prst">↩ Restaurar</button></div><textarea class="rel-prompt-ta" id="rl-pta" spellcheck="false">${_esc(_S.promptContent)}</textarea></div>`;
-  $('rl-psave').onclick=async()=>{ const v=$('rl-pta').value; const r=await _api('POST','/prompt',{content:v}); if(r.ok){_S.promptContent=v;alert('Prompt salvo! Próximas consultas usam o novo prompt.');}else alert('Erro: '+(r.error||'')); };
-  $('rl-prst').onclick=async()=>{ if(!confirm('Restaurar backup?')) return; const r=await _api('POST','/prompt/reset'); if(r.ok){const g=await _api('GET','/prompt');if(g.ok){_S.promptContent=g.content;_S.promptUpdatedAt=g.updatedAt;}_renderPrompt(c);}else alert('Sem backup.'); };
+  c.innerHTML=`<div class="rel-prompt-section"><textarea class="rel-prompt-ta" id="rl-pta" spellcheck="false">${_esc(_S.promptContent)}</textarea></div>`;
+  const ta=$('rl-pta');
+  if(ta) ta.addEventListener('input',()=>{
+    _S.promptDirty=true;
+    _renderAssistant(); // atualiza botões na sidebar
+  });
+}
+
+// ── Render: sidebar assistente ───────────────────────────────────────────────
+function _renderAssistant(){
+  const el=$('rel-side-body'); if(!el) return;
+  const mt=_S.promptUpdatedAt?'Atualizado: '+_ts(_S.promptUpdatedAt):'Arquivo: bi_suprimentos_sql.md';
+  const d=_S.promptDirty;
+  el.innerHTML=`<div class="rel-asst-info-box">${mt}</div><div class="rel-asst-sub"><button class="rel-asst-sub-btn${d?' dirty':''}" id="rl-psave" ${d?'':'disabled'}>Salvar</button><button class="rel-asst-sub-btn" id="rl-prst" ${d?'':'disabled'}>Restaurar</button></div>`;
+  $('rl-psave').onclick=async()=>{
+    const ta=$('rl-pta'); if(!ta) return;
+    const v=ta.value; const r=await _api('POST','/prompt',{content:v});
+    if(r.ok){ _S.promptContent=v; _S.promptDirty=false; _S.promptUpdatedAt=new Date().toISOString(); _renderAssistant(); }
+    else alert('Erro ao salvar: '+(r.error||''));
+  };
+  $('rl-prst').onclick=async()=>{
+    if(!confirm('Restaurar backup original?')) return;
+    const r=await _api('POST','/prompt/reset');
+    if(r.ok){ const g=await _api('GET','/prompt'); if(g.ok){_S.promptContent=g.content;_S.promptUpdatedAt=g.updatedAt;} _S.promptDirty=false; _renderAssistant(); _renderContent(); }
+    else alert('Sem backup.');
+  };
 }
 
 // ── Render: sidebar histórico ───────────────────────────────────────────────
@@ -2166,6 +2199,7 @@ function _renderChat(){
 
 function _renderSide(){
   if(_S.sideMode==='chat') _renderChat();
+  else if(_S.sideMode==='assistant') _renderAssistant();
   else _renderHist();
   document.querySelectorAll('.rel-mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===_S.sideMode));
 }
@@ -2214,10 +2248,19 @@ window._RL = {
     const res=await _api('POST','/execute',{sql:m.sql});
     document.getElementById('rel-lp')?.remove();
     if(btn){ btn.innerHTML=_SVG_REFRESH; btn.disabled=false; }
-    if(res.ok && m.tabId){
-      if(_S.reports[m.tabId]){ _S.reports[m.tabId].rows=res.rows; _S.reports[m.tabId].rowCount=res.rowCount; _S.reports[m.tabId].elapsedMs=res.elapsedMs; }
-      const t=_S.tabs.find(t=>t.id===m.tabId); if(t){t.count=res.rowCount||0;}
-      _renderTabs(); if(_S.activeId===m.tabId) _renderContent();
+    if(res.ok){
+      if(m.tabId && _S.reports[m.tabId]){
+        // Aba ainda existe: atualiza in-place
+        Object.assign(_S.reports[m.tabId],{rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs});
+        const t=_S.tabs.find(t=>t.id===m.tabId); if(t) t.count=res.rowCount||0;
+        _renderTabs(); if(_S.activeId===m.tabId) _renderContent();
+      } else if(m.tabId) {
+        // Tab foi fechada: reabre com dados frescos
+        _S.reports[m.tabId]={...(_S.reports[m.tabId]||{}),rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs,status:'ok',sql:m.sql};
+        _S.tabs.push({id:m.tabId,title:m.refTitle||'Resultado',st:'ok',count:res.rowCount||0,closable:true});
+        _S.pages[m.tabId]=0; _S.activeId=m.tabId;
+        _renderTabs(); _renderContent();
+      }
     }
   },
 
@@ -2244,10 +2287,13 @@ window._RL = {
     }
   },
   showPrompt: async () => {
-    const r=await _api('GET','/prompt');
-    if(r.ok){_S.promptContent=r.content;_S.promptUpdatedAt=r.updatedAt;}
-    else _S.promptContent='# Servidor NL-SQL não está respondendo.\n# Inicie com: python nlsql/server.py\n\n# Quando o servidor estiver rodando, o prompt aparecerá aqui.';
-    _S.activeId='__prompt'; _renderTabs(); _renderContent();
+    if(!_S.promptContent){
+      const r=await _api('GET','/prompt');
+      if(r.ok){_S.promptContent=r.content;_S.promptUpdatedAt=r.updatedAt;}
+      else _S.promptContent='# Servidor NL-SQL não está respondendo.\n# Inicie com: python nlsql/server.py\n\n# Quando o servidor estiver rodando, o prompt aparecerá aqui.';
+    }
+    _S.sideMode='assistant'; _S.promptDirty=false;
+    _renderSide(); _renderTabs(); _renderContent();
   },
 };
 
@@ -2260,10 +2306,11 @@ async function _init(){
   if(first){ const r=await _api('GET','/history'); if(r.ok){_S.history=r.history||[];_S.chats=r.chats||[];} }
   document.querySelectorAll('.rel-mode-btn').forEach(b=>{
     b.addEventListener('click',()=>{
-      _S.sideMode=b.dataset.mode;
-      _renderSide();
-      // Ao abrir Histórico, sempre tenta carregar do servidor
-      if(b.dataset.mode==='history') window._RL.refreshHist();
+      const mode=b.dataset.mode;
+      if(mode==='assistant'){ window._RL.showPrompt(); return; }
+      _S.sideMode=mode;
+      _renderSide(); _renderTabs(); _renderContent();
+      if(mode==='history') window._RL.refreshHist();
     });
   });
   _renderSide(); _renderTabs(); _renderContent();
@@ -2276,6 +2323,7 @@ if(typeof pages!=='undefined'){
     <div class="rel-side-top">
       <button class="rel-mode-btn active" data-mode="chat">Chat</button>
       <button class="rel-mode-btn" data-mode="history">Histórico</button>
+      <button class="rel-mode-btn" data-mode="assistant">Assistente</button>
     </div>
     <div id="rel-side-body" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden"></div>
   </aside>
