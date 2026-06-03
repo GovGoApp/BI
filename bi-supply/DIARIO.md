@@ -940,3 +940,39 @@ Respostas bem-sucedidas do assistente usam o mesmo visual dos boxes do históric
 - Timestamp, chip `✓`, contagem de linhas
 - Botão `→` (abre aba) e `⎘` (copia SQL) empilhados à direita
 - Erros: bolha vermelha · Rodando: bolha com spinner (sem mudança)
+
+---
+
+## [2026-06-03] Aba Relatório — correções e melhorias de UX (continuação)
+
+**Commits:** `f88f682`, `ce65f13`, `cddc78a`, `53e78e2`
+
+### Fix definitivo: event delegation nos cards do chat
+
+**Problema raiz:** onclick inline com template literals (`onclick="fn('${m.tabId}')"`) falha silenciosamente quando `m.tabId` ou `m.rid` são `undefined` — gera strings vazias e as funções não fazem nada.
+
+**Solução:** event delegation no `#rel-msgs`:
+- Cards têm `data-mid="${m.id}"` e class `rel-chat-card`
+- Botões têm `data-action="refresh"` ou `"copy-sql"` + `data-mid`
+- Um único listener no container captura todos os cliques e despacha:
+  - click no card → `openOrLoad(mid)` — lookup `m.tabId`/`m.rid` via `_S.msgs`
+  - click refresh → `chatRefresh(mid)` — lookup `m.sql` via `_S.msgs`
+  - click copy → `copyMsgSQL(mid)` — lookup `m.sql` via `_S.msgs`
+- `openOrLoad(msgId)` recebe apenas msgId, faz lookup em `_S.msgs` para obter tabId e rid — nunca mais depende de dados embutidos no onclick
+
+### SVG constantes globais
+
+`_SVG_REFRESH`, `_SVG_TRASH`, `_SVG_CODE`, `_SVG_SPIN` definidos uma vez no topo do IIFE, reutilizados em todos os botões (histórico + chat).
+
+### Loading indicators
+
+- **Spinner circular**: botão de refresh vira `_SVG_SPIN` + `disabled` durante fetch
+- **Barra linear `.rel-lp`**: CSS `translateX(-100%→400%)`, animação 1.4s, prepend no `rel-content`, removida após fetch
+- Aplicado em `chatRefresh` e `histRefresh`
+
+### Outros fixes desta sessão
+- `.rel-wrap`: card com `border + border-radius:10px` (igual outros elementos da página)
+- Botões 26×26px com SVG stroke (era 20×18 com texto)
+- Todos os emojis removidos do RELATORIO_JS e CSS
+- Chat cards: `cursor:pointer`, botão "ver resultado" removido (card já abre)
+- Barra de progresso linear `.rel-lp` no CSS
