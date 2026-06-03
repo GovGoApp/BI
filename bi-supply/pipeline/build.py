@@ -1796,14 +1796,14 @@ RELATORIO_CSS = """
 }
 .rel-new-tab:hover { background: #eff6ff; }
 /* Conteúdo */
-.rel-content { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 24px 32px; }
+.rel-content { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 20px 20px; }
 /* Assistente no main: sem padding extra, textarea preenche tudo */
 .rel-content.rel-asst-mode { padding: 0; display: flex; flex-direction: column; }
 .rel-intro { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
-.rel-r-title { font-size: 20px; font-weight: 600; color: var(--text); margin: 0 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rel-r-sub   { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rel-r-title { font-size: 18px; font-weight: 600; color: var(--text); margin: 0 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rel-r-sub   { font-size: 12px; color: var(--muted); line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 /* SQL block */
-.rel-sql-wrap { background: #0f172a; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+.rel-sql-wrap { background: #0f172a; border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
 .rel-sql-head { display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,.08); gap: 8px; }
 .rel-sql-lbl  { font-size: 10.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; flex: 1; }
 .rel-sql-copy { width:26px; height:26px; color: #94a3b8; background: transparent; border: 1px solid rgba(255,255,255,.1); border-radius: 5px; padding: 0; cursor: pointer; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -1837,7 +1837,7 @@ RELATORIO_CSS = """
 .rel-viz-bar {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   padding: 8px 12px; border: 1.5px solid #bfdbfe; border-radius: 8px;
-  background: #eff6ff; margin-bottom: 14px;
+  background: #eff6ff; margin-bottom: 8px;
 }
 .rel-viz-bar-lbl { font-size: 10px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; flex-shrink: 0; }
 .rel-viz-btn {
@@ -2225,27 +2225,24 @@ function _renderContent(){
   }
   let h=`<h2 class="rel-r-title">${_esc(r.title||r.question||'Resultado')}</h2>`;
   if(r.subtitle) h+=`<div class="rel-r-sub">${_esc(r.subtitle)}</div>`;
-  else h+='<div style="margin-bottom:14px"></div>';
+  else h+='<div style="margin-bottom:6px"></div>';
   if(r.status==='error') h+=`<div class="rel-err">${_esc(r.error||'Erro desconhecido')}</div>`;
   if(r.sql){
     h+=`<div class="rel-sql-wrap"><div class="rel-sql-head"><span class="rel-sql-lbl">Comando SQL</span><button class="rel-sql-copy" onclick="window._RL.copySql('${tid}')" title="Copiar SQL">${_SVG_COPY}</button></div><pre class="rel-sql-pre">${_esc(r.sql)}</pre></div>`;
   }
   if(r.status==='ok'){
-    // Barra de visualização (vazia na primeira chamada → disparará _classify)
     h+=_renderVizBar(tid);
 
     const activeType=(_S.classify[tid]?.activeType)||'table';
 
     if(activeType!=='table'){
-      // Preview do elemento sugerido
+      // Visualização alternativa: substitui a tabela completamente
       const sg=(_S.classify[tid]?.suggestions||[]).find(s=>s.tipo===activeType);
-      if(sg){
-        h+=`<div class="rel-viz-preview">${_renderPreview(activeType,sg.config,r.rows,r.columns)}</div>`;
-      }
+      h+=`<div class="rel-viz-preview">${sg ? _renderPreview(activeType,sg.config,r.rows,r.columns) : ''}</div>`;
+    } else {
+      // Padrão: apenas a tabela
+      h+=_renderTableSection(r,tid);
     }
-
-    // Tabela sempre ao final (como referência / tab padrão)
-    h+=_renderTableSection(r,tid);
   }
   el.innerHTML=h;
 
