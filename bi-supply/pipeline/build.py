@@ -1574,8 +1574,7 @@ RELATORIO_CSS = """
 }
 /* Chat */
 .rel-chat-section {
-  display: flex;
-  flex-direction: column;
+  position: relative; /* para position:absolute do msgs */
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -1586,6 +1585,9 @@ RELATORIO_CSS = """
   justify-content: space-between;
   padding: 8px 12px;
   border-bottom: 1px solid rgba(226,232,240,.5);
+  position: relative;
+  z-index: 1;
+  background: #fff;
   flex-shrink: 0;
 }
 .rel-chat-lbl {
@@ -1596,14 +1598,14 @@ RELATORIO_CSS = """
   letter-spacing: .06em;
 }
 .rel-msgs {
-  flex: 1;
-  min-height: 0;
-  height: 0; /* força o flex child a ser limitado para scroll funcionar */
+  position: absolute;
+  top: 41px;   /* altura do rel-chat-hd */
+  left: 0;
+  right: 0;
+  bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 8px 12px 10px;
-  display: flex;
-  flex-direction: column;
 }
 .rel-msg { display: flex; margin-bottom: 8px; width: 100%; overflow: hidden; }
 .rel-msg.user { justify-content: flex-end; }
