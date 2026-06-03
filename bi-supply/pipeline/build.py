@@ -2821,9 +2821,18 @@ function _insertElem(id,pg){
     const nlEl=_nlEls().find(e=>'nlel_'+e.id.slice(0,8)===id||e.variavel_js===elem.variavel_js);
     if(nlEl){window._BI_DATA=window._BI_DATA||{};window._BI_DATA[elem.variavel_js]=nlEl.rows_snapshot||[];}
   }
-  const lr=_lastRow(pg);
-  elem.layout={...(elem.layout||{}),col:1,col_span:10,row:lr,row_span:6,visivel:true};
-  _setLayoutOv(pg,id,{col:1,col_span:10,row:lr,row_span:6,visivel:true});
+  let col,row,col_span,row_span;
+  if(elem.tipo==='KPI'){
+    // KPIs: empacota sequencialmente no topo (8 por linha, 2 cols x 2 rows cada)
+    const kpiCount=(tabData.elementos||[]).filter(e=>e.tipo==='KPI'&&_isInGrid(e)).length;
+    col=(kpiCount%8)*2+1;
+    row=Math.floor(kpiCount/8)*2+1;
+    col_span=2; row_span=2;
+  } else {
+    col=1; col_span=10; row=_lastRow(pg); row_span=6;
+  }
+  elem.layout={...(elem.layout||{}),col,col_span,row,row_span,visivel:true};
+  _setLayoutOv(pg,id,{col,col_span,row,row_span,visivel:true});
   _rerender(pg);
 }
 
