@@ -2790,8 +2790,9 @@ function _rebuildPuller(){
   const pg=_currentPage(); if(!pg) return;
   const els=_nlEls().filter(e=>e.destination_tab===pg);
   if(!els.length) return;  // sem elementos para esta aba
+  if(!document.body.classList.contains('edit-mode')) return;  // so em modo edicao
 
-  const isEdit=document.body.classList.contains('edit-mode');
+  const isEdit=true;
 
   const items=els.map(e=>{
     const added=_inGrid(e.id,pg);
