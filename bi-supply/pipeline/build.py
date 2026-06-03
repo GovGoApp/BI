@@ -1598,6 +1598,7 @@ RELATORIO_CSS = """
 .rel-msgs {
   flex: 1;
   min-height: 0;
+  height: 0; /* força o flex child a ser limitado para scroll funcionar */
   overflow-y: auto;
   overflow-x: hidden;
   padding: 8px 12px 10px;
