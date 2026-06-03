@@ -2756,138 +2756,130 @@ if(typeof pages!=='undefined'){
 # ── Runtime: elementos NL-SQL nas abas (localStorage, sem servidor) ───────────
 
 ELEMENTS_RUNTIME_JS = r"""
-/* ── Elementos NL-SQL — runtime injection + drawer no editor ── */
+/* ── Elementos NL-SQL — runtime injection + drawer ── */
 (function(){
 'use strict';
 
 const _NL_KEY = 'bi_nlsql_elements';
 function _nlEls(){ try{ return JSON.parse(localStorage.getItem(_NL_KEY)||'[]'); }catch(e){ return []; } }
 
-// Injeta window._BI_DATA para todos os elementos salvos (dados prontos para os renderers)
+// Injeta _BI_DATA para todos os elementos salvos (roda na carga da página)
 function _injectNlData(){
-  if(typeof window._BI_DATA === 'undefined') window._BI_DATA = {};
-  _nlEls().forEach(el => {
-    if(el.variavel_js) window._BI_DATA[el.variavel_js] = el.rows_snapshot || [];
-  });
+  window._BI_DATA = window._BI_DATA || {};
+  _nlEls().forEach(el=>{ if(el.variavel_js) window._BI_DATA[el.variavel_js]=el.rows_snapshot||[]; });
 }
-_injectNlData(); // roda imediatamente na carga da página
-
-// ── Drawer no editor ────────────────────────────────────────────────────────
+_injectNlData();
 
 function _currentPage(){
-  const a = document.querySelector('.tab.active[data-page]');
-  return a ? a.dataset.page : null;
+  const a=document.querySelector('.tab.active[data-page]'); return a?a.dataset.page:null;
 }
-
 function _abaLabel(tab){
-  return (typeof ABAS_INDEX !== 'undefined' && ABAS_INDEX[tab]?.label) || tab;
+  return (typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[tab]?.label)||tab;
+}
+function _inGrid(id,pg){
+  if(typeof ABAS_INDEX==='undefined') return false;
+  const eid='nlel_'+id.slice(0,8);
+  const el=ABAS_INDEX[pg]?.elementos?.find(e=>e.id===eid);
+  return !!(el&&el.layout?.row&&el.layout.row<90);
 }
 
-function _buildDrawer(){
+let _drawerOpen=false;
+
+function _rebuildPuller(){
   document.getElementById('_nl_drawer')?.remove();
-  const pg = _currentPage();
-  if(!pg) return;
-  const els = _nlEls().filter(e => e.destination_tab === pg);
-  if(!els.length) return;
+  const pg=_currentPage(); if(!pg) return;
+  const els=_nlEls().filter(e=>e.destination_tab===pg);
+  if(!els.length) return;  // sem elementos para esta aba
 
-  // Quais já estão no grid desta aba
-  const inGrid = id => {
-    if(typeof ABAS_INDEX === 'undefined') return false;
-    const eid = 'nlel_' + id.slice(0, 8);
-    const el = ABAS_INDEX[pg]?.elementos?.find(e => e.id === eid);
-    return !!(el && el.layout?.row && el.layout.row < 90);
-  };
+  const isEdit=document.body.classList.contains('edit-mode');
 
-  const items = els.map(e => {
-    const added = inGrid(e.id);
+  const items=els.map(e=>{
+    const added=_inGrid(e.id,pg);
+    const canInsert=isEdit&&!added;
+    let btn='';
+    if(added)      btn=`<span style="font-size:10.5px;color:#16a34a;font-weight:600">✓ No grid</span>`;
+    else if(isEdit) btn=`<button onclick="window._NL.insertElem('${e.id}')" style="padding:3px 9px;font-size:11px;font-weight:700;border:1px solid var(--blue);border-radius:5px;cursor:pointer;background:var(--blue,#2563eb);color:#fff">Inserir</button>`;
+    else            btn=`<span style="font-size:10px;color:var(--muted)">ative ✎</span>`;
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(226,232,240,.5)">
       <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title||'Elemento'}</div>
+        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title||'Elemento'}</div>
         <div style="font-size:10.5px;color:var(--muted)">${e.tipo||'T'}</div>
-      </div>
-      <button onclick="window._NL.insertElem('${e.id}')" ${added?'disabled style="opacity:.45;cursor:default"':''} style="padding:3px 9px;font-size:11px;font-weight:700;border:1px solid;border-radius:5px;cursor:pointer;${added?'background:#f1f5f9;color:var(--muted);border-color:var(--line)':'background:var(--blue);color:#fff;border-color:var(--blue)'}">${added?'Inserido':'Inserir'}</button>
-    </div>`;
+      </div>${btn}</div>`;
   }).join('');
 
-  const d = document.createElement('div');
-  d.id = '_nl_drawer';
-  d.innerHTML = `
-    <div id="_nl_pull" onclick="window._NL.toggleDrawer()" title="Elementos Da Consulta" style="position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:601;cursor:pointer;background:var(--blue,#2563eb);color:#fff;border-radius:6px 0 0 6px;padding:14px 5px;writing-mode:vertical-rl;font-size:10px;font-weight:700;letter-spacing:.07em;box-shadow:-2px 2px 8px rgba(0,0,0,.15)">Da Consulta (${els.length})</div>
-    <div id="_nl_panel" style="position:fixed;right:0;top:0;bottom:0;width:0;overflow:hidden;transition:width .2s ease;z-index:600;background:#fff;border-left:1px solid var(--line);box-shadow:-4px 0 20px rgba(0,0,0,.1)">
+  const hint=!isEdit?`<div style="font-size:10.5px;color:#dc2626;margin-bottom:8px">Clique em ✎ Editar layout para inserir.</div>`:'';
+
+  const d=document.createElement('div');
+  d.id='_nl_drawer';
+  d.innerHTML=`
+    <div id="_nl_pull" onclick="window._NL.toggleDrawer()" title="Da Consulta — ${_abaLabel(pg)}"
+      style="position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:601;cursor:pointer;
+             background:var(--blue,#2563eb);color:#fff;border-radius:0 6px 6px 0;
+             padding:14px 5px;writing-mode:vertical-rl;font-size:10px;font-weight:700;
+             letter-spacing:.07em;box-shadow:2px 2px 8px rgba(0,0,0,.18);user-select:none">
+      Da Consulta&nbsp;${els.length}
+    </div>
+    <div id="_nl_panel" style="position:fixed;left:0;top:0;bottom:0;width:0;overflow:hidden;
+           transition:width .2s ease;z-index:600;background:#fff;border-right:1px solid var(--line);
+           box-shadow:4px 0 20px rgba(0,0,0,.1)">
       <div style="padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;width:270px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Da Consulta — ${_abaLabel(pg)}</div>
-        ${items}
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+                    letter-spacing:.06em;margin-bottom:8px">Da Consulta — ${_abaLabel(pg)}</div>
+        ${hint}${items}
       </div>
     </div>`;
   document.body.appendChild(d);
+  if(_drawerOpen){
+    const p=document.getElementById('_nl_panel'); if(p) p.style.width='270px';
+  }
 }
-
-function _removeDrawer(){
-  document.getElementById('_nl_drawer')?.remove();
-  _drawerOpen = false;
-}
-
-let _drawerOpen = false;
 
 window._NL = {
-  toggleDrawer: () => {
-    _drawerOpen = !_drawerOpen;
-    const p = document.getElementById('_nl_panel');
-    if(p) p.style.width = _drawerOpen ? '270px' : '0';
+  toggleDrawer: ()=>{
+    _drawerOpen=!_drawerOpen;
+    const p=document.getElementById('_nl_panel'); if(p) p.style.width=_drawerOpen?'270px':'0';
   },
 
-  insertElem: id => {
-    const el = _nlEls().find(e => e.id === id); if(!el) return;
-    const pg = _currentPage(); if(!pg) return;
-    if(typeof ABAS_INDEX === 'undefined') return;
-    const tabData = ABAS_INDEX[pg];
-    if(!tabData) return;
-    if(!tabData.elementos) tabData.elementos = [];
+  insertElem: id=>{
+    const el=_nlEls().find(e=>e.id===id); if(!el) return;
+    const pg=_currentPage(); if(!pg) return;
+    if(typeof ABAS_INDEX==='undefined') return;
+    const tabData=ABAS_INDEX[pg]; if(!tabData) return;
+    if(!tabData.elementos) tabData.elementos=[];
 
-    // Injeta dados
-    window._BI_DATA = window._BI_DATA || {};
-    window._BI_DATA[el.variavel_js] = el.rows_snapshot || [];
+    window._BI_DATA=window._BI_DATA||{};
+    window._BI_DATA[el.variavel_js]=el.rows_snapshot||[];
 
-    // Calcula posição no final do grid
-    const eid = 'nlel_' + el.id.slice(0, 8);
-    if(!tabData.elementos.find(e => e.id === eid)) {
-      const rows = tabData.elementos.filter(e => e.layout?.row);
-      const lastRow = rows.length
-        ? Math.max(...rows.map(e => (e.layout.row || 1) + (e.layout.row_span || 2)))
-        : 2;
+    const eid='nlel_'+el.id.slice(0,8);
+    if(!tabData.elementos.find(e=>e.id===eid)){
+      const rows=tabData.elementos.filter(e=>e.layout?.row);
+      const lastRow=rows.length?Math.max(...rows.map(e=>(e.layout.row||1)+(e.layout.row_span||2))):2;
       tabData.elementos.push({
-        id: eid, variavel_js: el.variavel_js, tipo: el.tipo,
-        titulo: el.title, subtitulo: '', config: el.config || {}, dados: null,
-        layout: { col: 1, col_span: 10, row: lastRow, row_span: 6, visivel: true, origem: 'nlsql' }
+        id:eid, variavel_js:el.variavel_js, tipo:el.tipo,
+        titulo:el.title, subtitulo:'', config:el.config||{}, dados:null,
+        layout:{col:1,col_span:10,row:lastRow,row_span:6,visivel:true,origem:'nlsql'}
       });
     }
-
-    // Re-renderiza a aba
-    if(typeof pages !== 'undefined' && pages[pg]) pages[pg]();
-
-    // Re-aplica overlays do editor e atualiza drawer
-    setTimeout(() => {
+    if(typeof pages!=='undefined'&&pages[pg]) pages[pg]();
+    setTimeout(()=>{
       if(window._BI_EDITOR?.applyLayout) window._BI_EDITOR.applyLayout(pg);
       if(window._BI_EDITOR?.decorate)    window._BI_EDITOR.decorate();
-      _buildDrawer();
-    }, 80);
+      _rebuildPuller();
+    },80);
   },
 };
 
-// Observa ativação/desativação do modo edição
-new MutationObserver(() => {
-  const isEdit = document.body.classList.contains('edit-mode');
-  if(isEdit){ _injectNlData(); _drawerOpen = false; _buildDrawer(); }
-  else _removeDrawer();
-}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+// Reconstrói ao entrar/sair do modo edição
+new MutationObserver(()=>_rebuildPuller())
+  .observe(document.body,{attributes:true,attributeFilter:['class']});
 
-// Atualiza drawer ao trocar de aba (em modo edição)
-document.addEventListener('click', e => {
-  const tab = e.target.closest('.tab[data-page]');
-  if(tab && document.body.classList.contains('edit-mode')){
-    setTimeout(() => { _drawerOpen = false; _buildDrawer(); }, 120);
-  }
+// Reconstrói ao trocar de aba
+document.addEventListener('click',e=>{
+  if(e.target.closest('.tab[data-page]')) setTimeout(_rebuildPuller,150);
 });
+
+// Constrói na carga inicial
+setTimeout(_rebuildPuller,400);
 
 })();
 """
