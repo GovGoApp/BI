@@ -2794,21 +2794,27 @@ function _rebuildPuller(){
 
   const isEdit=true;
 
+  // Icons (replicados aqui pois _VIZ_ICON vive no IIFE do Relatorio)
+  const _ICONS={KPI:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',GL:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 17 8 10 13 14 19 6"/></svg>',GB:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>',HL:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="16" height="4" rx="1"/><rect x="3" y="10" width="11" height="4" rx="1"/><rect x="3" y="16" width="7" height="4" rx="1"/></svg>',T:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>',MX:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',FU:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 4h18l-7 8v7l-4-2v-5L3 4z"/></svg>'};
+  const _NAMES={KPI:'KPI',GL:'Linhas',GB:'Barras',GE:'Empilhado',HL:'Ranking',T:'Tabela',TE:'Tabela+',MX:'Matriz',FU:'Funil'};
+
   const items=els.map(e=>{
     const added=_inGrid(e.id,pg);
-    const canInsert=isEdit&&!added;
-    let btn='';
-    if(added)      btn=`<span style="font-size:10.5px;color:#16a34a;font-weight:600">✓ No grid</span>`;
-    else if(isEdit) btn=`<button onclick="window._NL.insertElem('${e.id}')" style="padding:3px 9px;font-size:11px;font-weight:700;border:1px solid var(--blue);border-radius:5px;cursor:pointer;background:var(--blue,#2563eb);color:#fff">Inserir</button>`;
-    else            btn=`<span style="font-size:10px;color:var(--muted)">ative ✎</span>`;
-    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(226,232,240,.5)">
+    const icon=_ICONS[e.tipo]||_ICONS['T'];
+    const name=_NAMES[e.tipo]||e.tipo;
+    const btn=added
+      ?'<span style="font-size:10.5px;color:#16a34a;font-weight:600">No grid</span>'
+      :`<button onclick="window._NL.insertElem('${e.id}')" style="padding:3px 9px;font-size:11px;font-weight:700;border:1px solid var(--blue);border-radius:5px;cursor:pointer;background:var(--blue,#2563eb);color:#fff">Inserir</button>`;
+    return `<div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">
+      <span style="flex-shrink:0;color:var(--blue);display:flex;align-items:center;padding-top:2px">${icon}</span>
       <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title||'Elemento'}</div>
-        <div style="font-size:10.5px;color:var(--muted)">${e.tipo||'T'}</div>
-      </div>${btn}</div>`;
+        <div class="rel-hi-title">${e.title||'Elemento'}</div>
+        <div class="rel-hi-sub">${name}</div>
+      </div>
+      <div style="flex-shrink:0;align-self:center">${btn}</div></div>`;
   }).join('');
 
-  const hint=!isEdit?`<div style="font-size:10.5px;color:#dc2626;margin-bottom:8px">Clique em ✎ Editar layout para inserir.</div>`:'';
+  const hint='';
 
   const d=document.createElement('div');
   d.id='_nl_drawer';
