@@ -2126,15 +2126,15 @@ function _renderVizBar(tid){
   // Sem sugestões → barra some
   if(!cls.suggestions.length) return '';
   const active=cls.activeType||'table';
+  const tbl=`<button class="rel-viz-btn${active==='table'?' active':''}" onclick="window._RL.setVizType('${tid}','table')">${_VIZ_ICON['T']}Tabela</button>`;
   const btns=cls.suggestions.map(s=>{
     const pct=Math.round((s.confidence||0)*100);
     const act=active===s.tipo?' active':'';
     const icon=_VIZ_ICON[s.tipo]||'';
     const name=_VIZ_NAME[s.tipo]||s.tipo;
-    // Clicar no tipo ativo deseleciona (volta à tabela)
     return `<button class="rel-viz-btn${act}" onclick="window._RL.setVizType('${tid}','${s.tipo}')" title="${_esc(s.reason||'')}">${icon}${name}<span class="rel-viz-pct">${pct}%</span></button>`;
   }).join('');
-  return `<div class="rel-viz-bar"><span class="rel-viz-bar-lbl">Ver como</span>${btns}</div>`;
+  return `<div class="rel-viz-bar"><span class="rel-viz-bar-lbl">Ver como</span>${tbl}${btns}</div>`;
 }
 
 function _pivotGE(data,xKey,groupKey,valueKey){
@@ -2364,8 +2364,7 @@ window._RL = {
 
   setVizType: (tid, tipo) => {
     if(!_S.classify[tid]) return;
-    // Toggle: clicar no tipo já ativo volta à tabela
-    _S.classify[tid].activeType = (_S.classify[tid].activeType===tipo) ? 'table' : tipo;
+    _S.classify[tid].activeType = tipo;
     if(_S.activeId===tid) _renderContent();
   },
 
