@@ -2014,12 +2014,10 @@ function _renderMsgs(){
     // Assistente com erro: bolha de erro
     if(m.st==='error') return `<div class="rel-msg asst"><div class="rel-bubble err">${_esc(m.text)}</div></div>`;
 
-    // Assistente com resultado ok: card igual aos boxes do histórico
-    // Referência por m.id — evita SQL inline no onclick (aspas simples quebram o handler)
-    const SVG_REF=_SVG_REFRESH, SVG_SQL=_SVG_CODE;
+    // Card de resultado — usa data-mid/data-action para event delegation (sem onclick inline)
     return `<div class="rel-msg asst" style="width:95%">
-      <div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;width:100%;box-sizing:border-box"
-           onclick="window._RL.openOrLoad('${m.tabId||''}','${m.rid||''}')">
+      <div class="rel-hist-item rel-chat-card" data-mid="${m.id}"
+           style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;width:100%;box-sizing:border-box">
         <div style="flex:1;min-width:0">
           <div class="rel-hi-title">${_esc(m.refTitle||m.text||'Resultado')}</div>
           <div class="rel-hi-sub">${_ts(new Date().toISOString())}</div>
@@ -2029,15 +2027,33 @@ function _renderMsgs(){
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-          <button class="rel-icn-btn" data-mid="${m.id}" title="Atualizar resultado"
-                  onclick="event.stopPropagation();window._RL.chatRefresh('${m.id}')">${SVG_REF}</button>
-          ${m.sql?`<button class="rel-icn-btn" title="Copiar SQL"
-                  onclick="event.stopPropagation();window._RL.copyMsgSQL('${m.id}')">${SVG_SQL}</button>`:''}
+          <button class="rel-icn-btn" data-mid="${m.id}" data-action="refresh"
+                  title="Atualizar resultado">${_SVG_REFRESH}</button>
+          ${m.sql?`<button class="rel-icn-btn" data-mid="${m.id}" data-action="copy-sql"
+                  title="Copiar SQL">${_SVG_CODE}</button>`:''}
         </div>
       </div>
     </div>`;
   }).join('');
   requestAnimationFrame(()=>{ el.scrollTop=el.scrollHeight; });
+  // Event delegation — evita onclick inline com template literals
+  const msgsEl=$('rel-msgs');
+  if(msgsEl && !msgsEl._delegated){
+    msgsEl._delegated=true;
+    msgsEl.addEventListener('click', e=>{
+      const btn=e.target.closest('[data-action]');
+      const card=e.target.closest('.rel-chat-card');
+      if(btn){
+        e.stopPropagation();
+        const mid=btn.dataset.mid;
+        const act=btn.dataset.action;
+        if(act==='refresh') window._RL.chatRefresh(mid);
+        else if(act==='copy-sql') window._RL.copyMsgSQL(mid);
+        return;
+      }
+      if(card){ window._RL.openOrLoad(card.dataset.mid); }
+    });
+  }
 }
 
 // ── Render: barra de abas ───────────────────────────────────────────────────
@@ -2172,8 +2188,10 @@ window._RL = {
     _renderTabs(); _renderContent();
   },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
-  // Abre tab existente ou carrega do histórico se a tab foi fechada
-  openOrLoad: (tabId, rid) => {
+  // Abre resultado via msgId (lookup direto em _S.msgs — sem strings no onclick)
+  openOrLoad: msgId => {
+    const m=_S.msgs.find(m=>m.id===msgId);
+    const tabId=m?.tabId, rid=m?.rid;
     if(tabId && _S.tabs.find(t=>t.id===tabId)) { _openTab(tabId); }
     else if(rid) { window._RL.histOpen(rid,'report'); }
   },
