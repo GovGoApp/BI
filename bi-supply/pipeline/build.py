@@ -1796,7 +1796,7 @@ RELATORIO_CSS = """
 }
 .rel-new-tab:hover { background: #eff6ff; }
 /* Conteúdo */
-.rel-content { flex: 1; min-height: 0; overflow: hidden; padding: 12px 20px 0; display: flex; flex-direction: column; }
+.rel-content { flex: 1; min-height: 0; overflow: hidden; padding: 12px 20px 12px; display: flex; flex-direction: column; }
 /* Assistente no main: sem padding extra, textarea preenche tudo */
 .rel-content.rel-asst-mode { padding: 0; display: flex; flex-direction: column; }
 .rel-intro { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
