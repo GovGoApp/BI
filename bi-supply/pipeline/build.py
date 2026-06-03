@@ -1805,8 +1805,8 @@ RELATORIO_CSS = """
 .rel-sql-wrap { background: #0f172a; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
 .rel-sql-head { display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,.08); gap: 8px; }
 .rel-sql-lbl  { font-size: 10.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; flex: 1; }
-.rel-sql-copy { font-size: 11px; font-weight: 600; color: #94a3b8; background: transparent; border: 1px solid rgba(255,255,255,.1); border-radius: 5px; padding: 2px 8px; cursor: pointer; }
-.rel-sql-copy:hover { color: #fff; }
+.rel-sql-copy { width:26px; height:26px; color: #94a3b8; background: transparent; border: 1px solid rgba(255,255,255,.1); border-radius: 5px; padding: 0; cursor: pointer; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+.rel-sql-copy:hover { color: #fff; background: rgba(255,255,255,.08); }
 .rel-sql-pre  { margin: 0; padding: 10px 14px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; line-height: 1.5; color: #e0eaf9; overflow: auto; max-height: 92px; scrollbar-width: thin; white-space: pre-wrap; word-break: break-all; }
 /* Tabela */
 .rel-tbl-wrap { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
@@ -1879,6 +1879,7 @@ const PAGE_SZ = 10;
 const _SVG_REFRESH = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg>';
 const _SVG_TRASH   = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
 const _SVG_CODE    = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+const _SVG_COPY    = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 const _SVG_SPIN    = '<span class="rel-sp" style="width:13px;height:13px;border-width:2px"></span>';
 
 // ── Estado ─────────────────────────────────────────────────────────────────
@@ -2078,8 +2079,7 @@ function _renderContent(){
   else h+='<div style="margin-bottom:14px"></div>';
   if(r.status==='error') h+=`<div class="rel-err">${_esc(r.error||'Erro desconhecido')}</div>`;
   if(r.sql){
-    const safe=r.sql.replace(/\\/g,'\\\\').replace(/`/g,"'");
-    h+=`<div class="rel-sql-wrap"><div class="rel-sql-head"><span class="rel-sql-lbl">Comando SQL</span><button class="rel-sql-copy" onclick="navigator.clipboard.writeText(\`${safe}\`)">Copiar</button></div><pre class="rel-sql-pre">${_esc(r.sql)}</pre></div>`;
+    h+=`<div class="rel-sql-wrap"><div class="rel-sql-head"><span class="rel-sql-lbl">Comando SQL</span><button class="rel-sql-copy" onclick="window._RL.copySql('${tid}')" title="Copiar SQL">${_SVG_COPY}</button></div><pre class="rel-sql-pre">${_esc(r.sql)}</pre></div>`;
   }
   if(r.status==='ok'){
     const cols=r.columns||[], rows=r.rows||[];
@@ -2200,12 +2200,17 @@ window._RL = {
   },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
 
-  // Abre resultado do chat — usa o mesmo caminho de histOpen (garantidamente funciona)
-  // rid e tabId embutidos diretamente no HTML; tabId só como atalho quando report já existe
+  copySql: id => {
+    const r=_S.reports[id]; if(r?.sql) navigator.clipboard.writeText(r.sql);
+  },
+
+  // Abre resultado do chat
   chatOpen: async (rid, tabId) => {
-    if(tabId && _S.reports[tabId]) { _openTab(tabId); return; }
-    if(rid) { await window._RL.histOpen(rid,'report'); return; }
-    if(tabId) _openTab(tabId);
+    console.log('[chatOpen]', {rid, tabId, hasReport: !!(tabId && _S.reports[tabId]), tabs: _S.tabs.map(t=>t.id)});
+    if(tabId && _S.reports[tabId]) { console.log('[chatOpen] → _openTab'); _openTab(tabId); return; }
+    if(rid) { console.log('[chatOpen] → histOpen'); await window._RL.histOpen(rid,'report'); return; }
+    if(tabId) { console.log('[chatOpen] → openTab fallback'); _openTab(tabId); }
+    else console.log('[chatOpen] → nada (rid e tabId vazios)');
   },
 
   openOrLoad: (tabId, rid) => {
