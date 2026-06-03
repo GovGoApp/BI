@@ -2867,7 +2867,9 @@ window._NL = {
         layout:{col:1,col_span:10,row:lastRow,row_span:6,visivel:true,origem:'nlsql'}
       });
     }
-    if(typeof pages!=='undefined'&&pages[pg]) pages[pg]();
+    // render(pg) injeta no DOM; pages[pg]() apenas retorna HTML
+    if(typeof render==='function') render(pg);
+    else if(typeof pages!=='undefined'&&pages[pg]){ const c=document.getElementById('page'); if(c) c.innerHTML=pages[pg](); }
     setTimeout(()=>{
       if(window._BI_EDITOR?.applyLayout) window._BI_EDITOR.applyLayout(pg);
       if(window._BI_EDITOR?.decorate)    window._BI_EDITOR.decorate();
