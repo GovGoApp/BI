@@ -551,6 +551,16 @@ def save_element():
         return jsonify({"ok": False, "error": "destination_tab é obrigatório"}), 400
 
     els = _load_elements()
+    # Deduplicação: mesmo título + mesma aba de destino
+    dup = next((e for e in els
+                if e.get("title","").strip().lower() == title.lower()
+                and e.get("destination_tab") == dest_tab), None)
+    if dup:
+        return jsonify({
+            "ok": False,
+            "error": f'Já existe um elemento com este título na aba "{dest_tab}". Altere o título ou delete o existente primeiro.'
+        }), 409
+
     el = {
         "id":              _uid(),
         "tipo":            str(body.get("tipo", "T")),

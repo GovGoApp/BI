@@ -2170,7 +2170,6 @@ function _renderModal(){
   const typeName=_VIZ_NAME[m.tipo]||m.tipo;
   const typeIcon=_VIZ_ICON[m.tipo]||'';
   const prevHtml=_renderPreview(m.tipo, m.config, m.rows, m.columns);
-  const cfgHtml=_cfgFields(m.tipo, m.config, m.columns);
   const abasHtml=_abasOpts(m.destTab);
   const html=`
 <div class="rel-modal-bd" id="_rel_modal_bd" onclick="if(event.target.id==='_rel_modal_bd')window._RL.closeModal()">
@@ -2192,7 +2191,6 @@ function _renderModal(){
           ${abasHtml}
         </select>
       </div>
-      ${cfgHtml}
     </div>
     <div class="rel-modal-ft">
       <span id="rl-m-err" style="flex:1;font-size:12px;color:#dc2626;align-self:center"></span>
@@ -2510,7 +2508,7 @@ window._RL = {
     if(res.ok){
       window._RL.closeModal();
       const abaLabel=(typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[m.destTab]?.label)||m.destTab;
-      _showToast(`Elemento salvo para a aba "${abaLabel}". Rode run.bat para incluí-lo.`);
+      _showToast(`"${m.title.trim()}" adicionado à aba ${abaLabel}.`);
     } else {
       if(btn){ btn.disabled=false; btn.textContent='Salvar elemento'; }
       const isNet=String(res.error||'').toLowerCase().includes('fetch')||String(res.error||'').includes('Failed');
