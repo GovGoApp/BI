@@ -644,17 +644,18 @@ body.edit-mode .grid-element.ed-hidden { opacity:.18; }
 .ed-bar {
   display: none;
   position: absolute; top:3px; right:3px;
-  z-index: 30; gap:3px;
+  z-index: 30;
 }
 body.edit-mode .ed-bar { display:flex; }
 .ed-icn {
-  width:22px; height:22px;
-  border:1px solid var(--border); border-radius:4px;
-  background:var(--surface); color:var(--text);
-  font-size:12px; cursor:pointer; padding:0;
+  width:20px; height:20px;
+  border:1px solid var(--blue); border-radius:4px;
+  background:var(--blue-soft,#eff6ff); color:var(--blue);
+  font-size:14px; font-weight:700; cursor:pointer; padding:0;
   display:flex; align-items:center; justify-content:center;
+  line-height:1;
 }
-.ed-icn:hover { background:var(--blue);color:#fff;border-color:var(--blue); }
+.ed-icn:hover { background:var(--blue);color:#fff; }
 
 /* resize handle */
 .ed-rz {
@@ -910,10 +911,11 @@ function _enSvg(on) {
 // ── Decorar elementos ─────────────────────────────────────────────────────────
 function _decorate() {
   document.querySelectorAll('.grid-element').forEach(el=>{
+    el.draggable=true;  // sempre, mesmo em re-renders
     if(el.querySelector('.ed-bar')) return;
     const id=el.dataset.id||'';
     const bar=document.createElement('div');bar.className='ed-bar';
-    bar.innerHTML='<button class="ed-icn" title="Retirar do grid" style="font-size:15px;font-weight:600">×</button>';
+    bar.innerHTML='<button class="ed-icn" title="Retirar do grid">×</button>';
     el.appendChild(bar);
     bar.querySelector('.ed-icn').onclick=e=>{
       e.stopPropagation();
