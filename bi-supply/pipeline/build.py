@@ -1796,22 +1796,22 @@ RELATORIO_CSS = """
 }
 .rel-new-tab:hover { background: #eff6ff; }
 /* Conteúdo */
-.rel-content { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 20px 20px; }
+.rel-content { flex: 1; min-height: 0; overflow: hidden; padding: 12px 20px 0; display: flex; flex-direction: column; }
 /* Assistente no main: sem padding extra, textarea preenche tudo */
 .rel-content.rel-asst-mode { padding: 0; display: flex; flex-direction: column; }
 .rel-intro { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 20px 24px; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
-.rel-r-title { font-size: 18px; font-weight: 600; color: var(--text); margin: 0 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rel-r-sub   { font-size: 12px; color: var(--muted); line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rel-r-title { font-size: 18px; font-weight: 600; color: var(--text); margin: 0 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+.rel-r-sub   { font-size: 12px; color: var(--muted); line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex-shrink: 0; }
 /* SQL block */
-.rel-sql-wrap { background: #0f172a; border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
+.rel-sql-wrap { background: #0f172a; border-radius: 8px; overflow: hidden; margin-bottom: 8px; flex-shrink: 0; }
 .rel-sql-head { display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,.08); gap: 8px; }
 .rel-sql-lbl  { font-size: 10.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; flex: 1; }
 .rel-sql-copy { width:26px; height:26px; color: #94a3b8; background: transparent; border: 1px solid rgba(255,255,255,.1); border-radius: 5px; padding: 0; cursor: pointer; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
 .rel-sql-copy:hover { color: #fff; background: rgba(255,255,255,.08); }
 .rel-sql-pre  { margin: 0; padding: 10px 14px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; line-height: 1.5; color: #e0eaf9; overflow: auto; max-height: 92px; scrollbar-width: thin; white-space: pre-wrap; word-break: break-all; }
 /* Tabela */
-.rel-tbl-wrap { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.rel-tbl-hd   { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid rgba(226,232,240,.5); flex-wrap: wrap; }
+.rel-tbl-wrap { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.rel-tbl-hd   { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid rgba(226,232,240,.5); flex-wrap: wrap; flex-shrink: 0; }
 .rel-chip     { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
 .rel-chip.ok  { background: #dcfce7; color: #16a34a; }
 .rel-chip.err { background: #fee2e2; color: #dc2626; }
@@ -1825,7 +1825,7 @@ RELATORIO_CSS = """
 .rel-act-btn  { padding: 3px 10px; border: 1px solid var(--border); border-radius: 6px; background: #fff; font-size: 11.5px; font-weight: 600; cursor: pointer; color: var(--text); }
 .rel-act-btn:hover  { background: #eff6ff; color: var(--blue); border-color: #bfdbfe; }
 .rel-act-btn.saved  { background: #eff6ff; color: var(--blue); border-color: #bfdbfe; }
-.rel-tbl-scroll { overflow-x: auto; overflow-y: auto; height: 400px; scrollbar-width: thin; }
+.rel-tbl-scroll { overflow-x: auto; overflow-y: auto; flex: 1; min-height: 0; scrollbar-width: thin; }
 .rel-table { border-collapse: collapse; width: 100%; }
 .rel-table thead { position: sticky; top: 0; z-index: 1; }
 .rel-table th { background: var(--head,#f1f5f9); text-align: left; padding: 8px 12px; border-bottom: 1px solid rgba(226,232,240,.5); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; white-space: nowrap; height: 36px; }
@@ -1837,7 +1837,7 @@ RELATORIO_CSS = """
 .rel-viz-bar {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   padding: 8px 12px; border: 1.5px solid #bfdbfe; border-radius: 8px;
-  background: #eff6ff; margin-bottom: 8px;
+  background: #eff6ff; margin-bottom: 8px; flex-shrink: 0;
 }
 .rel-viz-bar-lbl { font-size: 10px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: .06em; margin-right: 4px; flex-shrink: 0; }
 .rel-viz-btn {
@@ -1851,7 +1851,7 @@ RELATORIO_CSS = """
 .rel-viz-pct { font-size: 9.5px; font-weight: 500; opacity: .8; }
 .rel-viz-preview {
   background: var(--head,#f1f5f9); border: 1px solid var(--line); border-radius: 10px;
-  padding: 14px 16px; margin-bottom: 12px; min-height: 100px; overflow: hidden;
+  padding: 14px 16px; flex: 1; min-height: 0; overflow: hidden;
 }
 /* Assistente sidebar panel */
 .rel-asst-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
@@ -2127,7 +2127,8 @@ function _renderVizBar(tid){
   if(!cls.suggestions.length) return '';
   const active=cls.activeType||'table';
   const tbl=`<button class="rel-viz-btn${active==='table'?' active':''}" onclick="window._RL.setVizType('${tid}','table')">${_VIZ_ICON['T']}Tabela</button>`;
-  const btns=cls.suggestions.map(s=>{
+  // Filtra T e TE: Tabela já é o botão default — duplicar não faz sentido
+  const btns=cls.suggestions.filter(s=>s.tipo!=='T'&&s.tipo!=='TE').map(s=>{
     const pct=Math.round((s.confidence||0)*100);
     const act=active===s.tipo?' active':'';
     const icon=_VIZ_ICON[s.tipo]||'';
