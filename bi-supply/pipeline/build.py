@@ -2859,7 +2859,8 @@ function _cardHtml(e,action){
   const isI=action==='insert';
   const fn=isI?'insertElem':'removeElem';
   const st=isI?'background:var(--blue,#2563eb);color:#fff;border-color:var(--blue)':'background:#fff;color:#dc2626;border-color:#fca5a5';
-  return '<div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">'+
+  const bc=(e.layout?.origem==='nlsql')?'#2563eb':'#cbd5e1';
+  return '<div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px;border-left:3px solid '+bc+'">'+
     '<span style="flex-shrink:0;color:var(--blue);display:flex;align-items:center;padding-top:2px">'+icon+'</span>'+
     '<div style="flex:1;min-width:0">'+
     '<div class="rel-hi-title">'+( e.titulo||e.id)+'</div>'+
