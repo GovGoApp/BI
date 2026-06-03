@@ -1014,3 +1014,63 @@ if(m) window._RL.openOrLoad(m.tabId, m.rid);
 - `Salvar` e `Restaurar` desativados até haver mudança no texto (`_S.promptDirty`)
 - `_S.promptDirty=true` ao digitar; volta a `false` após salvar ou restaurar
 - Ao sair do modo Assistente (clicar Chat ou Histórico), barra de abas volta ao normal
+
+---
+
+## [2026-06-03] Fase 1 — Classificação automática de elemento + preview inline
+
+**Commit:** `cfbacf0`
+
+### Objetivo
+
+Conectar o resultado de uma query NL-SQL ao sistema de renderização do BI: ao executar uma pergunta, a IA sugere automaticamente os melhores tipos de elemento (HL, GL, KPI, etc.) e renderiza um preview com os dados reais.
+
+### Endpoint `POST /classify` (nlsql/server.py)
+
+Recebe: `{question, sql, columns, rows (amostra 5), rowCount}`
+
+Usa como system prompt o arquivo completo `docs/design/ELEMENTOS_BI.md` + regras obrigatórias de formato de config.
+
+Retorna: `{ok, suggestions: [{tipo, confidence, reason, config}]}` — até 3 sugestões, validadas contra lista de tipos válidos (`KPI,GL,GB,GE,HL,T,TE,MX,FU`).
+
+### Mudanças no pipeline/build.py
+
+**Novo estado:** `_S.classify = {}` — por aba: `{loading, suggestions, activeType}`
+
+**`_classify(tid)`** — chamada async após primeiro render de um resultado `ok`. Dispara `/classify`, atualiza `_S.classify[tid]`, re-renderiza conteúdo.
+
+**`_renderVizBar(tid)`** — barra "Ver como: [Tabela] [HL 92%] [T 71%]":
+- Estado inicial (não disparado): vazio
+- Loading: spinner + "Analisando visualização…"
+- Com sugestões: botões de tipo com % de confiança; tooltip com `reason`
+
+**`_renderPreview(tipo, config, data, columns)`** — chama o renderer existente com os dados reais:
+- KPI: transforma `rows[0]` em objeto, detecta chave numérica automaticamente
+- GE: faz pivot via `_pivotGE()` se config tem `{x, group, value}`
+- T/TE: auto-gera `colunas` a partir dos nomes das colunas reais
+- Todos os outros: passagem direta ao renderer
+
+**`_pivotGE(data, xKey, groupKey, valueKey)`** — transforma 3 colunas em formato wide para `_renderGE`.
+
+**`_renderTableSection(r, tid)`** — tabela extraída como função separada para reuso sem duplicação.
+
+**`_renderContent()` modificado:**
+1. Renderiza título + subtítulo + SQL block (igual ao anterior)
+2. Adiciona `_renderVizBar(tid)` acima da tabela
+3. Se `activeType !== 'table'`: renderiza `reason` + preview do elemento
+4. Sempre renderiza a tabela abaixo como referência
+5. Ao final, dispara `_classify(tid)` se ainda não iniciado
+
+**`setVizType(tid, tipo)`** — troca o tipo ativo e re-renderiza.
+
+### Fluxo completo
+
+```
+Pergunta → resultado ok → _renderContent() → tabela aparece + viz bar "Analisando…"
+  ↓ (assíncrono, ~2s)
+_classify() → POST /classify → OpenAI (ELEMENTOS_BI.md) → sugestões
+  ↓
+_renderContent() re-chamado → viz bar atualizada: [Tabela] [HL 92%] [T 71%] [GB 58%]
+  ↓
+Usuário clica [HL 92%] → setVizType() → preview renderizado acima da tabela
+```
