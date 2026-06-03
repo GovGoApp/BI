@@ -976,16 +976,16 @@ function _watchTabs() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 function _inject() {
-  const stamp=document.querySelector('.topbar .stamp');if(!stamp) return;
-  const par=stamp.parentNode;
+  const topbar=document.querySelector('.topbar');if(!topbar) return;
+  const par=topbar;
   const btn=document.createElement('button');
   btn.id='ed-toggle';btn.className='btn';btn.textContent='✎ Editar layout';
-  btn.style.marginLeft='auto';btn.onclick=_toggle;
-  par.insertBefore(btn,stamp);
+  btn.onclick=_toggle;
+  par.appendChild(btn);
   const tb=document.createElement('div');
-  tb.id='ed-tb';tb.style.cssText='display:none;gap:6px;align-items:center;margin-left:4px';
+  tb.id='ed-tb';tb.style.cssText='display:none;gap:6px;align-items:center';
   tb.innerHTML='<button class="btn" id="ed-undo">↩ Desfazer</button><button class="btn" id="ed-exp" title="Exporta JSON para usar com build.py">⬇ Exportar JSON</button>';
-  par.insertBefore(tb,stamp);
+  par.appendChild(tb);
   document.getElementById('ed-undo').onclick=_doUndo;
   document.getElementById('ed-exp').onclick=_export;
 }
@@ -2219,22 +2219,21 @@ def inject_relatorio_tab(html):
         '<button class="tab" data-page="qualidade">Dados</button>\n    <button class="tab" data-page="relatorio">Relatório</button>',
         1
     )
-    # URL do servidor NL-SQL + fix do stamp (mover para entre brand e search, 1 linha só)
+    # URL do servidor NL-SQL + stamp encostado ao título, 1 linha só
     topbar_fix = """<script>
 window._BI_NLSQL_URL = "http://localhost:5001";
 (function(){
   function _fixStamp(){
-    var stamp   = document.querySelector('.topbar .stamp');
-    var brand   = document.querySelector('.topbar .brand');
-    var topbar  = document.querySelector('.topbar');
+    var stamp  = document.querySelector('.topbar .stamp');
+    var brand  = document.querySelector('.topbar .brand');
+    var topbar = document.querySelector('.topbar');
     if(!stamp || !brand || !topbar) return;
-    // Move stamp para logo após brand (2ª posição na grid)
+    // Move stamp para logo após brand — encostado ao título
     stamp.remove();
     brand.insertAdjacentElement('afterend', stamp);
-    // Ajusta grid: brand(auto) | stamp(1fr preenche o gap) | search(360px) | botões(auto)
-    topbar.style.gridTemplateColumns = 'auto 1fr 360px auto auto auto auto auto';
-    // Estilo do stamp inline
-    stamp.style.cssText = 'font-size:11px;color:var(--muted,#64748b);white-space:nowrap;padding:0 4px;';
+    // Grid: brand(auto) stamp(auto) search(1fr — preenche o espaço do meio) botões(auto)
+    topbar.style.gridTemplateColumns = 'auto auto 1fr auto auto auto auto auto auto';
+    stamp.style.cssText = 'font-size:11px;color:var(--muted,#64748b);white-space:nowrap;padding:0 2px 0 0;align-self:center';
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_fixStamp);
   else _fixStamp();
