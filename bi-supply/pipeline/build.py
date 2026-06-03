@@ -913,12 +913,13 @@ function _decorate() {
     if(el.querySelector('.ed-bar')) return;
     const id=el.dataset.id||'';
     const bar=document.createElement('div');bar.className='ed-bar';
-    bar.innerHTML='<button class="ed-icn" title="Ocultar/Mostrar">👁</button>';
+    bar.innerHTML='<button class="ed-icn" title="Retirar do grid" style="font-size:14px;font-weight:700;color:#dc2626">×</button>';
     el.appendChild(bar);
     bar.querySelector('.ed-icn').onclick=e=>{
-      e.stopPropagation();const pk=_pk();_snap(pk);
-      const hid=el.classList.toggle('ed-hidden');_ov(pk,id,{visivel:!hid});
-      _autoSave(pk);
+      e.stopPropagation();
+      const pk=_pk();
+      if(window._NL?.removeElem) window._NL.removeElem(id);
+      else { _snap(pk); _ov(pk,id,{row:99,visivel:false}); _autoSave(pk); if(typeof render==='function')render(pk); }
     };
     const rz=document.createElement('div');rz.className='ed-rz';rz.title='Redimensionar';rz.textContent='⇲';
     el.appendChild(rz);_attachRz(el,rz);
