@@ -2127,6 +2127,13 @@ function _renderTabs(){
 
 // ── Modal: Adicionar ao BI ───────────────────────────────────────────────────
 
+// ── localStorage: elementos NL-SQL ──────────────────────────────────────────
+const _NL_KEY='bi_nlsql_elements';
+function _nlEls(){ try{ return JSON.parse(localStorage.getItem(_NL_KEY)||'[]'); }catch(e){ return []; } }
+function _nlStore(el){ const a=_nlEls(); a.push(el); localStorage.setItem(_NL_KEY,JSON.stringify(a)); }
+function _nlRemove(id){ localStorage.setItem(_NL_KEY,JSON.stringify(_nlEls().filter(e=>e.id!==id))); }
+function _nlSync(els){ localStorage.setItem(_NL_KEY,JSON.stringify(els)); } // substitui tudo
+
 function _showToast(msg, dur){
   const el=document.createElement('div');
   el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:3000;box-shadow:0 4px 20px rgba(0,0,0,.3);white-space:nowrap';
@@ -2515,7 +2522,13 @@ window._RL = {
 
   refreshElements: async () => {
     const r=await _api('GET','/elements');
-    if(r.ok){ _S.elements=r.elements||[]; if(_S.sideMode==='elementos') _renderElementos(); }
+    if(r.ok){
+      _S.elements=r.elements||[];
+      _nlSync(_S.elements); // sincroniza localStorage com servidor
+    } else {
+      _S.elements=_nlEls(); // servidor offline: usa localStorage
+    }
+    if(_S.sideMode==='elementos') _renderElementos();
   },
 
   openElement: id => {
@@ -2552,9 +2565,9 @@ window._RL = {
   },
 
   deleteElement: async id => {
-    const res=await _api('DELETE',`/elements/${id}`);
-    if(res.ok){ _S.elements=_S.elements.filter(e=>e.id!==id); _renderElementos(); }
-    else _showToast('Erro ao remover elemento.');
+    _nlRemove(id); // remove do localStorage imediatamente (não depende do servidor)
+    _S.elements=_S.elements.filter(e=>e.id!==id); _renderElementos();
+    _api('DELETE',`/elements/${id}`); // best-effort no servidor (não bloqueia)
   },
 
   setModalTitle: v => { if(_S.modal) _S.modal.title=v; },
@@ -2591,6 +2604,7 @@ window._RL = {
     if(res.ok){
       window._RL.closeModal();
       const abaLabel=(typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[m.destTab]?.label)||m.destTab;
+      _nlStore(res.element);  // persiste localmente (funciona sem servidor)
       _showToast(`"${m.title.trim()}" adicionado à aba ${abaLabel}.`);
       // Vai para aba Elementos e recarrega
       _S.sideMode='elementos';
@@ -2738,6 +2752,146 @@ if(typeof pages!=='undefined'){
 
 })();
 """
+
+# ── Runtime: elementos NL-SQL nas abas (localStorage, sem servidor) ───────────
+
+ELEMENTS_RUNTIME_JS = r"""
+/* ── Elementos NL-SQL — runtime injection + drawer no editor ── */
+(function(){
+'use strict';
+
+const _NL_KEY = 'bi_nlsql_elements';
+function _nlEls(){ try{ return JSON.parse(localStorage.getItem(_NL_KEY)||'[]'); }catch(e){ return []; } }
+
+// Injeta window._BI_DATA para todos os elementos salvos (dados prontos para os renderers)
+function _injectNlData(){
+  if(typeof window._BI_DATA === 'undefined') window._BI_DATA = {};
+  _nlEls().forEach(el => {
+    if(el.variavel_js) window._BI_DATA[el.variavel_js] = el.rows_snapshot || [];
+  });
+}
+_injectNlData(); // roda imediatamente na carga da página
+
+// ── Drawer no editor ────────────────────────────────────────────────────────
+
+function _currentPage(){
+  const a = document.querySelector('.tab.active[data-page]');
+  return a ? a.dataset.page : null;
+}
+
+function _abaLabel(tab){
+  return (typeof ABAS_INDEX !== 'undefined' && ABAS_INDEX[tab]?.label) || tab;
+}
+
+function _buildDrawer(){
+  document.getElementById('_nl_drawer')?.remove();
+  const pg = _currentPage();
+  if(!pg) return;
+  const els = _nlEls().filter(e => e.destination_tab === pg);
+  if(!els.length) return;
+
+  // Quais já estão no grid desta aba
+  const inGrid = id => {
+    if(typeof ABAS_INDEX === 'undefined') return false;
+    const eid = 'nlel_' + id.slice(0, 8);
+    const el = ABAS_INDEX[pg]?.elementos?.find(e => e.id === eid);
+    return !!(el && el.layout?.row && el.layout.row < 90);
+  };
+
+  const items = els.map(e => {
+    const added = inGrid(e.id);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(226,232,240,.5)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title||'Elemento'}</div>
+        <div style="font-size:10.5px;color:var(--muted)">${e.tipo||'T'}</div>
+      </div>
+      <button onclick="window._NL.insertElem('${e.id}')" ${added?'disabled style="opacity:.45;cursor:default"':''} style="padding:3px 9px;font-size:11px;font-weight:700;border:1px solid;border-radius:5px;cursor:pointer;${added?'background:#f1f5f9;color:var(--muted);border-color:var(--line)':'background:var(--blue);color:#fff;border-color:var(--blue)'}">${added?'Inserido':'Inserir'}</button>
+    </div>`;
+  }).join('');
+
+  const d = document.createElement('div');
+  d.id = '_nl_drawer';
+  d.innerHTML = `
+    <div id="_nl_pull" onclick="window._NL.toggleDrawer()" title="Elementos Da Consulta" style="position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:601;cursor:pointer;background:var(--blue,#2563eb);color:#fff;border-radius:6px 0 0 6px;padding:14px 5px;writing-mode:vertical-rl;font-size:10px;font-weight:700;letter-spacing:.07em;box-shadow:-2px 2px 8px rgba(0,0,0,.15)">Da Consulta (${els.length})</div>
+    <div id="_nl_panel" style="position:fixed;right:0;top:0;bottom:0;width:0;overflow:hidden;transition:width .2s ease;z-index:600;background:#fff;border-left:1px solid var(--line);box-shadow:-4px 0 20px rgba(0,0,0,.1)">
+      <div style="padding:16px;overflow-y:auto;height:100%;box-sizing:border-box;width:270px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Da Consulta — ${_abaLabel(pg)}</div>
+        ${items}
+      </div>
+    </div>`;
+  document.body.appendChild(d);
+}
+
+function _removeDrawer(){
+  document.getElementById('_nl_drawer')?.remove();
+  _drawerOpen = false;
+}
+
+let _drawerOpen = false;
+
+window._NL = {
+  toggleDrawer: () => {
+    _drawerOpen = !_drawerOpen;
+    const p = document.getElementById('_nl_panel');
+    if(p) p.style.width = _drawerOpen ? '270px' : '0';
+  },
+
+  insertElem: id => {
+    const el = _nlEls().find(e => e.id === id); if(!el) return;
+    const pg = _currentPage(); if(!pg) return;
+    if(typeof ABAS_INDEX === 'undefined') return;
+    const tabData = ABAS_INDEX[pg];
+    if(!tabData) return;
+    if(!tabData.elementos) tabData.elementos = [];
+
+    // Injeta dados
+    window._BI_DATA = window._BI_DATA || {};
+    window._BI_DATA[el.variavel_js] = el.rows_snapshot || [];
+
+    // Calcula posição no final do grid
+    const eid = 'nlel_' + el.id.slice(0, 8);
+    if(!tabData.elementos.find(e => e.id === eid)) {
+      const rows = tabData.elementos.filter(e => e.layout?.row);
+      const lastRow = rows.length
+        ? Math.max(...rows.map(e => (e.layout.row || 1) + (e.layout.row_span || 2)))
+        : 2;
+      tabData.elementos.push({
+        id: eid, variavel_js: el.variavel_js, tipo: el.tipo,
+        titulo: el.title, subtitulo: '', config: el.config || {}, dados: null,
+        layout: { col: 1, col_span: 10, row: lastRow, row_span: 6, visivel: true, origem: 'nlsql' }
+      });
+    }
+
+    // Re-renderiza a aba
+    if(typeof pages !== 'undefined' && pages[pg]) pages[pg]();
+
+    // Re-aplica overlays do editor e atualiza drawer
+    setTimeout(() => {
+      if(window._BI_EDITOR?.applyLayout) window._BI_EDITOR.applyLayout(pg);
+      if(window._BI_EDITOR?.decorate)    window._BI_EDITOR.decorate();
+      _buildDrawer();
+    }, 80);
+  },
+};
+
+// Observa ativação/desativação do modo edição
+new MutationObserver(() => {
+  const isEdit = document.body.classList.contains('edit-mode');
+  if(isEdit){ _injectNlData(); _drawerOpen = false; _buildDrawer(); }
+  else _removeDrawer();
+}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+// Atualiza drawer ao trocar de aba (em modo edição)
+document.addEventListener('click', e => {
+  const tab = e.target.closest('.tab[data-page]');
+  if(tab && document.body.classList.contains('edit-mode')){
+    setTimeout(() => { _drawerOpen = false; _buildDrawer(); }, 120);
+  }
+});
+
+})();
+"""
+
 
 def replace_filter_html(html):
     """Substitui o bloco .filters do v4 com as novas linhas de filtros."""
@@ -2950,7 +3104,7 @@ def main():
     html = inject_css(html, EDITOR_CSS)
     html = inject_css(html, FILTER_CSS)
     html = inject_css(html, RELATORIO_CSS)
-    html = inject_before_script_end(html, js_injection + "\n" + RENDERER_JS + "\n" + EDITOR_JS + "\n" + FILTER_JS + "\n" + RELATORIO_JS)
+    html = inject_before_script_end(html, js_injection + "\n" + RENDERER_JS + "\n" + EDITOR_JS + "\n" + FILTER_JS + "\n" + RELATORIO_JS + "\n" + ELEMENTS_RUNTIME_JS)
     html = update_timestamp(html)
 
     out = DIST / "index.html"
