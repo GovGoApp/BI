@@ -64,6 +64,7 @@ CHATS_FILE     = NLSQL_DIR / "chats.json"
 PROMPT_FILE    = NLSQL_DIR / "prompts" / "bi_suprimentos_sql.md"
 PROMPT_BAK     = NLSQL_DIR / "prompts" / "bi_suprimentos_sql.backup.md"
 ELEMENTOS_FILE = ROOT / "docs" / "design" / "ELEMENTOS_BI.md"
+ELEMENTS_FILE  = NLSQL_DIR / "elements.json"
 
 # ── App ────────────────────────────────────────────────────────────────────────
 
@@ -521,6 +522,59 @@ def classify_element():
         return jsonify({"ok": True, "suggestions": suggestions})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
+
+
+# ── Endpoints: /elements ─────────────────────────────────────────────────────
+
+def _load_elements() -> list:
+    return _rj(ELEMENTS_FILE)
+
+def _save_elements_file(els: list) -> None:
+    _wj(ELEMENTS_FILE, els)
+
+
+@app.route("/elements", methods=["GET"])
+def get_elements():
+    tab = request.args.get("tab")
+    els = _load_elements()
+    if tab:
+        els = [e for e in els if e.get("destination_tab") == tab]
+    return jsonify({"ok": True, "elements": els})
+
+
+@app.route("/elements", methods=["POST"])
+def save_element():
+    body = request.get_json(force=True) or {}
+    if not str(body.get("title","")).strip():
+        return jsonify({"ok": False, "error": "title é obrigatório"}), 400
+    if not str(body.get("destination_tab","")).strip():
+        return jsonify({"ok": False, "error": "destination_tab é obrigatório"}), 400
+
+    els = _load_elements()
+    el = {
+        "id":              _uid(),
+        "tipo":            str(body.get("tipo", "T")),
+        "title":           str(body.get("title", "")).strip(),
+        "destination_tab": str(body.get("destination_tab", "")),
+        "config":          body.get("config", {}),
+        "sql":             str(body.get("sql", "")),
+        "columns":         body.get("columns", []),
+        "rows_snapshot":   (body.get("rows_snapshot") or [])[:200],
+        "variavel_js":     str(body.get("variavel_js", "NLEL_" + _uid()[:8].upper())),
+        "question":        str(body.get("question", "")),
+        "created_at":      _now(),
+        "updated_at":      _now(),
+    }
+    els.append(el)
+    _save_elements_file(els)
+    return jsonify({"ok": True, "element": el})
+
+
+@app.route("/elements/<eid>", methods=["DELETE"])
+def delete_element(eid):
+    els = [e for e in _load_elements() if e.get("id") != eid]
+    _save_elements_file(els)
+    return jsonify({"ok": True})
 
 
 # ── Health ─────────────────────────────────────────────────────────────────────

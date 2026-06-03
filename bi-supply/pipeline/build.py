@@ -1853,6 +1853,23 @@ RELATORIO_CSS = """
   background: var(--head,#f1f5f9); border: 1px solid var(--line); border-radius: 10px;
   padding: 14px 16px; flex: 1; min-height: 0; overflow: hidden;
 }
+/* ── Modal Adicionar ao BI ── */
+.rel-modal-bd { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:2000; display:flex; align-items:center; justify-content:center; }
+.rel-modal { background:#fff; border-radius:14px; width:560px; max-width:95vw; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 24px 64px rgba(0,0,0,.22); }
+.rel-modal-hd { padding:16px 20px 14px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.rel-modal-hd-title { font-size:15px; font-weight:700; color:var(--text); }
+.rel-modal-body { flex:1; min-height:0; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
+.rel-modal-ft { padding:12px 20px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; background:#fff; border-radius:0 0 14px 14px; }
+.rel-modal-preview { background:var(--head,#f1f5f9); border:1px solid var(--line); border-radius:8px; padding:10px 14px; min-height:70px; max-height:180px; overflow:hidden; flex-shrink:0; }
+.rel-modal-preview-lbl { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+.rel-field { display:flex; flex-direction:column; gap:4px; }
+.rel-field-lbl { font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.rel-field input[type=text], .rel-field select { padding:7px 10px; border:1px solid var(--border,#e2e8f0); border-radius:7px; font-size:13px; color:var(--text); background:#fff; font-family:inherit; width:100%; box-sizing:border-box; }
+.rel-field input[type=text]:focus, .rel-field select:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+.rel-field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.rel-field-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.rel-add-btn { padding:4px 12px; font-size:11px; font-weight:700; color:#fff; background:var(--blue); border:0; border-radius:6px; cursor:pointer; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; }
+.rel-add-btn:hover { background:#1d4ed8; }
 /* Assistente sidebar panel */
 .rel-asst-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .rel-asst-sub-btn { padding: 5px 4px; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--head,#f1f5f9); border: 1px solid var(--line); border-radius: 7px; cursor: pointer; text-align: center; }
@@ -1937,6 +1954,7 @@ const _S = {
   promptUpdatedAt: '',
   promptDirty: false,
   classify: {},   // tabId → {loading, suggestions, activeType}
+  modal: null,    // {tid, tipo, config, title, destTab, columns, rows} ou null
   inited: false,
 };
 
@@ -2099,6 +2117,92 @@ function _renderTabs(){
   }
 }
 
+// ── Modal: Adicionar ao BI ───────────────────────────────────────────────────
+
+function _showToast(msg, dur){
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:3000;box-shadow:0 4px 20px rgba(0,0,0,.3);white-space:nowrap';
+  el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), dur||4000);
+}
+
+function _cfgFields(tipo, config, columns){
+  const sel=(key,label,selected)=>`<div class="rel-field"><label class="rel-field-lbl">${label}</label><select onchange="window._RL.setCfg('${key}',this.value)">${columns.map(c=>`<option value="${_esc(c)}"${selected===c?' selected':''}>${_esc(c)}</option>`).join('')}</select></div>`;
+  if(tipo==='HL') return `<div class="rel-field-row">${sel('label','Label / Nome',config.label)}${sel('value','Valor numérico',config.value)}</div>`;
+  if(tipo==='GL'||tipo==='GB') return `<div class="rel-field-row">${sel('x','Eixo X',config.x)}${sel('y','Eixo Y (valor)',config.y)}</div>`;
+  if(tipo==='GE') return `<div class="rel-field-row3">${sel('x','Eixo X',config.x)}${sel('group','Agrupamento',config.group||config.stacks?.[0])}${sel('value','Valor',config.value)}</div>`;
+  if(tipo==='MX') return `<div class="rel-field-row3">${sel('row_key','Linhas',config.row_key)}${sel('col_key','Colunas',config.col_key)}${sel('val_key','Valor',config.val_key)}</div>`;
+  if(tipo==='KPI'){
+    const fmts=['brl','brl2','mi','pct','num','dec','str'];
+    const fmtSel=`<div class="rel-field"><label class="rel-field-lbl">Formato</label><select onchange="window._RL.setCfg('fmt',this.value)">${fmts.map(f=>`<option value="${f}"${config.fmt===f?' selected':''}>${f}</option>`).join('')}</select></div>`;
+    return `<div class="rel-field-row">${sel('chave','Coluna do valor',config.chave)}${fmtSel}</div>`;
+  }
+  if(tipo==='FU') return `<div class="rel-field-row">${sel('label','Coluna label',config.label||config.value)}${sel('value','Coluna valor',config.value)}</div>`;
+  return ''; // T/TE: sem config extra
+}
+
+function _abasOpts(selected){
+  if(typeof ABAS_INDEX==='undefined') return '';
+  return Object.entries(ABAS_INDEX).map(([k,v])=>`<option value="${k}"${selected===k?' selected':''}>${v.label||k}</option>`).join('');
+}
+
+function _openAddModal(tid){
+  const r=_S.reports[tid]; if(!r) return;
+  const cls=_S.classify[tid];
+  const activeType=cls?.activeType||'table';
+  const tipo=activeType==='table'?'T':activeType;
+  const sg=cls?.suggestions?.find(s=>s.tipo===tipo);
+  _S.modal={
+    tid, tipo,
+    config: sg?{...sg.config}:{},
+    title: r.title||r.question||'',
+    destTab: '',
+    columns: r.columns||[],
+    rows: r.rows||[],
+  };
+  _renderModal();
+}
+
+function _renderModal(){
+  document.getElementById('_rel_modal_bd')?.remove();
+  const m=_S.modal; if(!m) return;
+  const typeName=_VIZ_NAME[m.tipo]||m.tipo;
+  const typeIcon=_VIZ_ICON[m.tipo]||'';
+  const prevHtml=_renderPreview(m.tipo, m.config, m.rows, m.columns);
+  const cfgHtml=_cfgFields(m.tipo, m.config, m.columns);
+  const abasHtml=_abasOpts(m.destTab);
+  const html=`
+<div class="rel-modal-bd" id="_rel_modal_bd" onclick="if(event.target.id==='_rel_modal_bd')window._RL.closeModal()">
+  <div class="rel-modal" onclick="event.stopPropagation()">
+    <div class="rel-modal-hd">
+      <span class="rel-modal-hd-title">Adicionar ao BI</span>
+      <button class="rel-icn-btn" onclick="window._RL.closeModal()" title="Fechar" style="font-size:16px;width:28px;height:28px">×</button>
+    </div>
+    <div class="rel-modal-body">
+      ${prevHtml?`<div class="rel-modal-preview"><div class="rel-modal-preview-lbl">${typeIcon} ${typeName}</div>${prevHtml}</div>`:''}
+      <div class="rel-field">
+        <label class="rel-field-lbl">Título</label>
+        <input type="text" id="rl-m-title" value="${_esc(m.title)}" oninput="window._RL.setModalTitle(this.value)" placeholder="Nome do elemento no BI">
+      </div>
+      <div class="rel-field">
+        <label class="rel-field-lbl">Aba de destino</label>
+        <select onchange="window._RL.setModalDest(this.value)">
+          <option value="">— Selecione a aba —</option>
+          ${abasHtml}
+        </select>
+      </div>
+      ${cfgHtml}
+    </div>
+    <div class="rel-modal-ft">
+      <button class="rel-act-btn" onclick="window._RL.closeModal()">Cancelar</button>
+      <button id="rl-m-save" class="rel-add-btn" onclick="window._RL.saveElement()">Salvar elemento</button>
+    </div>
+  </div>
+</div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
 // ── Classificação automática de elementos ───────────────────────────────────
 
 async function _classify(tid){
@@ -2123,8 +2227,6 @@ function _renderVizBar(tid){
   const cls=_S.classify[tid];
   // Ainda não iniciou OU carregando → spinner (mesma UI)
   if(!cls||cls.loading) return `<div class="rel-viz-bar"><span class="rel-sp" style="width:10px;height:10px;border-width:2px;flex-shrink:0"></span><span style="font-size:11px;color:var(--blue);margin-left:6px">Analisando visualização…</span></div>`;
-  // Sem sugestões → barra some
-  if(!cls.suggestions.length) return '';
   const active=cls.activeType||'table';
   const tbl=`<button class="rel-viz-btn${active==='table'?' active':''}" onclick="window._RL.setVizType('${tid}','table')">${_VIZ_ICON['T']}Tabela</button>`;
   // Filtra T e TE: Tabela já é o botão default — duplicar não faz sentido
@@ -2135,7 +2237,8 @@ function _renderVizBar(tid){
     const name=_VIZ_NAME[s.tipo]||s.tipo;
     return `<button class="rel-viz-btn${act}" onclick="window._RL.setVizType('${tid}','${s.tipo}')" title="${_esc(s.reason||'')}">${icon}${name}<span class="rel-viz-pct">${pct}%</span></button>`;
   }).join('');
-  return `<div class="rel-viz-bar"><span class="rel-viz-bar-lbl">Ver como</span>${tbl}${btns}</div>`;
+  const addBtn=`<button class="rel-add-btn" onclick="window._RL.openAddModal('${tid}')">+ Adicionar ao BI</button>`;
+  return `<div class="rel-viz-bar"><span class="rel-viz-bar-lbl">Ver como</span>${tbl}${btns}<span style="flex:1"></span>${addBtn}</div>`;
 }
 
 function _pivotGE(data,xKey,groupKey,valueKey){
@@ -2367,6 +2470,47 @@ window._RL = {
     if(!_S.classify[tid]) return;
     _S.classify[tid].activeType = tipo;
     if(_S.activeId===tid) _renderContent();
+  },
+
+  openAddModal: tid => _openAddModal(tid),
+  closeModal:   ()  => { _S.modal=null; document.getElementById('_rel_modal_bd')?.remove(); },
+
+  setModalTitle: v => { if(_S.modal) _S.modal.title=v; },
+  setModalDest:  v => { if(_S.modal) _S.modal.destTab=v; },
+  setCfg: (key, val) => {
+    if(!_S.modal) return;
+    _S.modal.config[key]=val;
+    // Atualiza preview do modal em tempo real
+    const prev=document.querySelector('#_rel_modal_bd .rel-modal-preview');
+    if(prev){ const lbl=prev.querySelector('.rel-modal-preview-lbl')?.outerHTML||''; prev.innerHTML=lbl+_renderPreview(_S.modal.tipo,_S.modal.config,_S.modal.rows,_S.modal.columns); }
+  },
+
+  saveElement: async () => {
+    const m=_S.modal; if(!m) return;
+    if(!m.title.trim()){ alert('Preencha o título.'); $('rl-m-title')?.focus(); return; }
+    if(!m.destTab){ alert('Selecione a aba de destino.'); return; }
+    const btn=$('rl-m-save');
+    if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
+    const r=_S.reports[m.tid];
+    const res=await _api('POST','/elements',{
+      tipo:           m.tipo,
+      title:          m.title.trim(),
+      destination_tab:m.destTab,
+      config:         m.config,
+      sql:            r?.sql||'',
+      columns:        m.columns,
+      rows_snapshot:  (m.rows||[]).slice(0,200),
+      variavel_js:    'NLEL_'+Date.now().toString(36).toUpperCase(),
+      question:       r?.question||'',
+    });
+    if(res.ok){
+      window._RL.closeModal();
+      const abaLabel=(typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[m.destTab]?.label)||m.destTab;
+      _showToast(`Elemento salvo para a aba "${abaLabel}". Rode run.bat para incluí-lo.`);
+    } else {
+      if(btn){ btn.disabled=false; btn.textContent='Salvar elemento'; }
+      alert('Erro: '+(res.error||'Verifique se o servidor nlsql/server.py está rodando.'));
+    }
   },
 
   copySql: id => {
