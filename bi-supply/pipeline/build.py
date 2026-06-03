@@ -2067,7 +2067,7 @@ function _renderTabs(){
     const act=t.id===_S.activeId;
     const spin=t.st==='running'?'<span class="rel-sp"></span>':'';
     const cnt=(t.st!=='running'&&t.count>0)?`<span class="rel-rtab-count">${t.count}</span>`:'';
-    const cls=t.closable?`<button class="rel-rtab-x" onclick="event.stopPropagation();window._RL.closeTab('${t.id}')">×</button>`:'';
+    const cls=t.closable?`<span class="rel-rtab-x" onclick="event.stopPropagation();window._RL.closeTab('${t.id}')">×</span>`:'';
     return `<button class="rel-rtab${act?' active':''}${t.closable?' has-x':''}" onclick="window._RL.openTab('${t.id}')">${spin}<span class="rel-rtab-title">${_esc(t.title)}</span>${cnt}${cls}</button>`;
   }).join('');
   el.innerHTML=ts+
