@@ -910,3 +910,33 @@ Inspiração: estudo aprofundado do `RelatoriosWorkspace.jsx` do GovGo v2.
 | Aba "Erro" aparece sem motivo | Toda query cria aba, inclusive falhas de rede | `_closeTab(tabId)` quando é erro de rede |
 | Histórico não atualiza | `GET /history` só rodava no primeiro init | Ao clicar em "📋 Histórico" sempre chama `refreshHist()` |
 | Assistente vazio quando servidor off | `GET /prompt` falhava silenciosamente | Exibe texto instrutivo na textarea: "Inicie com: python nlsql/server.py" |
+
+---
+
+## [2026-06-03] Melhorias Aba Relatório (UX)
+
+**Commit:** `235ec4b`
+
+### Topbar em linha única
+- JS move `.stamp` para após `.brand` no DOM (2ª posição na grid)
+- Grid: `auto auto 1fr auto...` — brand=auto, stamp=auto (encostado), search=1fr (preenche o meio), botões=auto
+- EDITOR_JS: `par.appendChild` em vez de `insertBefore(stamp)` → "Editar layout" sempre no canto direito
+
+### Scroll do chat (fix definitivo)
+`.rel-msgs`: `position:absolute; top:41px; left:0; right:0; bottom:0` dentro de `.rel-chat-section { position:relative }` — elimina dependência da cadeia flex para altura
+
+### Sidebar altura correta
+- `calc(100vh - 140px)` (era 175px — novo cálculo: app.padding-top 14 + topbar 42 + topbar-mb 10 + tabs 48 + app.padding-bottom 24 = 138px)
+- `_init()`: `app.paddingBottom = '0'` ao entrar na aba; restaurado ao sair
+
+### Botões lixeira e refresh nos itens do histórico
+Botões `🔄 Atualizar` e `🗑 Apagar` empilhados à direita de cada item de Relatório/Favorito:
+- `histRefresh(id)`: `POST /execute` com o SQL existente, atualiza rows sem custo de LLM
+- `histDel(id)`: `DELETE /history/:id`, remove do estado `_S.history` e re-renderiza
+
+### Respostas do chat no formato card (igual ao histórico)
+Respostas bem-sucedidas do assistente usam o mesmo visual dos boxes do histórico:
+- Título do relatório em negrito
+- Timestamp, chip `✓`, contagem de linhas
+- Botão `→` (abre aba) e `⎘` (copia SQL) empilhados à direita
+- Erros: bolha vermelha · Rodando: bolha com spinner (sem mudança)
