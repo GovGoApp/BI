@@ -2116,6 +2116,8 @@ window._RL = {
 // ── Init ────────────────────────────────────────────────────────────────────
 async function _init(){
   const first=!_S.inited; _S.inited=true;
+  // Esconder filtros (só na aba Relatório)
+  const _flt=document.getElementById('filters'); if(_flt) _flt.style.display='none';
   if(first){ const r=await _api('GET','/history'); if(r.ok){_S.history=r.history||[];_S.chats=r.chats||[];} }
   document.querySelectorAll('.rel-mode-btn').forEach(b=>{
     b.addEventListener('click',()=>{
@@ -2143,7 +2145,14 @@ if(typeof pages!=='undefined'){
     <div class="rel-content" id="rel-content"></div>
   </main>
 </div>`;
-  document.addEventListener('click',e=>{ if(e.target.closest('.tab[data-page="relatorio"]')) setTimeout(_init,60); });
+  // Esconder/mostrar filtros ao entrar/sair da aba Relatório
+  document.addEventListener('click',e=>{
+    const tab=e.target.closest('.tab[data-page]');
+    if(!tab) return;
+    const filters=document.getElementById('filters');
+    if(filters) filters.style.display = tab.dataset.page==='relatorio' ? 'none' : '';
+    if(tab.dataset.page==='relatorio') setTimeout(_init,60);
+  });
 }
 
 })();
@@ -2203,19 +2212,30 @@ def inject_before_script_end(html, js):
     return html[:pos] + "\n" + js + "\n" + html[pos:]
 
 def inject_relatorio_tab(html):
-    """Adiciona botão da aba Relatório no nav do v4 e configura URL do servidor."""
-    # Adiciona botão antes do fechamento da nav de tabs
+    """Adiciona botão da aba Relatório no nav, URL do servidor e fix do topbar stamp."""
+    # Aba Relatório no nav
     html = html.replace(
         '<button class="tab" data-page="qualidade">Dados</button>',
         '<button class="tab" data-page="qualidade">Dados</button>\n    <button class="tab" data-page="relatorio">Relatório</button>',
         1
     )
-    # Injeta URL do servidor NL-SQL como variável global
-    html = html.replace(
-        "</head>",
-        '<script>window._BI_NLSQL_URL = "http://localhost:5001";</script>\n</head>',
-        1
-    )
+    # URL do servidor NL-SQL + fix do stamp (move para dentro do brand, eliminando 2ª linha)
+    topbar_fix = """<script>
+window._BI_NLSQL_URL = "http://localhost:5001";
+(function(){
+  function _fixStamp(){
+    const stamp = document.querySelector('.topbar .stamp');
+    const brandInner = document.querySelector('.topbar .brand > div:last-child');
+    if(!stamp || !brandInner) return;
+    stamp.remove();
+    stamp.style.cssText = 'font-size:10.5px;color:var(--muted,#64748b);margin-top:1px;white-space:nowrap';
+    brandInner.appendChild(stamp);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_fixStamp);
+  else _fixStamp();
+})();
+</script>"""
+    html = html.replace("</head>", topbar_fix + "\n</head>", 1)
     return html
 
 def update_timestamp(html):
