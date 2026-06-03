@@ -1001,7 +1001,8 @@ function _init() {
   _watchTabs();
   const pk=_pk(); if(pk) _applyLayout(pk);
   // Expõe funções para o módulo de filtros
-  window._BI_EDITOR={applyLayout:_applyLayout,decorate:_decorate,enText:_enText,enSvg:_enSvg};
+  window._BI_EDITOR={applyLayout:_applyLayout,decorate:_decorate,enText:_enText,enSvg:_enSvg,
+    setOv:(pk,id,data)=>{_ov(pk,id,data);_autoSave(pk);}};
 }
 
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_init);
@@ -2822,17 +2823,18 @@ function _insertElem(id,pg){
     if(nlEl){window._BI_DATA=window._BI_DATA||{};window._BI_DATA[elem.variavel_js]=nlEl.rows_snapshot||[];}
   }
   let col,row,col_span,row_span;
-  if(elem.tipo==='KPI'){
-    // KPIs: empacota sequencialmente no topo (8 por linha, 2 cols x 2 rows cada)
-    const kpiCount=(tabData.elementos||[]).filter(e=>e.tipo==='KPI'&&_isInGrid(e)).length;
-    col=(kpiCount%8)*2+1;
-    row=Math.floor(kpiCount/8)*2+1;
-    col_span=2; row_span=2;
+  const tipoUpper=(elem.tipo||'').toUpperCase();
+  console.log('[insertElem]',{id,tipo:elem.tipo,tipoUpper,pg});
+  if(tipoUpper==='KPI'){
+    const kpiCount=(tabData.elementos||[]).filter(e=>(e.tipo||'').toUpperCase()==='KPI'&&_isInGrid(e)).length;
+    col=(kpiCount%8)*2+1; row=Math.floor(kpiCount/8)*2+1; col_span=2; row_span=2;
+    console.log('[insertElem KPI]',{kpiCount,col,row});
   } else {
     col=1; col_span=10; row=_lastRow(pg); row_span=6;
+    console.log('[insertElem non-KPI]',{col,row});
   }
   elem.layout={...(elem.layout||{}),col,col_span,row,row_span,visivel:true};
-  _setLayoutOv(pg,id,{col,col_span,row,row_span,visivel:true});
+  (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{col,col_span,row,row_span,visivel:true});
   _rerender(pg);
 }
 
@@ -2840,7 +2842,7 @@ function _removeElem(id,pg){
   const tabData=ABAS_INDEX?.[pg];if(!tabData)return;
   const elem=tabData.elementos?.find(e=>e.id===id);if(!elem)return;
   elem.layout={...(elem.layout||{}),row:99,visivel:false};
-  _setLayoutOv(pg,id,{row:99,visivel:false});
+  (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{row:99,visivel:false});
   _rerender(pg);
 }
 
