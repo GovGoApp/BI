@@ -1833,6 +1833,13 @@ RELATORIO_CSS = """
 .rel-table tbody tr:first-child td { background: #eff6ff; }
 .rel-table tbody tr:hover td { background: rgba(37,99,235,.03); }
 .rel-err { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 14px; color: #dc2626; font-size: 13px; margin-bottom: 12px; }
+/* ── Aba Elementos (sidebar) ── */
+.rel-elem-group { margin-bottom: 10px; }
+.rel-elem-group-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 0 2px 5px; display: flex; align-items: center; gap: 6px; }
+.rel-elem-count { font-size: 10px; font-weight: 600; background: var(--line); color: var(--muted); padding: 1px 5px; border-radius: 8px; }
+.rel-elem-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; margin-bottom: 4px; background: #fff; border: 1px solid var(--line); border-radius: 8px; cursor: default; }
+.rel-elem-item:hover { background: #eff6ff; border-color: #bfdbfe; }
+.rel-elem-icon { flex-shrink: 0; color: var(--blue); display: flex; align-items: center; }
 /* ── Barra de visualização / classificação ── */
 .rel-viz-bar {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
@@ -1955,6 +1962,7 @@ const _S = {
   promptDirty: false,
   classify: {},   // tabId → {loading, suggestions, activeType}
   modal: null,    // {tid, tipo, config, title, destTab, columns, rows} ou null
+  elements: [],   // lista de elementos salvos (GET /elements)
   inited: false,
 };
 
@@ -2422,9 +2430,40 @@ function _renderChat(){
   _renderMsgs();
 }
 
+// ── Render: sidebar elementos ────────────────────────────────────────────────
+function _renderElementos(){
+  const el=$('rel-side-body'); if(!el) return;
+  const items=_S.elements||[];
+  if(!items.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6">Nenhum elemento salvo.<br>Use <strong>+ Adicionar ao BI</strong><br>em qualquer resultado.</div>';
+    return;
+  }
+  // Agrupar por aba de destino
+  const byTab={};
+  items.forEach(e=>{ const t=e.destination_tab||'—'; (byTab[t]=byTab[t]||[]).push(e); });
+  const abaLbl=t=>(typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[t]?.label)||t;
+  const html=Object.entries(byTab).map(([tab,els])=>{
+    const rows=els.map(e=>`
+      <div class="rel-elem-item">
+        <span class="rel-elem-icon">${_VIZ_ICON[e.tipo]||''}</span>
+        <div style="flex:1;min-width:0">
+          <div class="rel-hi-title">${_esc(e.title)}</div>
+          <div class="rel-hi-sub">${_VIZ_NAME[e.tipo]||e.tipo} · ${_ts(e.created_at)}</div>
+        </div>
+        <button class="rel-icn-btn" title="Remover" onclick="window._RL.deleteElement('${e.id}')">${_SVG_TRASH}</button>
+      </div>`).join('');
+    return `<div class="rel-elem-group">
+      <div class="rel-elem-group-lbl">${_esc(abaLbl(tab))}<span class="rel-elem-count">${els.length}</span></div>
+      ${rows}
+    </div>`;
+  }).join('');
+  el.innerHTML=`<div style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden"><div class="rel-hist-list">${html}</div></div>`;
+}
+
 function _renderSide(){
   if(_S.sideMode==='chat') _renderChat();
   else if(_S.sideMode==='assistant') _renderAssistant();
+  else if(_S.sideMode==='elementos') _renderElementos();
   else _renderHist();
   document.querySelectorAll('.rel-mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===_S.sideMode));
 }
@@ -2474,6 +2513,16 @@ window._RL = {
   openAddModal: tid => _openAddModal(tid),
   closeModal:   ()  => { _S.modal=null; document.getElementById('_rel_modal_bd')?.remove(); },
 
+  refreshElements: async () => {
+    const r=await _api('GET','/elements');
+    if(r.ok){ _S.elements=r.elements||[]; if(_S.sideMode==='elementos') _renderElementos(); }
+  },
+  deleteElement: async id => {
+    const res=await _api('DELETE',`/elements/${id}`);
+    if(res.ok){ _S.elements=_S.elements.filter(e=>e.id!==id); _renderElementos(); }
+    else _showToast('Erro ao remover elemento.');
+  },
+
   setModalTitle: v => { if(_S.modal) _S.modal.title=v; },
   setModalDest:  v => { if(_S.modal) _S.modal.destTab=v; },
   setCfg: (key, val) => {
@@ -2509,6 +2558,10 @@ window._RL = {
       window._RL.closeModal();
       const abaLabel=(typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[m.destTab]?.label)||m.destTab;
       _showToast(`"${m.title.trim()}" adicionado à aba ${abaLabel}.`);
+      // Vai para aba Elementos e recarrega
+      _S.sideMode='elementos';
+      await window._RL.refreshElements();
+      _renderSide(); _renderTabs(); _renderContent();
     } else {
       if(btn){ btn.disabled=false; btn.textContent='Salvar elemento'; }
       const isNet=String(res.error||'').toLowerCase().includes('fetch')||String(res.error||'').includes('Failed');
@@ -2612,7 +2665,8 @@ async function _init(){
       if(mode==='assistant'){ window._RL.showPrompt(); return; }
       _S.sideMode=mode;
       _renderSide(); _renderTabs(); _renderContent();
-      if(mode==='history') window._RL.refreshHist();
+      if(mode==='history')   window._RL.refreshHist();
+      if(mode==='elementos') window._RL.refreshElements();
     });
   });
   _renderSide(); _renderTabs(); _renderContent();
@@ -2626,6 +2680,7 @@ if(typeof pages!=='undefined'){
       <button class="rel-mode-btn active" data-mode="chat">Chat</button>
       <button class="rel-mode-btn" data-mode="history">Histórico</button>
       <button class="rel-mode-btn" data-mode="assistant">Assistente</button>
+      <button class="rel-mode-btn" data-mode="elementos">Elementos</button>
     </div>
     <div id="rel-side-body" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden"></div>
   </aside>
