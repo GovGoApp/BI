@@ -2190,7 +2190,21 @@ window._RL = {
   histMode: m => { _S.histMode=m; _renderHist(); },
   refreshHist: async () => { const r=await _api('GET','/history'); if(r.ok){_S.history=r.history||[];_S.chats=r.chats||[];_renderHist();} },
   histOpen: async (id,type) => {
-    if(type==='chat'){ const c=_S.chats.find(c=>c.id===id); if(c){_S.chatId=c.id;_S.msgs=c.messages||[];_S.sideMode='chat';_renderSide();} return; }
+    if(type==='chat'){
+      const c=_S.chats.find(c=>c.id===id); if(!c) return;
+      _S.chatId=c.id;
+      // Normaliza campos do servidor para o formato do cliente
+      _S.msgs=(c.messages||[]).map(m=>({
+        ...m,
+        role:     m.role==='assistant'?'asst':m.role,
+        st:       m.status||m.st,
+        rid:      m.reportId||m.rid||'',
+        refTitle: m.reportTitle||m.refTitle||m.text||'',
+        rowCount: m.rowCount,
+        sql:      m.sql||'',
+      }));
+      _S.sideMode='chat'; _renderSide(); return;
+    }
     let r=_S.history.find(h=>h.id===id);
     if(!r||!r.columns){ const res=await _api('GET',`/history/${id}`); if(res.ok) r=res.report; }
     if(!r) return;
