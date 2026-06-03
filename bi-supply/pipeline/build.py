@@ -1724,7 +1724,7 @@ RELATORIO_CSS = """
 .rel-hist-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 10px 10px; }
 .rel-hist-item { padding: 8px 10px; margin-bottom: 6px; background: #fff; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
 .rel-hist-item:hover,.rel-hist-item.active { background: #eff6ff; border-color: #bfdbfe; }
-.rel-hi-title { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rel-hi-title { font-size: 12px; font-weight: 600; color: var(--text); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.35; }
 .rel-hi-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rel-hi-meta  { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 10.5px; color: var(--muted); }
 .rel-hi-chip  { padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 700; }
@@ -2006,11 +2006,13 @@ function _renderMsgs(){
     if(m.st==='running') return `<div class="rel-msg asst"><div class="rel-bubble"><span class="rel-sp" style="margin-right:6px;vertical-align:middle"></span>Gerando SQL…</div></div>`;
     if(m.st==='error') return `<div class="rel-msg asst"><div class="rel-bubble err">${_esc(m.text)}</div></div>`;
 
-    // Card de resultado: inline onclick idêntico ao padrão dos cards do histórico
-    const mid=m.id;
+    // Card de resultado — embute rid e tabId diretamente no onclick (sem lookup em _S.msgs)
+    // chatOpen usa o mesmo caminho do histOpen (que sempre funciona nos outros cards)
+    const rid=m.rid||'', tabId=m.tabId||'';
+    const refreshIcon=m.refreshing?_SVG_SPIN:_SVG_REFRESH;
     return `<div class="rel-msg asst" style="width:95%">
       <div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px"
-           onclick="window._RL.chatCardClick('${mid}')">
+           onclick="window._RL.chatOpen('${rid}','${tabId}')">
         <div style="flex:1;min-width:0">
           <div class="rel-hi-title">${_esc(m.refTitle||m.text||'Resultado')}</div>
           <div class="rel-hi-sub">${_ts(new Date().toISOString())}</div>
@@ -2020,10 +2022,10 @@ function _renderMsgs(){
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-          <button class="rel-icn-btn" title="Atualizar resultado"
-                  onclick="event.stopPropagation();window._RL.chatRefresh('${mid}')">${_SVG_REFRESH}</button>
+          <button class="rel-icn-btn" title="Atualizar resultado" ${m.refreshing?'disabled':''}
+                  onclick="event.stopPropagation();window._RL.chatRefresh('${m.id}')">${refreshIcon}</button>
           ${m.sql?`<button class="rel-icn-btn" title="Copiar SQL"
-                  onclick="event.stopPropagation();window._RL.copyMsgSQL('${mid}')">${_SVG_CODE}</button>`:''}
+                  onclick="event.stopPropagation();window._RL.copyMsgSQL('${m.id}')">${_SVG_CODE}</button>`:''}
         </div>
       </div>
     </div>`;
@@ -2198,11 +2200,12 @@ window._RL = {
   },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
 
-  // Abre resultado a partir do card do chat — lookup em _S.msgs pelo mid
-  chatCardClick: (mid) => {
-    const m=_S.msgs.find(m=>m.id===mid); if(!m) return;
-    if(m.tabId && _S.tabs.find(t=>t.id===m.tabId)) { _openTab(m.tabId); }
-    else if(m.rid) { window._RL.histOpen(m.rid,'report'); }
+  // Abre resultado do chat — usa o mesmo caminho de histOpen (garantidamente funciona)
+  // rid e tabId embutidos diretamente no HTML; tabId só como atalho quando report já existe
+  chatOpen: async (rid, tabId) => {
+    if(tabId && _S.reports[tabId]) { _openTab(tabId); return; }
+    if(rid) { await window._RL.histOpen(rid,'report'); return; }
+    if(tabId) _openTab(tabId);
   },
 
   openOrLoad: (tabId, rid) => {
@@ -2216,15 +2219,19 @@ window._RL = {
 
   chatRefresh: async msgId => {
     const m=_S.msgs.find(m=>m.id===msgId); if(!m?.sql) return;
+    // Spinner no botão via flag (re-render do card)
+    m.refreshing=true; _renderMsgs();
+    // Barra linear no conteúdo se aba deste resultado estiver ativa
     if(m.tabId && _S.activeId===m.tabId){
       const c=$('rel-content'); if(c){ const p=document.createElement('div'); p.id='rel-lp'; p.className='rel-lp'; c.prepend(p); }
     }
     const res=await _api('POST','/execute',{sql:m.sql});
     document.getElementById('rel-lp')?.remove();
+    m.refreshing=false;
     if(res.ok){
       m.rowCount=res.rowCount;
       if(m.tabId && _S.reports[m.tabId]){
-        Object.assign(_S.reports[m.tabId],{rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs});
+        Object.assign(_S.reports[m.tabId],{rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs,columns:res.columns||_S.reports[m.tabId].columns});
         const t=_S.tabs.find(t=>t.id===m.tabId); if(t) t.count=res.rowCount||0;
         _renderTabs(); if(_S.activeId===m.tabId) _renderContent();
       } else {
@@ -2234,8 +2241,8 @@ window._RL = {
         _patchTab(newTid,{count:res.rowCount||0,st:'ok'});
         _renderTabs(); _renderContent();
       }
-      _renderMsgs();
     }
+    _renderMsgs(); // re-render para remover spinner do botão
   },
 
   histDel: async id => {
