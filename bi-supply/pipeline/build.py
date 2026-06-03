@@ -2791,23 +2791,22 @@ function _rebuildPuller(){
   const els=_nlEls().filter(e=>e.destination_tab===pg);
   if(!els.length) return;  // sem elementos para esta aba
 
-  const isEdit=document.body.classList.contains('edit-mode');
+  // Puller apenas em modo de edicao
+  if(!document.body.classList.contains('edit-mode')) return;
 
   const items=els.map(e=>{
     const added=_inGrid(e.id,pg);
-    const canInsert=isEdit&&!added;
-    let btn='';
-    if(added)      btn=`<span style="font-size:10.5px;color:#16a34a;font-weight:600">✓ No grid</span>`;
-    else if(isEdit) btn=`<button onclick="window._NL.insertElem('${e.id}')" style="padding:3px 9px;font-size:11px;font-weight:700;border:1px solid var(--blue);border-radius:5px;cursor:pointer;background:var(--blue,#2563eb);color:#fff">Inserir</button>`;
-    else            btn=`<span style="font-size:10px;color:var(--muted)">ative ✎</span>`;
-    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(226,232,240,.5)">
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title||'Elemento'}</div>
-        <div style="font-size:10.5px;color:var(--muted)">${e.tipo||'T'}</div>
-      </div>${btn}</div>`;
+    const btn=added
+      ?'<span style="font-size:10.5px;color:#16a34a;font-weight:600">No grid</span>'
+      :'<button onclick="window._NL.insertElem('' +e.id+ '')" style="padding:3px 9px;font-size:11px;font-weight:700;border:1px solid var(--blue);border-radius:5px;cursor:pointer;background:var(--blue,#2563eb);color:#fff">Inserir</button>';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(226,232,240,.5)">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(e.title||'Elemento')+'</div>'
+      +'<div style="font-size:10.5px;color:var(--muted)">'+(e.tipo||'T')+'</div>'
+      +'</div>'+btn+'</div>';
   }).join('');
 
-  const hint=!isEdit?`<div style="font-size:10.5px;color:#dc2626;margin-bottom:8px">Clique em ✎ Editar layout para inserir.</div>`:'';
+  const hint='';
 
   const d=document.createElement('div');
   d.id='_nl_drawer';
