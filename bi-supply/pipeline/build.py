@@ -2444,13 +2444,13 @@ function _renderElementos(){
   const abaLbl=t=>(typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[t]?.label)||t;
   const html=Object.entries(byTab).map(([tab,els])=>{
     const rows=els.map(e=>`
-      <div class="rel-elem-item">
+      <div class="rel-elem-item" onclick="window._RL.openElement('${e.id}')" style="cursor:pointer">
         <span class="rel-elem-icon">${_VIZ_ICON[e.tipo]||''}</span>
         <div style="flex:1;min-width:0">
           <div class="rel-hi-title">${_esc(e.title)}</div>
           <div class="rel-hi-sub">${_VIZ_NAME[e.tipo]||e.tipo} · ${_ts(e.created_at)}</div>
         </div>
-        <button class="rel-icn-btn" title="Remover" onclick="window._RL.deleteElement('${e.id}')">${_SVG_TRASH}</button>
+        <button class="rel-icn-btn" title="Remover" onclick="event.stopPropagation();window._RL.deleteElement('${e.id}')">${_SVG_TRASH}</button>
       </div>`).join('');
     return `<div class="rel-elem-group">
       <div class="rel-elem-group-lbl">${_esc(abaLbl(tab))}<span class="rel-elem-count">${els.length}</span></div>
@@ -2517,6 +2517,40 @@ window._RL = {
     const r=await _api('GET','/elements');
     if(r.ok){ _S.elements=r.elements||[]; if(_S.sideMode==='elementos') _renderElementos(); }
   },
+
+  openElement: id => {
+    const el=_S.elements.find(e=>e.id===id); if(!el) return;
+    // Reutiliza tab existente se já aberto para este elemento
+    const existingTid=Object.keys(_S.reports).find(k=>_S.reports[k]?._elemId===id);
+    if(existingTid && _S.tabs.find(t=>t.id===existingTid)){ _openTab(existingTid); return; }
+    // Cria nova tab com snapshot
+    const tid=_addTab(el.title,'ok');
+    _S.reports[tid]={
+      _elemId:   id,
+      id:        el.id,
+      title:     el.title,
+      subtitle:  '',
+      question:  el.question||'',
+      sql:       el.sql||'',
+      columns:   el.columns||[],
+      rows:      el.rows_snapshot||[],
+      rowCount:  (el.rows_snapshot||[]).length,
+      elapsedMs: 0,
+      status:    'ok',
+      saved:     false,
+    };
+    _S.pages[tid]=0;
+    // Pré-seleciona o tipo de visualização do elemento
+    const vizType=(el.tipo==='T'||el.tipo==='TE')?'table':el.tipo;
+    _S.classify[tid]={
+      loading:false,
+      suggestions:[{tipo:el.tipo,confidence:1.0,reason:'Elemento salvo',config:el.config||{}}],
+      activeType: vizType,
+    };
+    _patchTab(tid,{count:_S.reports[tid].rowCount,st:'ok'});
+    _renderTabs(); _renderContent();
+  },
+
   deleteElement: async id => {
     const res=await _api('DELETE',`/elements/${id}`);
     if(res.ok){ _S.elements=_S.elements.filter(e=>e.id!==id); _renderElementos(); }
