@@ -1523,8 +1523,8 @@ RELATORIO_CSS = """
 .rel-wrap {
   display: grid;
   grid-template-columns: 360px minmax(0,1fr);
-  height: calc(100vh - 175px);
-  min-height: 520px;
+  height: calc(100vh - 140px);
+  min-height: 480px;
   overflow: hidden;
 }
 .rel-side {
@@ -1975,17 +1975,34 @@ function _renderMsgs(){
   }
   el.innerHTML=_S.msgs.map(m=>{
     const isU=m.role==='user';
-    const spin=m.st==='running'?'<span class="rel-sp" style="margin-right:4px;vertical-align:middle"></span>':'';
-    const errC=m.st==='error'?' err':'';
-    let ext='';
-    if(!isU&&m.tabId&&m.st!=='running'){
-      ext+=`<div><span class="rel-msg-ref" onclick="window._RL.openTab('${m.tabId}')">📊 ${_esc(m.refTitle||'Ver resultado')}${m.rowCount!=null?' · '+m.rowCount+' linha'+(m.rowCount!==1?'s':''):''}↗</span></div>`;
-    }
-    if(!isU&&m.sql){
-      const safe=m.sql.replace(/\\/g,'\\\\').replace(/`/g,"'");
-      ext+=`<div class="rel-msg-meta"><button class="rel-icn-btn" title="Copiar SQL" onclick="navigator.clipboard.writeText(\`${safe}\`)">⎘</button></div>`;
-    }
-    return `<div class="rel-msg ${isU?'user':'asst'}"><div class="rel-bubble${errC}">${spin}${_esc(m.text)}${ext}</div></div>`;
+
+    // Mensagem do usuário: bolha azul simples
+    if(isU) return `<div class="rel-msg user"><div class="rel-bubble">${_esc(m.text)}</div></div>`;
+
+    // Assistente rodando: bolha com spinner
+    if(m.st==='running') return `<div class="rel-msg asst"><div class="rel-bubble"><span class="rel-sp" style="margin-right:6px;vertical-align:middle"></span>Gerando SQL…</div></div>`;
+
+    // Assistente com erro: bolha de erro
+    if(m.st==='error') return `<div class="rel-msg asst"><div class="rel-bubble err">${_esc(m.text)}</div></div>`;
+
+    // Assistente com resultado ok: card igual aos boxes do histórico
+    const safe=m.sql?m.sql.replace(/\\/g,'\\\\').replace(/`/g,"'"):'';
+    return `<div class="rel-msg asst" style="width:95%">
+      <div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;cursor:default;width:100%;box-sizing:border-box" onclick="window._RL.openTab('${m.tabId||''}')">
+        <div style="flex:1;min-width:0">
+          <div class="rel-hi-title">${_esc(m.refTitle||m.text||'Resultado')}</div>
+          <div class="rel-hi-sub">${_ts(new Date().toISOString())}</div>
+          <div class="rel-hi-meta">
+            <span class="rel-hi-chip ok">✓</span>
+            ${m.rowCount!=null?`<span>${m.rowCount.toLocaleString()} linha${m.rowCount!==1?'s':''}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
+          <button class="rel-icn-btn" title="Ver resultado" onclick="event.stopPropagation();window._RL.openTab('${m.tabId||''}')">→</button>
+          ${safe?`<button class="rel-icn-btn" title="Copiar SQL" onclick="event.stopPropagation();navigator.clipboard.writeText(\`${safe}\`)">⎘</button>`:''}
+        </div>
+      </div>
+    </div>`;
   }).join('');
   requestAnimationFrame(()=>{ el.scrollTop=el.scrollHeight; });
 }
@@ -2064,7 +2081,24 @@ function _renderHist(){
   if(m==='chats') items=_S.chats.map(c=>({id:c.id,title:c.title||'Chat',sub:_ts(c.updatedAt),type:'chat'}));
   else if(m==='reports') items=_S.history.map(r=>({id:r.id,title:r.title||r.question,sub:_ts(r.createdAt),type:'report',chip:r.status,rows:r.rowCount}));
   else items=_S.history.filter(r=>r.saved).map(r=>({id:r.id,title:r.title||r.question,sub:_ts(r.createdAt),type:'report',chip:r.status,rows:r.rowCount}));
-  const list=items.length?items.map(it=>`<div class="rel-hist-item" onclick="window._RL.histOpen('${it.id}','${it.type}')"><div class="rel-hi-title">${_esc(it.title)}</div>${it.sub?`<div class="rel-hi-sub">${it.sub}</div>`:''}<div class="rel-hi-meta">${it.chip?`<span class="rel-hi-chip ${it.chip}">${it.chip==='ok'?'✓':'✗'}</span>`:''}${it.rows!=null?`<span>${it.rows.toLocaleString()} linhas</span>`:''}</div></div>`).join(''):'<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Vazio</div>';
+  const list=items.length?items.map(it=>{
+    const isReport=it.type==='report';
+    const btns=isReport?`<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
+      <button class="rel-icn-btn" title="Atualizar resultado" onclick="event.stopPropagation();window._RL.histRefresh('${it.id}')">🔄</button>
+      <button class="rel-icn-btn" title="Apagar" onclick="event.stopPropagation();window._RL.histDel('${it.id}')">🗑</button>
+    </div>`:'';
+    return `<div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px" onclick="window._RL.histOpen('${it.id}','${it.type}')">
+      <div style="flex:1;min-width:0">
+        <div class="rel-hi-title">${_esc(it.title)}</div>
+        ${it.sub?`<div class="rel-hi-sub">${it.sub}</div>`:''}
+        <div class="rel-hi-meta">
+          ${it.chip?`<span class="rel-hi-chip ${it.chip}">${it.chip==='ok'?'✓':'✗'}</span>`:''}
+          ${it.rows!=null?`<span>${it.rows.toLocaleString()} linhas</span>`:''}
+        </div>
+      </div>
+      ${btns}
+    </div>`;
+  }).join(''):'<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Vazio</div>';
   el.innerHTML=`<div style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden"><div class="rel-hist-tabs"><button class="rel-hist-tab${m==='chats'?' active':''}" onclick="window._RL.histMode('chats')">Chats</button><button class="rel-hist-tab${m==='reports'?' active':''}" onclick="window._RL.histMode('reports')">Relatórios</button><button class="rel-hist-tab${m==='saved'?' active':''}" onclick="window._RL.histMode('saved')">Favoritos</button></div><div class="rel-hist-list">${list}</div></div>`;
 }
 
@@ -2105,6 +2139,23 @@ window._RL = {
     _renderTabs(); _renderContent();
   },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
+  histDel:    async id => {
+    const res=await _api('DELETE',`/history/${id}`);
+    if(res.ok){ _S.history=_S.history.filter(h=>h.id!==id); _renderHist(); }
+  },
+  histRefresh: async id => {
+    const r=_S.history.find(h=>h.id===id); if(!r) return;
+    // Re-executa o SQL existente (sem novo LLM)
+    const res=await _api('POST','/execute',{sql:r.sql});
+    if(res.ok){
+      r.rows=res.rows; r.rowCount=res.rowCount; r.elapsedMs=res.elapsedMs;
+      r.status=(res.rowCount>0||res.rows?.length>0)?'ok':'ok';
+      // Atualiza aba aberta se existir
+      const tid=Object.keys(_S.reports).find(k=>_S.reports[k]?.id===id);
+      if(tid){ _S.reports[tid]=Object.assign(_S.reports[tid],{rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs}); _renderContent(); }
+      _renderHist();
+    }
+  },
   showPrompt: async () => {
     const r=await _api('GET','/prompt');
     if(r.ok){_S.promptContent=r.content;_S.promptUpdatedAt=r.updatedAt;}
@@ -2116,8 +2167,9 @@ window._RL = {
 // ── Init ────────────────────────────────────────────────────────────────────
 async function _init(){
   const first=!_S.inited; _S.inited=true;
-  // Esconder filtros (só na aba Relatório)
+  // Esconder filtros + remover padding-bottom do .app (só na aba Relatório)
   const _flt=document.getElementById('filters'); if(_flt) _flt.style.display='none';
+  const _app=document.querySelector('.app'); if(_app) _app.style.paddingBottom='0';
   if(first){ const r=await _api('GET','/history'); if(r.ok){_S.history=r.history||[];_S.chats=r.chats||[];} }
   document.querySelectorAll('.rel-mode-btn').forEach(b=>{
     b.addEventListener('click',()=>{
@@ -2149,9 +2201,12 @@ if(typeof pages!=='undefined'){
   document.addEventListener('click',e=>{
     const tab=e.target.closest('.tab[data-page]');
     if(!tab) return;
+    const isRel = tab.dataset.page==='relatorio';
     const filters=document.getElementById('filters');
-    if(filters) filters.style.display = tab.dataset.page==='relatorio' ? 'none' : '';
-    if(tab.dataset.page==='relatorio') setTimeout(_init,60);
+    if(filters) filters.style.display = isRel ? 'none' : '';
+    const app=document.querySelector('.app');
+    if(app) app.style.paddingBottom = isRel ? '0' : '';
+    if(isRel) setTimeout(_init,60);
   });
 }
 
