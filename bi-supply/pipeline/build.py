@@ -2014,9 +2014,11 @@ function _renderMsgs(){
     // Assistente com erro: bolha de erro
     if(m.st==='error') return `<div class="rel-msg asst"><div class="rel-bubble err">${_esc(m.text)}</div></div>`;
 
-    // Card de resultado — usa data-mid/data-action para event delegation (sem onclick inline)
+    // Card de resultado — data-tid/data-rid no card (não depende de _S.msgs)
+    // data-btn-mid nos botões (atributo distinto — evita querySelector pegar o card)
     return `<div class="rel-msg asst" style="width:95%">
-      <div class="rel-hist-item rel-chat-card" data-mid="${m.id}"
+      <div class="rel-hist-item rel-chat-card"
+           data-mid="${m.id}" data-tid="${m.tabId||''}" data-rid="${m.rid||''}"
            style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;width:100%;box-sizing:border-box">
         <div style="flex:1;min-width:0">
           <div class="rel-hi-title">${_esc(m.refTitle||m.text||'Resultado')}</div>
@@ -2027,16 +2029,16 @@ function _renderMsgs(){
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-          <button class="rel-icn-btn" data-mid="${m.id}" data-action="refresh"
+          <button class="rel-icn-btn" data-btn-mid="${m.id}" data-action="refresh"
                   title="Atualizar resultado">${_SVG_REFRESH}</button>
-          ${m.sql?`<button class="rel-icn-btn" data-mid="${m.id}" data-action="copy-sql"
+          ${m.sql?`<button class="rel-icn-btn" data-btn-mid="${m.id}" data-action="copy-sql"
                   title="Copiar SQL">${_SVG_CODE}</button>`:''}
         </div>
       </div>
     </div>`;
   }).join('');
   requestAnimationFrame(()=>{ el.scrollTop=el.scrollHeight; });
-  // Event delegation — evita onclick inline com template literals
+  // Event delegation
   const msgsEl=$('rel-msgs');
   if(msgsEl && !msgsEl._delegated){
     msgsEl._delegated=true;
@@ -2045,13 +2047,14 @@ function _renderMsgs(){
       const card=e.target.closest('.rel-chat-card');
       if(btn){
         e.stopPropagation();
-        const mid=btn.dataset.mid;
+        const mid=btn.dataset.btnMid;  // data-btn-mid no botão
         const act=btn.dataset.action;
         if(act==='refresh') window._RL.chatRefresh(mid);
         else if(act==='copy-sql') window._RL.copyMsgSQL(mid);
         return;
       }
-      if(card){ window._RL.openOrLoad(card.dataset.mid); }
+      // Click no card: usa data-tid e data-rid do próprio elemento (não precisa de _S.msgs)
+      if(card){ window._RL.openOrLoad(card.dataset.tid, card.dataset.rid); }
     });
   }
 }
@@ -2188,10 +2191,8 @@ window._RL = {
     _renderTabs(); _renderContent();
   },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
-  // Abre resultado via msgId (lookup direto em _S.msgs — sem strings no onclick)
-  openOrLoad: msgId => {
-    const m=_S.msgs.find(m=>m.id===msgId);
-    const tabId=m?.tabId, rid=m?.rid;
+  // Abre resultado: recebe tabId e rid diretamente do data-tid/data-rid do card
+  openOrLoad: (tabId, rid) => {
     if(tabId && _S.tabs.find(t=>t.id===tabId)) { _openTab(tabId); }
     else if(rid) { window._RL.histOpen(rid,'report'); }
   },
@@ -2205,7 +2206,8 @@ window._RL = {
   chatRefresh: async msgId => {
     const m=_S.msgs.find(m=>m.id===msgId); if(!m?.sql) return;
     // Spinner no botão
-    const btn=document.querySelector(`[data-mid="${msgId}"]`);
+    // data-btn-mid (não data-mid) — garante que pega o botão, não o card container
+    const btn=document.querySelector(`button[data-btn-mid="${msgId}"]`);
     if(btn){ btn.innerHTML=_SVG_SPIN; btn.disabled=true; }
     // Barra de progresso linear na área de resultado se tab ativa
     if(m.tabId && _S.activeId===m.tabId){ const c=$('rel-content'); if(c){ const p=document.createElement('div'); p.id='rel-lp'; p.className='rel-lp'; c.prepend(p); } }
@@ -2227,7 +2229,7 @@ window._RL = {
   histRefresh: async id => {
     const r=_S.history.find(h=>h.id===id); if(!r?.sql) return;
     // Spinner no botão de refresh deste item
-    const btn=document.querySelector(`[data-hid="${id}"]`);
+    const btn=document.querySelector(`button[data-hid="${id}"]`);
     if(btn){ btn.innerHTML=_SVG_SPIN; btn.disabled=true; }
     // Barra de progresso se tab deste relatório estiver ativa
     const tid=Object.keys(_S.reports).find(k=>_S.reports[k]?.id===id);
