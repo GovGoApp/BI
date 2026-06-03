@@ -2002,22 +2002,15 @@ function _renderMsgs(){
   }
   el.innerHTML=_S.msgs.map(m=>{
     const isU=m.role==='user';
-
-    // Mensagem do usuário: bolha azul simples
     if(isU) return `<div class="rel-msg user"><div class="rel-bubble">${_esc(m.text)}</div></div>`;
-
-    // Assistente rodando: bolha com spinner
     if(m.st==='running') return `<div class="rel-msg asst"><div class="rel-bubble"><span class="rel-sp" style="margin-right:6px;vertical-align:middle"></span>Gerando SQL…</div></div>`;
-
-    // Assistente com erro: bolha de erro
     if(m.st==='error') return `<div class="rel-msg asst"><div class="rel-bubble err">${_esc(m.text)}</div></div>`;
 
-    // Card de resultado — data-tid/data-rid no card (não depende de _S.msgs)
-    // data-btn-mid nos botões (atributo distinto — evita querySelector pegar o card)
+    // Card de resultado: inline onclick idêntico ao padrão dos cards do histórico
+    const mid=m.id;
     return `<div class="rel-msg asst" style="width:95%">
-      <div class="rel-hist-item rel-chat-card"
-           data-mid="${m.id}" data-tid="${m.tabId||''}" data-rid="${m.rid||''}"
-           style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;width:100%;box-sizing:border-box">
+      <div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px"
+           onclick="window._RL.chatCardClick('${mid}')">
         <div style="flex:1;min-width:0">
           <div class="rel-hi-title">${_esc(m.refTitle||m.text||'Resultado')}</div>
           <div class="rel-hi-sub">${_ts(new Date().toISOString())}</div>
@@ -2027,36 +2020,15 @@ function _renderMsgs(){
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-          <button class="rel-icn-btn" data-btn-mid="${m.id}" data-action="refresh"
-                  title="Atualizar resultado">${_SVG_REFRESH}</button>
-          ${m.sql?`<button class="rel-icn-btn" data-btn-mid="${m.id}" data-action="copy-sql"
-                  title="Copiar SQL">${_SVG_CODE}</button>`:''}
+          <button class="rel-icn-btn" title="Atualizar resultado"
+                  onclick="event.stopPropagation();window._RL.chatRefresh('${mid}')">${_SVG_REFRESH}</button>
+          ${m.sql?`<button class="rel-icn-btn" title="Copiar SQL"
+                  onclick="event.stopPropagation();window._RL.copyMsgSQL('${mid}')">${_SVG_CODE}</button>`:''}
         </div>
       </div>
     </div>`;
   }).join('');
   requestAnimationFrame(()=>{ el.scrollTop=el.scrollHeight; });
-  // Event delegation — sempre re-attach para o elemento atual (pode ser re-criado)
-  if(!el._delegated){
-    el._delegated=true;
-    el.addEventListener('click', e=>{
-      const btn=e.target.closest('[data-action]');
-      const card=e.target.closest('.rel-chat-card');
-      if(btn){
-        e.stopPropagation();
-        const mid=btn.dataset.btnMid;
-        const act=btn.dataset.action;
-        if(act==='refresh') window._RL.chatRefresh(mid);
-        else if(act==='copy-sql') window._RL.copyMsgSQL(mid);
-        return;
-      }
-      // Lookup no _S.msgs pelo data-mid (fonte de verdade, não HTML)
-      if(card){
-        const m=_S.msgs.find(m=>m.id===card.dataset.mid);
-        if(m) window._RL.openOrLoad(m.tabId, m.rid);
-      }
-    });
-  }
 }
 
 // ── Render: barra de abas ───────────────────────────────────────────────────
@@ -2225,42 +2197,44 @@ window._RL = {
     _renderTabs(); _renderContent();
   },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
-  // Abre resultado: recebe tabId e rid diretamente do data-tid/data-rid do card
+
+  // Abre resultado a partir do card do chat — lookup em _S.msgs pelo mid
+  chatCardClick: (mid) => {
+    const m=_S.msgs.find(m=>m.id===mid); if(!m) return;
+    if(m.tabId && _S.tabs.find(t=>t.id===m.tabId)) { _openTab(m.tabId); }
+    else if(m.rid) { window._RL.histOpen(m.rid,'report'); }
+  },
+
   openOrLoad: (tabId, rid) => {
     if(tabId && _S.tabs.find(t=>t.id===tabId)) { _openTab(tabId); }
     else if(rid) { window._RL.histOpen(rid,'report'); }
   },
 
-  // Copiar SQL de uma mensagem do chat (por msgId — evita SQL inline no onclick)
   copyMsgSQL: msgId => {
     const m=_S.msgs.find(m=>m.id===msgId); if(m?.sql) navigator.clipboard.writeText(m.sql);
   },
 
-  // Re-executa SQL do card do chat via msgId (não SQL inline)
   chatRefresh: async msgId => {
     const m=_S.msgs.find(m=>m.id===msgId); if(!m?.sql) return;
-    // Spinner no botão
-    // data-btn-mid (não data-mid) — garante que pega o botão, não o card container
-    const btn=document.querySelector(`button[data-btn-mid="${msgId}"]`);
-    if(btn){ btn.innerHTML=_SVG_SPIN; btn.disabled=true; }
-    // Barra de progresso linear na área de resultado se tab ativa
-    if(m.tabId && _S.activeId===m.tabId){ const c=$('rel-content'); if(c){ const p=document.createElement('div'); p.id='rel-lp'; p.className='rel-lp'; c.prepend(p); } }
+    if(m.tabId && _S.activeId===m.tabId){
+      const c=$('rel-content'); if(c){ const p=document.createElement('div'); p.id='rel-lp'; p.className='rel-lp'; c.prepend(p); }
+    }
     const res=await _api('POST','/execute',{sql:m.sql});
     document.getElementById('rel-lp')?.remove();
-    if(btn){ btn.innerHTML=_SVG_REFRESH; btn.disabled=false; }
     if(res.ok){
+      m.rowCount=res.rowCount;
       if(m.tabId && _S.reports[m.tabId]){
-        // Aba ainda existe: atualiza in-place
         Object.assign(_S.reports[m.tabId],{rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs});
         const t=_S.tabs.find(t=>t.id===m.tabId); if(t) t.count=res.rowCount||0;
         _renderTabs(); if(_S.activeId===m.tabId) _renderContent();
-      } else if(m.tabId) {
-        // Tab foi fechada: reabre com dados frescos
-        _S.reports[m.tabId]={...(_S.reports[m.tabId]||{}),rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs,status:'ok',sql:m.sql};
-        _S.tabs.push({id:m.tabId,title:m.refTitle||'Resultado',st:'ok',count:res.rowCount||0,closable:true});
-        _S.pages[m.tabId]=0; _S.activeId=m.tabId;
+      } else {
+        const newTid=_addTab(m.refTitle||'Resultado','ok');
+        _S.reports[newTid]={rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs,status:'ok',sql:m.sql,title:m.refTitle,columns:res.columns};
+        _S.pages[newTid]=0; m.tabId=newTid;
+        _patchTab(newTid,{count:res.rowCount||0,st:'ok'});
         _renderTabs(); _renderContent();
       }
+      _renderMsgs();
     }
   },
 
