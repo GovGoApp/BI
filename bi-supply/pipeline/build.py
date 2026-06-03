@@ -1846,6 +1846,26 @@ RELATORIO_CSS = """
 .rel-prompt-info { font-size: 12px; color: var(--muted); flex: 1; }
 .rel-prompt-ta { flex: 1; resize: none; font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; line-height: 1.5; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); min-height: 200px; }
 .rel-prompt-ta:focus { outline: none; border-color: var(--blue); }
+/* Barra de progresso linear (durante atualização) */
+.rel-lp {
+  height: 3px;
+  background: var(--blue-soft,#eff6ff);
+  overflow: hidden;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.rel-lp::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 35%;
+  background: var(--blue,#2563eb);
+  animation: rel-lp-anim 1.4s ease-in-out infinite;
+}
+@keyframes rel-lp-anim {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
 """
 
 # ── JS da Aba Relatório ───────────────────────────────────────────────────────
@@ -1857,6 +1877,12 @@ RELATORIO_JS = r"""
 
 const _RL = (window._BI_NLSQL_URL || 'http://localhost:5001');
 const PAGE_SZ = 10;
+
+// SVGs globais reutilizados nos botões
+const _SVG_REFRESH = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg>';
+const _SVG_TRASH   = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+const _SVG_CODE    = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+const _SVG_SPIN    = '<span class="rel-sp" style="width:13px;height:13px;border-width:2px"></span>';
 
 // ── Estado ─────────────────────────────────────────────────────────────────
 const _S = {
@@ -1989,11 +2015,11 @@ function _renderMsgs(){
     if(m.st==='error') return `<div class="rel-msg asst"><div class="rel-bubble err">${_esc(m.text)}</div></div>`;
 
     // Assistente com resultado ok: card igual aos boxes do histórico
-    const safe=m.sql?m.sql.replace(/\\/g,'\\\\').replace(/`/g,"'"):'';
-    const SVG_REF='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg>';
-    const SVG_SQL='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
+    // Referência por m.id — evita SQL inline no onclick (aspas simples quebram o handler)
+    const SVG_REF=_SVG_REFRESH, SVG_SQL=_SVG_CODE;
     return `<div class="rel-msg asst" style="width:95%">
-      <div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;width:100%;box-sizing:border-box" onclick="window._RL.openOrLoad('${m.tabId||''}','${m.rid||''}')">
+      <div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;width:100%;box-sizing:border-box"
+           onclick="window._RL.openOrLoad('${m.tabId||''}','${m.rid||''}')">
         <div style="flex:1;min-width:0">
           <div class="rel-hi-title">${_esc(m.refTitle||m.text||'Resultado')}</div>
           <div class="rel-hi-sub">${_ts(new Date().toISOString())}</div>
@@ -2003,8 +2029,10 @@ function _renderMsgs(){
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-          <button class="rel-icn-btn" title="Atualizar resultado" onclick="event.stopPropagation();window._RL.chatRefresh('${m.tabId||''}','${safe}')">${SVG_REF}</button>
-          ${safe?`<button class="rel-icn-btn" title="Copiar SQL" onclick="event.stopPropagation();navigator.clipboard.writeText(\`${safe}\`)">${SVG_SQL}</button>`:''}
+          <button class="rel-icn-btn" data-mid="${m.id}" title="Atualizar resultado"
+                  onclick="event.stopPropagation();window._RL.chatRefresh('${m.id}')">${SVG_REF}</button>
+          ${m.sql?`<button class="rel-icn-btn" title="Copiar SQL"
+                  onclick="event.stopPropagation();window._RL.copyMsgSQL('${m.id}')">${SVG_SQL}</button>`:''}
         </div>
       </div>
     </div>`;
@@ -2089,8 +2117,8 @@ function _renderHist(){
   const list=items.length?items.map(it=>{
     const isReport=it.type==='report';
     const btns=isReport?`<div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-      <button class="rel-icn-btn" title="Atualizar resultado" onclick="event.stopPropagation();window._RL.histRefresh('${it.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L23 10"/></svg></button>
-      <button class="rel-icn-btn" title="Apagar" onclick="event.stopPropagation();window._RL.histDel('${it.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
+      <button class="rel-icn-btn" data-hid="${it.id}" title="Atualizar resultado" onclick="event.stopPropagation();window._RL.histRefresh('${it.id}')">${_SVG_REFRESH}</button>
+      <button class="rel-icn-btn" title="Apagar" onclick="event.stopPropagation();window._RL.histDel('${it.id}')">${_SVG_TRASH}</button>
     </div>`:'';
     return `<div class="rel-hist-item" style="display:flex;align-items:flex-start;gap:8px" onclick="window._RL.histOpen('${it.id}','${it.type}')">
       <div style="flex:1;min-width:0">
@@ -2149,30 +2177,49 @@ window._RL = {
     if(tabId && _S.tabs.find(t=>t.id===tabId)) { _openTab(tabId); }
     else if(rid) { window._RL.histOpen(rid,'report'); }
   },
-  // Re-executa SQL do card do chat e atualiza a tab
-  chatRefresh: async (tabId, sql) => {
-    if(!sql) return;
-    const res=await _api('POST','/execute',{sql});
-    if(res.ok && tabId){
-      if(_S.reports[tabId]){ _S.reports[tabId].rows=res.rows; _S.reports[tabId].rowCount=res.rowCount; _S.reports[tabId].elapsedMs=res.elapsedMs; }
-      const t=_S.tabs.find(t=>t.id===tabId); if(t) t.count=res.rowCount||0;
-      _renderTabs(); if(_S.activeId===tabId) _renderContent();
+
+  // Copiar SQL de uma mensagem do chat (por msgId — evita SQL inline no onclick)
+  copyMsgSQL: msgId => {
+    const m=_S.msgs.find(m=>m.id===msgId); if(m?.sql) navigator.clipboard.writeText(m.sql);
+  },
+
+  // Re-executa SQL do card do chat via msgId (não SQL inline)
+  chatRefresh: async msgId => {
+    const m=_S.msgs.find(m=>m.id===msgId); if(!m?.sql) return;
+    // Spinner no botão
+    const btn=document.querySelector(`[data-mid="${msgId}"]`);
+    if(btn){ btn.innerHTML=_SVG_SPIN; btn.disabled=true; }
+    // Barra de progresso linear na área de resultado se tab ativa
+    if(m.tabId && _S.activeId===m.tabId){ const c=$('rel-content'); if(c){ const p=document.createElement('div'); p.id='rel-lp'; p.className='rel-lp'; c.prepend(p); } }
+    const res=await _api('POST','/execute',{sql:m.sql});
+    document.getElementById('rel-lp')?.remove();
+    if(btn){ btn.innerHTML=_SVG_REFRESH; btn.disabled=false; }
+    if(res.ok && m.tabId){
+      if(_S.reports[m.tabId]){ _S.reports[m.tabId].rows=res.rows; _S.reports[m.tabId].rowCount=res.rowCount; _S.reports[m.tabId].elapsedMs=res.elapsedMs; }
+      const t=_S.tabs.find(t=>t.id===m.tabId); if(t){t.count=res.rowCount||0;}
+      _renderTabs(); if(_S.activeId===m.tabId) _renderContent();
     }
   },
-  histDel:    async id => {
+
+  histDel: async id => {
     const res=await _api('DELETE',`/history/${id}`);
     if(res.ok){ _S.history=_S.history.filter(h=>h.id!==id); _renderHist(); }
   },
+
   histRefresh: async id => {
-    const r=_S.history.find(h=>h.id===id); if(!r) return;
-    // Re-executa o SQL existente (sem novo LLM)
+    const r=_S.history.find(h=>h.id===id); if(!r?.sql) return;
+    // Spinner no botão de refresh deste item
+    const btn=document.querySelector(`[data-hid="${id}"]`);
+    if(btn){ btn.innerHTML=_SVG_SPIN; btn.disabled=true; }
+    // Barra de progresso se tab deste relatório estiver ativa
+    const tid=Object.keys(_S.reports).find(k=>_S.reports[k]?.id===id);
+    if(tid && _S.activeId===tid){ const c=$('rel-content'); if(c){ const p=document.createElement('div'); p.id='rel-lp'; p.className='rel-lp'; c.prepend(p); } }
     const res=await _api('POST','/execute',{sql:r.sql});
+    document.getElementById('rel-lp')?.remove();
+    if(btn){ btn.innerHTML=_SVG_REFRESH; btn.disabled=false; }
     if(res.ok){
-      r.rows=res.rows; r.rowCount=res.rowCount; r.elapsedMs=res.elapsedMs;
-      r.status=(res.rowCount>0||res.rows?.length>0)?'ok':'ok';
-      // Atualiza aba aberta se existir
-      const tid=Object.keys(_S.reports).find(k=>_S.reports[k]?.id===id);
-      if(tid){ _S.reports[tid]=Object.assign(_S.reports[tid],{rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs}); _renderContent(); }
+      r.rows=res.rows; r.rowCount=res.rowCount; r.elapsedMs=res.elapsedMs; r.status='ok';
+      if(tid){ _S.reports[tid]=Object.assign(_S.reports[tid],{rows:res.rows,rowCount:res.rowCount,elapsedMs:res.elapsedMs}); if(_S.activeId===tid) _renderContent(); }
       _renderHist();
     }
   },
