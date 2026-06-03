@@ -2195,6 +2195,7 @@ function _renderModal(){
       ${cfgHtml}
     </div>
     <div class="rel-modal-ft">
+      <span id="rl-m-err" style="flex:1;font-size:12px;color:#dc2626;align-self:center"></span>
       <button class="rel-act-btn" onclick="window._RL.closeModal()">Cancelar</button>
       <button id="rl-m-save" class="rel-add-btn" onclick="window._RL.saveElement()">Salvar elemento</button>
     </div>
@@ -2487,8 +2488,11 @@ window._RL = {
 
   saveElement: async () => {
     const m=_S.modal; if(!m) return;
-    if(!m.title.trim()){ alert('Preencha o título.'); $('rl-m-title')?.focus(); return; }
-    if(!m.destTab){ alert('Selecione a aba de destino.'); return; }
+    const errEl=document.getElementById('rl-m-err');
+    const _err=msg=>{ if(errEl) errEl.textContent=msg; };
+    _err('');
+    if(!m.title.trim()){ _err('Preencha o título.'); $('rl-m-title')?.focus(); return; }
+    if(!m.destTab){ _err('Selecione a aba de destino.'); return; }
     const btn=$('rl-m-save');
     if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
     const r=_S.reports[m.tid];
@@ -2509,7 +2513,8 @@ window._RL = {
       _showToast(`Elemento salvo para a aba "${abaLabel}". Rode run.bat para incluí-lo.`);
     } else {
       if(btn){ btn.disabled=false; btn.textContent='Salvar elemento'; }
-      alert('Erro: '+(res.error||'Verifique se o servidor nlsql/server.py está rodando.'));
+      const isNet=String(res.error||'').toLowerCase().includes('fetch')||String(res.error||'').includes('Failed');
+      _err(isNet?'Servidor não está rodando. Inicie: python nlsql/server.py':'Erro: '+(res.error||'desconhecido'));
     }
   },
 
