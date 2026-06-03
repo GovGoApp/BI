@@ -2219,17 +2219,22 @@ def inject_relatorio_tab(html):
         '<button class="tab" data-page="qualidade">Dados</button>\n    <button class="tab" data-page="relatorio">Relatório</button>',
         1
     )
-    # URL do servidor NL-SQL + fix do stamp (move para dentro do brand, eliminando 2ª linha)
+    # URL do servidor NL-SQL + fix do stamp (mover para entre brand e search, 1 linha só)
     topbar_fix = """<script>
 window._BI_NLSQL_URL = "http://localhost:5001";
 (function(){
   function _fixStamp(){
-    const stamp = document.querySelector('.topbar .stamp');
-    const brandInner = document.querySelector('.topbar .brand > div:last-child');
-    if(!stamp || !brandInner) return;
+    var stamp   = document.querySelector('.topbar .stamp');
+    var brand   = document.querySelector('.topbar .brand');
+    var topbar  = document.querySelector('.topbar');
+    if(!stamp || !brand || !topbar) return;
+    // Move stamp para logo após brand (2ª posição na grid)
     stamp.remove();
-    stamp.style.cssText = 'font-size:10.5px;color:var(--muted,#64748b);margin-top:1px;white-space:nowrap';
-    brandInner.appendChild(stamp);
+    brand.insertAdjacentElement('afterend', stamp);
+    // Ajusta grid: brand(auto) | stamp(1fr preenche o gap) | search(360px) | botões(auto)
+    topbar.style.gridTemplateColumns = 'auto 1fr 360px auto auto auto auto auto';
+    // Estilo do stamp inline
+    stamp.style.cssText = 'font-size:11px;color:var(--muted,#64748b);white-space:nowrap;padding:0 4px;';
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_fixStamp);
   else _fixStamp();
