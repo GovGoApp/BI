@@ -976,3 +976,41 @@ Respostas bem-sucedidas do assistente usam o mesmo visual dos boxes do históric
 - Todos os emojis removidos do RELATORIO_JS e CSS
 - Chat cards: `cursor:pointer`, botão "ver resultado" removido (card já abre)
 - Barra de progresso linear `.rel-lp` no CSS
+
+---
+
+## [2026-06-03] Aba Relatório — correções de UX (close, cards, Assistente)
+
+**Commit:** `deeec94`
+
+### a) Ícone de fechar nas abas de resultado
+
+**Problema:** `×` não aparecia nas abas. Causa: `.rel-rtab-x` era `position:absolute` dentro de um `<button>` — vários browsers clipam filhos absolutos de botões.
+
+**Solução:** `.rel-rtab` mudou de `<button>` para `<div>` com `display:flex`. O `×` virou um `<span>` filho direto (flex child), sem position:absolute. Event delegation na `rel-tabs-bar` trata clique no `[data-close]` para fechar e no `.rel-rtab[data-tid]` para abrir.
+
+### b) Cards do chat — click e atualizar
+
+**Problema:** clicar no card não abria a aba de resultado; `chatRefresh` não atualizava nada quando a aba havia sido fechada.
+
+**Causa raiz:** event delegation usava `card.dataset.tid` / `card.dataset.rid` embutidos no HTML em tempo de render. Se o estado mudou após o render, esses valores podiam estar desatualizados ou vazios.
+
+**Fix:** delegação agora faz lookup em `_S.msgs` pelo `data-mid` do card — dados sempre frescos:
+```javascript
+const m=_S.msgs.find(m=>m.id===card.dataset.mid);
+if(m) window._RL.openOrLoad(m.tabId, m.rid);
+```
+
+`chatRefresh`: quando `m.tabId` existe mas a aba foi fechada (`_S.reports[m.tabId]` inexistente), agora reabre a aba com os dados atualizados em vez de não fazer nada.
+
+### c) Assistente na sidebar
+
+**Layout anterior:** botão "Assistente" na barra de abas do main (direita), abrindo como uma aba de resultado.
+
+**Novo layout:**
+- Botão `[Chat] [Histórico] [Assistente]` no topo da sidebar esquerda
+- Ao ativar: sidebar mostra info do arquivo + botões `Salvar` e `Restaurar` (sub-botões no mesmo estilo dos sub-tabs do Histórico)
+- Main mostra a textarea do prompt ocupando toda a área
+- `Salvar` e `Restaurar` desativados até haver mudança no texto (`_S.promptDirty`)
+- `_S.promptDirty=true` ao digitar; volta a `false` após salvar ou restaurar
+- Ao sair do modo Assistente (clicar Chat ou Histórico), barra de abas volta ao normal
