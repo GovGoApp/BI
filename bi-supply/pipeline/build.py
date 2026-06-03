@@ -1833,6 +1833,27 @@ RELATORIO_CSS = """
 .rel-table tbody tr:first-child td { background: #eff6ff; }
 .rel-table tbody tr:hover td { background: rgba(37,99,235,.03); }
 .rel-err { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 14px; color: #dc2626; font-size: 13px; margin-bottom: 12px; }
+/* ── Barra de visualização / classificação ── */
+.rel-viz-bar {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  padding: 8px 0 10px; border-bottom: 1px solid rgba(226,232,240,.5); margin-bottom: 12px;
+}
+.rel-viz-bar-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-right: 2px; flex-shrink: 0; }
+.rel-viz-btn {
+  padding: 3px 9px; font-size: 11px; font-weight: 600;
+  color: var(--muted); background: var(--head,#f1f5f9);
+  border: 1px solid var(--line); border-radius: 6px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 4px; line-height: 1.4;
+}
+.rel-viz-btn:hover { background: #eff6ff; color: var(--blue); border-color: #bfdbfe; }
+.rel-viz-btn.active { color: #fff; background: var(--blue); border-color: var(--blue); }
+.rel-viz-pct { font-size: 9.5px; font-weight: 500; opacity: .82; }
+.rel-viz-reason { font-size: 10.5px; color: var(--muted); font-style: italic; margin: 0 0 10px; line-height: 1.4; }
+.rel-viz-preview {
+  background: var(--head,#f1f5f9); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 12px; min-height: 100px; overflow: hidden;
+}
+.rel-viz-preview-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
 /* Assistente sidebar panel */
 .rel-asst-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
 .rel-asst-sub-btn { padding: 5px 4px; font-size: 11px; font-weight: 600; color: var(--muted); background: var(--head,#f1f5f9); border: 1px solid var(--line); border-radius: 7px; cursor: pointer; text-align: center; }
@@ -1899,6 +1920,7 @@ const _S = {
   promptContent: '',
   promptUpdatedAt: '',
   promptDirty: false,
+  classify: {},   // tabId → {loading, suggestions, activeType}
   inited: false,
 };
 
@@ -2061,6 +2083,116 @@ function _renderTabs(){
   }
 }
 
+// ── Classificação automática de elementos ───────────────────────────────────
+
+async function _classify(tid){
+  const r=_S.reports[tid];
+  if(!r||r.status!=='ok'||!r.rowCount) return;
+  _S.classify[tid]={loading:true,suggestions:[],activeType:'table'};
+  const res=await _api('POST','/classify',{
+    question: r.question||'', sql: r.sql||'',
+    columns:  r.columns||[],
+    rows:    (r.rows||[]).slice(0,5),
+    rowCount: r.rowCount||0,
+  });
+  _S.classify[tid]={
+    loading:false,
+    suggestions: res.ok?(res.suggestions||[]):[],
+    activeType:'table',
+  };
+  if(_S.activeId===tid) _renderContent();
+}
+
+function _renderVizBar(tid){
+  const cls=_S.classify[tid];
+  // Ainda não iniciou (será disparado após renderContent)
+  if(!cls) return '';
+  // Carregando
+  if(cls.loading) return `<div class="rel-viz-bar"><span class="rel-sp" style="width:10px;height:10px;border-width:2px"></span><span style="font-size:11px;color:var(--muted);margin-left:6px">Analisando visualização…</span></div>`;
+  // Sem sugestões
+  if(!cls.suggestions.length) return '';
+  const active=cls.activeType||'table';
+  const tbl=`<button class="rel-viz-btn${active==='table'?' active':''}" onclick="window._RL.setVizType('${tid}','table')">Tabela</button>`;
+  const btns=cls.suggestions.map(s=>{
+    const pct=Math.round((s.confidence||0)*100);
+    const act=active===s.tipo?' active':'';
+    return `<button class="rel-viz-btn${act}" onclick="window._RL.setVizType('${tid}','${s.tipo}')" title="${_esc(s.reason||'')}">${s.tipo}<span class="rel-viz-pct">${pct}%</span></button>`;
+  }).join('');
+  return `<div class="rel-viz-bar"><span class="rel-viz-bar-lbl">Ver como</span>${tbl}${btns}</div>`;
+}
+
+function _pivotGE(data,xKey,groupKey,valueKey){
+  const groups=[...new Set(data.map(r=>r[groupKey]).filter(Boolean))].slice(0,6);
+  const xVals=[...new Set(data.map(r=>r[xKey]).filter(Boolean))];
+  return xVals.map(x=>{
+    const row={[xKey]:x};
+    groups.forEach(g=>{
+      const f=data.find(r=>r[xKey]===x&&r[groupKey]===g);
+      row[g]=f?(parseFloat(f[valueKey])||0):0;
+    });
+    return row;
+  });
+}
+
+function _renderPreview(tipo,config,data,columns){
+  if(!data||!data.length) return '<div style="padding:16px;color:var(--muted);font-size:12px">Sem dados para visualizar.</div>';
+  const cfg=config||{};
+  const elem={tipo,titulo:'',subtitulo:'',config:cfg};
+  try{
+    if(tipo==='KPI'){
+      // data pode ser array (1 linha) ou objeto
+      const obj=Array.isArray(data)?data[0]:data;
+      if(!obj) return '';
+      // Se config.chave não existe no obj, tenta a primeira chave numérica
+      if(!cfg.chave){
+        const numKey=Object.keys(obj).find(k=>typeof obj[k]==='number'||!isNaN(parseFloat(obj[k])));
+        if(numKey) elem.config={...cfg,chave:numKey,fmt:cfg.fmt||'brl'};
+      }
+      return `<div style="display:flex;flex-wrap:wrap;gap:8px">${_renderKPI(elem,obj)}</div>`;
+    }
+    if(tipo==='HL') return _renderHL(elem,data);
+    if(tipo==='GL') return _renderGL(elem,data);
+    if(tipo==='GB') return _renderGB(elem,data);
+    if(tipo==='GE'){
+      if(cfg.group&&cfg.value){
+        const pivoted=_pivotGE(data,cfg.x,cfg.group,cfg.value);
+        const stacks=[...new Set(data.map(r=>r[cfg.group]).filter(Boolean))].slice(0,6);
+        return _renderGE({...elem,config:{...cfg,stacks}},pivoted);
+      }
+      return _renderGE(elem,data);
+    }
+    if(tipo==='MX') return _renderMX(elem,data);
+    if(tipo==='T'||tipo==='TE'){
+      if(!cfg.colunas&&columns&&columns.length){
+        elem.config={...cfg,colunas:columns.slice(0,6).map(c=>({key:c,label:c}))};
+      }
+      return _renderT(elem,data);
+    }
+    if(tipo==='FU') return _renderFU(elem,data);
+  }catch(e){ return `<div style="padding:16px;color:var(--muted);font-size:12px">Erro ao renderizar preview: ${_esc(String(e))}</div>`; }
+  return '<div style="padding:16px;color:var(--muted);font-size:12px">Preview não disponível para este tipo.</div>';
+}
+
+// ── Render: tabela de resultados (extraída para reuso) ───────────────────────
+function _renderTableSection(r, tid){
+  const cols=r.columns||[], rows=r.rows||[];
+  const total=r.rowCount||rows.length;
+  const pg=_S.pages[tid]||0;
+  const pgs=Math.ceil(rows.length/PAGE_SZ);
+  const vis=rows.slice(pg*PAGE_SZ,(pg+1)*PAGE_SZ);
+  const ths=cols.map(c=>`<th>${_esc(c)}</th>`).join('');
+  const trs=vis.map(row=>'<tr>'+cols.map(c=>{
+    const v=row[c]??'';
+    const d=_isN(v)?_fv(v):_esc(String(v));
+    const s=_isN(v)?' style="text-align:right;font-variant-numeric:tabular-nums"':'';
+    return `<td${s}>${d}</td>`;
+  }).join('')+'</tr>').join('');
+  let pgr='';
+  if(pgs>1) pgr=`<div class="rel-pager"><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',0)">«</button><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',${pg-1})">‹</button><span class="rel-pg-num">${pg+1}/${pgs}</span><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pg+1})">›</button><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pgs-1})">»</button></div>`;
+  const sv=r.saved;
+  return `<div class="rel-tbl-wrap"><div class="rel-tbl-hd"><span class="rel-chip ok">Executado</span><span class="rel-rows-info">${total.toLocaleString()} linha${total!==1?'s':''} · ${r.elapsedMs||0}ms</span><span class="rel-spacer"></span>${pgr}<button class="rel-act-btn" onclick="window._RL.export_('${tid}')">⬇ CSV</button><button class="rel-act-btn${sv?' saved':''}" onclick="window._RL.fav('${tid}')">${sv?'Salvo':'Salvar'}</button></div><div class="rel-tbl-scroll"><table class="rel-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div></div>`;
+}
+
 // ── Render: conteúdo direita ────────────────────────────────────────────────
 function _renderContent(){
   const el=$('rel-content'); if(!el) return;
@@ -2083,24 +2215,27 @@ function _renderContent(){
     h+=`<div class="rel-sql-wrap"><div class="rel-sql-head"><span class="rel-sql-lbl">Comando SQL</span><button class="rel-sql-copy" onclick="window._RL.copySql('${tid}')" title="Copiar SQL">${_SVG_COPY}</button></div><pre class="rel-sql-pre">${_esc(r.sql)}</pre></div>`;
   }
   if(r.status==='ok'){
-    const cols=r.columns||[], rows=r.rows||[];
-    const total=r.rowCount||rows.length;
-    const pg=_S.pages[tid]||0;
-    const pgs=Math.ceil(rows.length/PAGE_SZ);
-    const vis=rows.slice(pg*PAGE_SZ,(pg+1)*PAGE_SZ);
-    const ths=cols.map(c=>`<th>${_esc(c)}</th>`).join('');
-    const trs=vis.map(row=>'<tr>'+cols.map(c=>{
-      const v=row[c]??'';
-      const d=_isN(v)?_fv(v):_esc(String(v));
-      const s=_isN(v)?' style="text-align:right;font-variant-numeric:tabular-nums"':'';
-      return `<td${s}>${d}</td>`;
-    }).join('')+'</tr>').join('');
-    let pgr='';
-    if(pgs>1) pgr=`<div class="rel-pager"><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',0)">«</button><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',${pg-1})">‹</button><span class="rel-pg-num">${pg+1}/${pgs}</span><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pg+1})">›</button><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pgs-1})">»</button></div>`;
-    const sv=r.saved;
-    h+=`<div class="rel-tbl-wrap"><div class="rel-tbl-hd"><span class="rel-chip ok">Executado</span><span class="rel-rows-info">${total.toLocaleString()} linha${total!==1?'s':''} · ${r.elapsedMs||0}ms</span><span class="rel-spacer"></span>${pgr}<button class="rel-act-btn" onclick="window._RL.export_('${tid}')">⬇ CSV</button><button class="rel-act-btn${sv?' saved':''}" onclick="window._RL.fav('${tid}')">${sv?'Salvo':'Salvar'}</button></div><div class="rel-tbl-scroll"><table class="rel-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div></div>`;
+    // Barra de visualização (vazia na primeira chamada → disparará _classify)
+    h+=_renderVizBar(tid);
+
+    const activeType=(_S.classify[tid]?.activeType)||'table';
+
+    if(activeType!=='table'){
+      // Preview do elemento sugerido
+      const sg=(_S.classify[tid]?.suggestions||[]).find(s=>s.tipo===activeType);
+      if(sg){
+        h+=`<div class="rel-viz-reason">${_esc(sg.reason||'')}</div>`;
+        h+=`<div class="rel-viz-preview"><div class="rel-viz-preview-lbl">${activeType}</div>${_renderPreview(activeType,sg.config,r.rows,r.columns)}</div>`;
+      }
+    }
+
+    // Tabela sempre ao final (como referência / tab padrão)
+    h+=_renderTableSection(r,tid);
   }
   el.innerHTML=h;
+
+  // Disparar classificação assíncrona na primeira vez que este tab é exibido
+  if(r.status==='ok'&&!_S.classify[tid]) _classify(tid);
 }
 
 // ── Render: prompt editor (no main) ─────────────────────────────────────────
@@ -2214,6 +2349,12 @@ window._RL = {
     _renderTabs(); _renderContent();
   },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
+
+  setVizType: (tid, tipo) => {
+    if(!_S.classify[tid]) return;
+    _S.classify[tid].activeType=tipo;
+    if(_S.activeId===tid) _renderContent();
+  },
 
   copySql: id => {
     const r=_S.reports[id]; if(r?.sql) navigator.clipboard.writeText(r.sql);

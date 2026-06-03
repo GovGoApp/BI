@@ -58,11 +58,12 @@ from nlsql.adapter import run_query
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
 
-NLSQL_DIR    = ROOT / "nlsql"
-HISTORY_FILE = NLSQL_DIR / "history.json"
-CHATS_FILE   = NLSQL_DIR / "chats.json"
-PROMPT_FILE  = NLSQL_DIR / "prompts" / "bi_suprimentos_sql.md"
-PROMPT_BAK   = NLSQL_DIR / "prompts" / "bi_suprimentos_sql.backup.md"
+NLSQL_DIR      = ROOT / "nlsql"
+HISTORY_FILE   = NLSQL_DIR / "history.json"
+CHATS_FILE     = NLSQL_DIR / "chats.json"
+PROMPT_FILE    = NLSQL_DIR / "prompts" / "bi_suprimentos_sql.md"
+PROMPT_BAK     = NLSQL_DIR / "prompts" / "bi_suprimentos_sql.backup.md"
+ELEMENTOS_FILE = ROOT / "docs" / "design" / "ELEMENTOS_BI.md"
 
 # ── App ────────────────────────────────────────────────────────────────────────
 
@@ -451,6 +452,76 @@ def export_report(rid):
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+# ── Endpoint: /classify ───────────────────────────────────────────────────────
+
+_CLASSIFY_BASE = """Você é especialista em visualização de dados para BI de suprimentos.
+Analise o resultado de uma query SQL e sugira os 1-3 melhores tipos de elemento visual.
+
+REGRAS OBRIGATÓRIAS:
+- Use APENAS os nomes de colunas exatos fornecidos no input (nunca invente nomes)
+- Para GE: retorne {x, group, value} — dados de 3 colunas não pivotados
+- Para KPI: config deve ter {chave, fmt} onde fmt é: brl, pct, num, dec ou str
+- Para HL: config deve ter {label, value} — nomes das colunas
+- Para GL: config deve ter {x, y, color} — x=período, y=numérico
+- Para GB: config deve ter {x, y, color}
+- Para MX: config deve ter {row_key, col_key, val_key}
+- Para T/TE: config pode ser {} (colunas auto-detectadas) ou ter {colunas:[{key,label}]}
+- confidence: float 0.0–1.0 (não precisa somar 1.0)
+- reason: 1-2 frases em português, direto ao ponto
+
+Retorne APENAS JSON válido:
+{"suggestions": [{"tipo": "HL", "confidence": 0.92, "reason": "...", "config": {...}}]}
+
+Tipos válidos: KPI, GL, GB, GE, HL, T, TE, MX, FU
+
+GUIA COMPLETO DE ELEMENTOS:
+"""
+
+def _classify_system() -> str:
+    guide = ELEMENTOS_FILE.read_text(encoding="utf-8") if ELEMENTOS_FILE.exists() else ""
+    return _CLASSIFY_BASE + guide
+
+
+@app.route("/classify", methods=["POST"])
+def classify_element():
+    body      = request.get_json(force=True) or {}
+    question  = str(body.get("question", ""))[:300]
+    sql       = str(body.get("sql", ""))[:600]
+    columns   = body.get("columns", [])        # lista de strings com nomes
+    rows      = body.get("rows", [])[:5]        # amostra de até 5 linhas
+    row_count = int(body.get("rowCount", 0))
+
+    user_msg = (
+        f"Pergunta: {question}\n"
+        f"SQL: {sql}\n"
+        f"Colunas: {json.dumps(columns, ensure_ascii=False)}\n"
+        f"Total de linhas: {row_count}\n"
+        f"Amostra (até 5 linhas):\n{json.dumps(rows, ensure_ascii=False)[:1200]}\n\n"
+        "Qual(is) tipo(s) de elemento visual melhor representam este resultado?"
+    )
+
+    try:
+        client = _openai_client()
+        resp = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": _classify_system()},
+                {"role": "user",   "content": user_msg},
+            ],
+            temperature=0,
+            max_tokens=700,
+            response_format={"type": "json_object"},
+        )
+        data = json.loads(resp.choices[0].message.content or "{}")
+        suggestions = data.get("suggestions", [])
+        # valida tipos
+        VALID = {"KPI","GL","GB","GE","HL","T","TE","MX","FU"}
+        suggestions = [s for s in suggestions if s.get("tipo") in VALID][:3]
+        return jsonify({"ok": True, "suggestions": suggestions})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
 
 # ── Health ─────────────────────────────────────────────────────────────────────
 
