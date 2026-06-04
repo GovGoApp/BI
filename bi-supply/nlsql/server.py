@@ -66,6 +66,7 @@ ACTIVE_VER_FILE = NLSQL_DIR / "active_version.txt"
 PROMPT_VERSIONS = {
     "v1": PROMPT_DIR / "bi_suprimentos_sql_v1.md",
     "v2": PROMPT_DIR / "bi_suprimentos_sql_v2.md",
+    "v3": PROMPT_DIR / "bi_suprimentos_sql_v3.md",
 }
 
 def _active_version() -> str:
