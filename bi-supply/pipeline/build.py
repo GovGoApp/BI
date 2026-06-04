@@ -2813,6 +2813,25 @@ function _rerender(pg){
   },80);
 }
 
+function _repositionKpis(pg){
+  const tabData=ABAS_INDEX?.[pg]; if(!tabData) return;
+  const kpis=(tabData.elementos||[]).filter(e=>(e.tipo||'').toUpperCase()==='KPI'&&_isInGrid(e,pg));
+  const N=kpis.length; if(!N) return;
+  let r=1;
+  for(let i=0;i<N;i+=8){
+    const rk=kpis.slice(i,i+8), K=rk.length;
+    const bw=Math.floor(16/K), ex=16-bw*K;
+    let c=1;
+    rk.forEach((kpi,j)=>{
+      const cs=j<ex?bw+1:bw;
+      kpi.layout={...(kpi.layout||{}),col:c,col_span:cs,row:r,row_span:2,visivel:true};
+      (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,kpi.id,{col:c,col_span:cs,row:r,row_span:2,visivel:true});
+      c+=cs;
+    });
+    r+=2;
+  }
+}
+
 function _insertElem(id,pg){
   if(typeof ABAS_INDEX==='undefined')return;
   const tabData=ABAS_INDEX[pg];if(!tabData)return;
@@ -2834,17 +2853,17 @@ function _insertElem(id,pg){
   }
   let col,row,col_span,row_span;
   const tipoUpper=(elem.tipo||'').toUpperCase();
-  console.log('[insertElem]',{id,tipo:elem.tipo,tipoUpper,pg});
   if(tipoUpper==='KPI'){
-    const kpiCount=(tabData.elementos||[]).filter(e=>(e.tipo||'').toUpperCase()==='KPI'&&_isInGrid(e,pg)).length;
-    col=(kpiCount%8)*2+1; row=Math.floor(kpiCount/8)*2+1; col_span=2; row_span=2;
-    console.log('[insertElem KPI]',{kpiCount,col,row});
+    // Marca como no grid (posicao provisoria) para ser incluido na contagem
+    elem.layout={...(elem.layout||{}),col:1,row:1,col_span:2,row_span:2,visivel:true};
+    (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{col:1,row:1,col_span:2,row_span:2,visivel:true});
+    // Reposiciona TODOS os KPIs do grid
+    _repositionKpis(pg);
   } else {
-    col=1; col_span=10; row=_lastRow(pg); row_span=6;
-    console.log('[insertElem non-KPI]',{col,row});
+    const col=1,col_span=10,row=_lastRow(pg),row_span=6;
+    elem.layout={...(elem.layout||{}),col,col_span,row,row_span,visivel:true};
+    (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{col,col_span,row,row_span,visivel:true});
   }
-  elem.layout={...(elem.layout||{}),col,col_span,row,row_span,visivel:true};
-  (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{col,col_span,row,row_span,visivel:true});
   _rerender(pg);
 }
 
@@ -2853,6 +2872,8 @@ function _removeElem(id,pg){
   const elem=tabData.elementos?.find(e=>e.id===id);if(!elem)return;
   elem.layout={...(elem.layout||{}),row:99,visivel:false};
   (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{row:99,visivel:false});
+  // Se era um KPI, reposicionar os restantes
+  if((elem.tipo||'').toUpperCase()==='KPI') _repositionKpis(pg);
   _rerender(pg);
 }
 
