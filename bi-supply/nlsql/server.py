@@ -61,8 +61,8 @@ from nlsql.adapter import run_query
 NLSQL_DIR      = ROOT / "nlsql"
 HISTORY_FILE   = NLSQL_DIR / "history.json"
 CHATS_FILE     = NLSQL_DIR / "chats.json"
-PROMPT_FILE    = NLSQL_DIR / "prompts" / "bi_suprimentos_sql.md"
-PROMPT_BAK     = NLSQL_DIR / "prompts" / "bi_suprimentos_sql.backup.md"
+PROMPT_FILE    = NLSQL_DIR / "prompts" / "bi_suprimentos_sql_v2.md"
+PROMPT_BAK     = NLSQL_DIR / "prompts" / "bi_suprimentos_sql_v2.backup.md"
 ELEMENTOS_FILE = ROOT / "docs" / "design" / "ELEMENTOS_BI.md"
 ELEMENTS_FILE  = NLSQL_DIR / "elements.json"
 
