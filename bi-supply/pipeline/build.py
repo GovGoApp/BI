@@ -2430,7 +2430,8 @@ function _renderAssistant(){
     const usarBtn=!isActive
       ?`<button class="rel-act-btn" title="Usar para gerar SQL" onclick="event.stopPropagation();window._RL.activateVersion('${v.version}')" style="font-size:10.5px;padding:2px 8px;white-space:nowrap">Usar</button>`
       :'';
-    return `<div class="rel-hist-item${isOpen?' active':''}" style="margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px" onclick="window._RL.openPromptVersion('${v.version}')">
+    const cardStyle=isActive?'background:#eff6ff;border-color:#bfdbfe;':'';
+    return `<div class="rel-hist-item${isOpen||isActive?' active':''}" style="margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px;${cardStyle}" onclick="window._RL.openPromptVersion('${v.version}')">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
           <span class="rel-hi-title" style="font-size:12.5px">${v.version.toUpperCase()}</span>
