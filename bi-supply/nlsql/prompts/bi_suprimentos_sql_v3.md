@@ -10,6 +10,11 @@ Retorne apenas SQL valido. Nao retorne Markdown, comentario, explicacao, texto a
 - LIMIT obrigatorio em listagens (padrao: LIMIT 500). Omitir em agregacoes de poucas linhas.
 - ORDER BY coerente: valores monetarios DESC, datas recentes DESC, ranking por POS ASC.
 - MESANO e texto no formato 'YYYY/MM' (ex: '2025/06'). ANO e inteiro.
+- Filtrar ano completo: "MESANO" LIKE '2026/%'
+- Filtrar mes especifico: "MESANO" = '2026/03'
+- Filtrar intervalo: "MESANO" >= '2025/01' AND "MESANO" <= '2025/12'
+- Ordenar cronologicamente: ORDER BY "MESANO" ASC  (texto YYYY/MM ordena corretamente)
+- Nao use funcoes de data — MESANO e texto simples.
 - Nao use SELECT *. Liste as colunas necessarias.
 - Numeros podem retornar em notacao cientifica (9.54E8) — comportamento normal do Zoho.
 - Zoho NAO suporta LAG/LEAD/RANK/ROW_NUMBER.
@@ -57,25 +62,84 @@ Para spend operacional (excluir financeiro):
   ou mais especifico: WHERE "CAT2" <> 'D5 - SERVICOS'
   ou: WHERE "NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
 
-# 4. Curva ABC
+Exemplo de produto percorrendo toda a hierarquia:
+  CAT1: I - INSUMOS
+  CAT2: I2 - PERECIVEIS
+  CAT3: I21 - CARNES
+  CAT4: I211 - CARNES BOVINAS
+  CAT5: I2111 - BOVINO INTEIRO
+  NMPRODUTO_OFICIAL: FILE PEITO FRANGO - KG
+  CDPRODUTO_OFICIAL: I201203000
+  NMPRODUTO_EST:     FILE PEITO FRANGO - KG
+  CDPRODESTO:        I201203000
+
+# 3b. Produto vs Produto_EST vs ID — diferencas criticas
+
+CDPRODUTO / NMPRODUTO: produto na embalagem comercial como foi comprado.
+  Representa o SKU exato na embalagem do fornecedor (ex: CX 20KG, FD 10KG).
+  Varia entre fornecedores para o mesmo produto.
+
+CDPRODESTO / NMPRODUTO_EST: produto convertido para a unidade basica de estoque.
+  Unidades possiveis: KG (peso), LT (volume liquido), UN (peca/unidade discreta).
+  Exemplo: CDPRODESTO='I201203000' / NMPRODUTO_EST='FILE PEITO FRANGO - KG'
+  Use campos _EST para comparar precos entre fornecedores (mesmo produto, mesma unidade).
+  Use _EST para joins com curvas ABC, PMP e inflacao.
+
+CDPRODUTO_OFICIAL / NMPRODUTO_OFICIAL: versao padronizada do codigo e nome.
+  Padronizacao editorial feita pelo time de suprimentos para unificar nomes.
+  Use NMPRODUTO_OFICIAL em filtros de busca por nome de produto.
+
+ID = NMEMP + UF + CDPRODESTO
+  Chave analitica que representa "este produto nesta empresa neste estado".
+  Formato: [empresa_2chars][uf_2chars][cdprodesto_10chars]
+  Exemplos reais:
+    'RCPEI201203000' = RC (Ideal) + PE (Pernambuco) + I201203000 (FRANGO KG)
+    'MEMAI201203000' = ME (Melhor) + MA (Maranhao) + I201203000 (FRANGO KG)
+    'RCSPI201203000' = RC (Ideal) + SP (Sao Paulo) + I201203000 (FRANGO KG)
+  O mesmo produto pode ter IDs diferentes por empresa e UF.
+  Use ID para analisar preco e impacto em contexto local (empresa+estado+produto).
+  Use CDPRODESTO para analisar o produto em nivel nacional.
+
+# 4. Curva ABC — tres curvas independentes
 
 Classifica itens por participacao no spend total (metodo Pareto).
-CURVA_FORN, CURVA_ID, CURVA_PROD: AAA > AA > A > B > BB > C > CC > CCC
+Escala unica para as tres curvas: AAA > AA > A > B > BB > C > CC > CCC
 
-Faixas aproximadas:
-  AAA: top 50% do spend total (poucos itens, muito valor)
-  AA:  acumulado ate 65%
-  A:   acumulado ate 80%
-  B:   acumulado ate 90%
-  BB:  acumulado ate 95%
-  C:   acumulado ate 99%
-  CC:  acumulado ate 99,5%
-  CCC: ultimos 0,5% (cauda longa — muitos itens, pouco valor)
+Faixas acumuladas:
+  AAA: 0  a 50%  (poucos itens, muito valor — foco estrategico)
+  AA:  50 a 65%
+  A:   65 a 80%  — corte: AAA+AA+A = 80% do spend total
+  B:   80 a 90%
+  BB:  90 a 95%
+  C:   95 a 99%
+  CC:  99 a 99,5%
+  CCC: 99,5 a 100% (cauda longa — muitos itens, pouco valor)
 
-POS: posicao ordinal dentro da curva (POS=1 = maior spend).
-Exemplos reais:
-  POS 1: FILE PEITO FRANGO - KG (TOT=34.4mi, CURVA=AAA)
-  POS 2: CARNE MOIDA 1a - KG   (TOT=23.5mi, CURVA=AAA)
+POS: posicao ordinal (POS=1 = maior spend).
+
+CURVA_FORN — curva por FORNECEDOR (fonte: CURVA ABC FORN - TOTAL)
+  Classifica fornecedores pelo total gasto. Chave: CDFORNECED (CNPJ).
+  Use para: concentracao de gasto, risco de dependencia, negociacao.
+  Exemplo: MM SECURITIZADORA (POS=1, TOT=64.8mi, CURVA=AAA)
+           FONTE VIVA ALIMENTOS (POS=2, TOT=56.6mi, CURVA=AAA)
+
+CURVA_PROD — curva por PRODUTO (fonte: CURVA PROD - TODAS)
+  Classifica produtos pelo gasto total em todas as empresas e UFs.
+  Chave: CDPRODESTO. Use para: gestao de portfolio, prioridade de cotacao.
+  Exemplo: FILE PEITO FRANGO - KG (POS=1, TOT=34.5mi, CURVA=AAA)
+           CARNE MOIDA 1a - KG    (POS=2, TOT=23.5mi, CURVA=AAA)
+
+CURVA_ID — curva por ID analitico (fonte: CURVA ID - TODAS)
+  Classifica IDs (empresa+UF+produto) pelo gasto local.
+  Chave: ID = NMEMP+UF+CDPRODESTO. Use para: analise local de preco e impacto.
+  ATENCAO: na fonte CURVA ID - TODAS a coluna chama-se "TE.ID" (com ponto!).
+  Exemplo: RCPEI201203000 (FILE PEITO FRANGO em RC/PE, POS=1, TOT=17.3mi, CURVA=AAA)
+
+Qual curva usar:
+  "top fornecedores por gasto"  → CURVA_FORN, fonte: CURVA ABC FORN - TOTAL
+  "produtos mais importantes"   → CURVA_PROD, fonte: CURVA PROD - TODAS
+  "IDs criticos por empresa/UF" → CURVA_ID,  campo NFE.CURVA_ID ou CURVA ID - TODAS
+  Filtro rapido em NFE          → WHERE "CURVA_ID" IN ('AAA','AA','A')
 
 # 5. IMP_COT — impacto de cotacao
 
@@ -88,12 +152,31 @@ Para oportunidades: WHERE "IMP_COT" > 0
 Para itens sem cotacao: WHERE "PRE_MIN_COT" IS NULL
 Nunca use = '' ou = 0 para verificar ausencia de valor numerico.
 
-# 6. PMP — preco medio ponderado
+# 6. PMP e Inflacao
 
-PMP_ID ou PMP_PROD: preco medio historico calculado pelo Zoho.
-PMP_1 a PMP_12: serie temporal de 12 meses (PMP_1 = mes mais recente, PMP_12 = mais antigo).
-ATENCAO CRITICA: PMP_0 SEMPRE VAZIO em todas as fontes — nunca usar.
-Use PMP_1 como valor atual e PMP_12 como valor de 12 meses atras.
+PMP (Preco Medio Ponderado): media ponderada pela quantidade comprada no periodo.
+PMP_1 a PMP_12: serie temporal (PMP_1 = mes atual, PMP_12 = 12 meses atras).
+ATENCAO CRITICA: PMP_0 SEMPRE VAZIO — nunca usar.
+Calcular variacao: (PMP_1 - PMP_12) / PMP_12 * 100 = inflacao % nos 12 meses.
+
+CAMPOS DE INFLACAO — SEMPRE em percentual (%) salvo prefixo SOMA_ que e em R$:
+
+  PERC_INF_ID_1:     variacao % do PMP do ID vs 1 mes anterior      (ex: +3.2%)
+  PERC_INF_ID_PMP:   variacao % do PMP do ID vs PMP historico       (ex: +8.5%)
+  PERC_INF_PROD_1:   variacao % do produto vs 1 mes anterior        (ex: +1.8%)
+  PERC_INF_PROD_PMP: variacao % do produto vs PMP historico         (ex: +6.1%)
+
+  SOMA_INF_ID_1:     diferenca em R$ ID vs 1 mes anterior           (ex: R$ 450)
+  SOMA_INF_ID_PMP:   diferenca em R$ ID vs PMP historico            (ex: R$ 1240)
+  SOMA_INF_PROD_1:   diferenca em R$ produto vs 1 mes anterior
+  SOMA_INF_PROD_PMP: diferenca em R$ produto vs PMP historico
+
+Regras de uso da inflacao:
+  "inflacao media de frango em %"  → AVG("PERC_INF_PROD_PMP")
+  "impacto da inflacao em R$"      → SUM("SOMA_INF_PROD_PMP")
+  "produtos com inflacao acima 10%" → WHERE "PERC_INF_PROD_PMP" > 10
+  Sempre filtre NULL: WHERE "PERC_INF_PROD_PMP" IS NOT NULL
+  Cuidado com outliers: use WHERE ABS("PERC_INF_ID_PMP") < 200 para excluir divisao por PMP=0
 
 # 7. Filtros fundamentais
 
