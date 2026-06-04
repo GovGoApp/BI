@@ -1074,3 +1074,55 @@ _renderContent() re-chamado → viz bar atualizada: [Tabela] [HL 92%] [T 71%] [G
   ↓
 Usuário clica [HL 92%] → setVizType() → preview renderizado acima da tabela
 ```
+
+
+---
+
+## [2026-06-03] Sessao completa — UX Relatorio, Biblioteca, Prompt v3, Resumo
+
+### Correcoes UX da Aba Relatorio
+- Cards do chat: substituido event delegation por inline onclick (mesmo padrao dos cards de historico)
+- Normalizacao de campos servidor->cliente ao carregar chat do historico (role, st, rid, refTitle)
+- Botao copiar SQL: substituido texto 'Copiar' por icone SVG; SQL removido do onclick (prevenia HTML quebrado)
+- Barra de visualizacao: spinner visivel desde primeiro render; icones SVG + nomes em portugues
+- Visualizacao exclusiva: apertar tipo substitui a tabela (nao acumula)
+- KPI: regra de insercao sequencial no topo (8 por linha, 2x2, ultimo fecha ate col 16)
+- _isInGrid: usa _BI_EDITOR.getOv() para estado real (nao ABAS_INDEX original)
+- _rerender: reatribui draggable=true apos render() do v4
+
+### Biblioteca de Elementos (Fase 3)
+- Drawer lateral esquerdo com puller "Biblioteca"
+- Mostra TODOS os elementos da aba: default (chip cinza 'BI') + NL-SQL (chip azul 'Relatorio')
+- Duas secoes: "No grid" com botao Retirar + "Disponiveis" com botao Inserir
+- Botao X no editor substitui toggle ocultar/mostrar (chama _NL.removeElem)
+- Insercao usa render(pg) do v4 em vez de pages[pg]() que so retorna string
+
+### Assistente — seletor de versoes
+- GET /prompt/versions: lista v1, v2, v3 com metadata
+- POST /prompt/activate: define versao ativa para SQL (persiste em active_version.txt)
+- Cards no sidebar com badge "Em uso", borda azul no card ativo
+- Tabs __prompt_v1, __prompt_v2, __prompt_v3 na area de resultado
+- v1 readonly, versao ativa editavel com Salvar/Restaurar
+
+### Estudo dos dados (Fase 1 do plano de melhoria)
+- docs/dados/ANALISE_DADOS_REAIS.md: 18 fontes, tipos de campo, filtros obrigatorios
+- docs/zoho/MAPA_PAINEIS.md: 72 pivots + 31 analysis views + Design System completo
+- Identificados 5 bugs no prompt v1 (STATUSPAG, PMP_0, TE.ID, T.FORNECEDOR, POS errado)
+
+### Prompt NL-SQL v3 (nlsql/prompts/bi_suprimentos_sql_v3.md — 39KB)
+- Tipos de dados de cada campo com exemplos reais dos CSVs
+- 2 linhas de amostra por tabela (dados reais)
+- Exemplos SQL com resultado esperado
+- Produto vs CDPRODUTO_EST: embalagem vs unidade de estoque (KG/LT/UN)
+- ID = NMEMP + UF + CDPRODESTO explicado com exemplos (RCPEI201203000)
+- Tres curvas ABC separadas: CURVA_FORN, CURVA_PROD, CURVA_ID — quando usar cada
+- MESANO: todos os padroes de filtro (LIKE, =, intervalo)
+- Inflacao: PERC_* em % vs SOMA_* em R$; filtro NULL; outliers com ABS < 200
+- Hierarquia correta de categorias (dados reais do processed):
+  I1=ESTOCAVEIS, I2=PERECIVEIS, I3=HORTIFRUTI, I4=DESCARTAVEIS, I5=LIMPEZA, I6=GAS
+- Mapa linguagem natural -> SQL: "carnes" -> CAT2='I2 - PERECIVEIS', etc.
+
+### transform.py aba Resumo
+- Adicionado: ids_unicos (16.343), produtos_unicos (6.302), cp_vencido (R$ 65.9mi)
+- K07: era placeholder 'fornecedores_ativos' -> agora 'ad_pendente' (R$ 44mi)
+- K08 CP: delta era 'cp_titulos' -> agora 'cp_vencido' com delta_dir=down
