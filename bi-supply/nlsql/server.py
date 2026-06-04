@@ -61,8 +61,28 @@ from nlsql.adapter import run_query
 NLSQL_DIR      = ROOT / "nlsql"
 HISTORY_FILE   = NLSQL_DIR / "history.json"
 CHATS_FILE     = NLSQL_DIR / "chats.json"
-PROMPT_FILE    = NLSQL_DIR / "prompts" / "bi_suprimentos_sql_v2.md"
-PROMPT_BAK     = NLSQL_DIR / "prompts" / "bi_suprimentos_sql_v2.backup.md"
+PROMPT_DIR     = NLSQL_DIR / "prompts"
+ACTIVE_VER_FILE = NLSQL_DIR / "active_version.txt"
+PROMPT_VERSIONS = {
+    "v1": PROMPT_DIR / "bi_suprimentos_sql_v1.md",
+    "v2": PROMPT_DIR / "bi_suprimentos_sql_v2.md",
+}
+
+def _active_version() -> str:
+    try: return ACTIVE_VER_FILE.read_text(encoding="utf-8").strip() or "v2"
+    except: return "v2"
+
+def _prompt_file(version: str | None = None) -> "Path":
+    v = version or _active_version()
+    return PROMPT_VERSIONS.get(v, PROMPT_VERSIONS["v2"])
+
+def _prompt_bak(version: str | None = None) -> "Path":
+    v = version or _active_version()
+    return PROMPT_DIR / f"bi_suprimentos_sql_{v}.backup.md"
+
+# Compatibilidade com código antigo
+PROMPT_FILE = property(_prompt_file)   # não é mais usado diretamente
+PROMPT_BAK  = property(_prompt_bak)
 ELEMENTOS_FILE = ROOT / "docs" / "design" / "ELEMENTOS_BI.md"
 ELEMENTS_FILE  = NLSQL_DIR / "elements.json"
 
@@ -143,7 +163,8 @@ def _build_msg_context(chat: dict, max_msgs: int = 12) -> list[dict]:
 # ── Geração de SQL ─────────────────────────────────────────────────────────────
 
 def _generate_sql(question: str, chat: dict | None = None) -> str:
-    prompt = _load_prompt()
+    pf = _prompt_file()
+    prompt = pf.read_text(encoding="utf-8") if pf.exists() else _load_prompt()
     context_msgs = _build_msg_context(chat) if chat else []
 
     # Monta input: pergunta + contexto
@@ -397,38 +418,67 @@ def delete_chat(cid):
             return jsonify({"ok": True})
     return jsonify({"ok": False, "error": "Não encontrado."}), 404
 
-# ── Endpoint: /prompt ─────────────────────────────────────────────────────────
+# ── Endpoints: /prompt ────────────────────────────────────────────────────────
+
+@app.route("/prompt/versions", methods=["GET"])
+def get_prompt_versions():
+    active = _active_version()
+    versions = []
+    for v, path in PROMPT_VERSIONS.items():
+        if not path.exists():
+            continue
+        mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
+        size  = path.stat().st_size
+        versions.append({"version": v, "filename": path.name, "updatedAt": mtime,
+                          "sizeBytes": size, "active": v == active})
+    return jsonify({"ok": True, "versions": versions, "active": active})
+
+@app.route("/prompt/activate", methods=["POST"])
+def activate_prompt():
+    body = request.get_json(force=True) or {}
+    v    = str(body.get("version", "")).strip()
+    if v not in PROMPT_VERSIONS:
+        return jsonify({"ok": False, "error": f"Versão desconhecida: {v}"}), 400
+    ACTIVE_VER_FILE.write_text(v, encoding="utf-8")
+    return jsonify({"ok": True, "active": v})
 
 @app.route("/prompt", methods=["GET"])
 def get_prompt():
-    if not PROMPT_FILE.exists():
+    version = request.args.get("version")       # ?version=v1 para ver versão específica
+    pf  = _prompt_file(version)
+    bak = _prompt_bak(version)
+    if not pf.exists():
         return jsonify({"ok": False, "error": "Prompt não encontrado."}), 404
-    content = PROMPT_FILE.read_text(encoding="utf-8")
-    mtime   = datetime.fromtimestamp(PROMPT_FILE.stat().st_mtime, tz=timezone.utc).isoformat()
+    content = pf.read_text(encoding="utf-8")
+    mtime   = datetime.fromtimestamp(pf.stat().st_mtime, tz=timezone.utc).isoformat()
     return jsonify({"ok": True, "content": content, "updatedAt": mtime,
-                    "hasBackup": PROMPT_BAK.exists()})
+                    "version": version or _active_version(),
+                    "hasBackup": bak.exists()})
 
 @app.route("/prompt", methods=["POST"])
 def save_prompt():
     body    = request.get_json(force=True) or {}
     content = body.get("content", "")
+    version = str(body.get("version", "")).strip() or _active_version()
     if not content.strip():
         return jsonify({"ok": False, "error": "Conteúdo vazio."}), 400
-
-    # Backup antes de salvar
-    if PROMPT_FILE.exists():
-        PROMPT_BAK.write_text(PROMPT_FILE.read_text(encoding="utf-8"), encoding="utf-8")
-
-    PROMPT_FILE.write_text(content, encoding="utf-8")
-    return jsonify({"ok": True, "backup": PROMPT_BAK.name,
-                    "updatedAt": _now()})
+    pf  = _prompt_file(version)
+    bak = _prompt_bak(version)
+    if pf.exists():
+        bak.write_text(pf.read_text(encoding="utf-8"), encoding="utf-8")
+    pf.write_text(content, encoding="utf-8")
+    return jsonify({"ok": True, "backup": bak.name, "updatedAt": _now(), "version": version})
 
 @app.route("/prompt/reset", methods=["POST"])
 def reset_prompt():
-    if not PROMPT_BAK.exists():
+    body    = request.get_json(force=True) or {}
+    version = str(body.get("version", "")).strip() or _active_version()
+    pf  = _prompt_file(version)
+    bak = _prompt_bak(version)
+    if not bak.exists():
         return jsonify({"ok": False, "error": "Sem backup disponível."}), 404
-    PROMPT_FILE.write_text(PROMPT_BAK.read_text(encoding="utf-8"), encoding="utf-8")
-    return jsonify({"ok": True})
+    pf.write_text(bak.read_text(encoding="utf-8"), encoding="utf-8")
+    return jsonify({"ok": True, "version": version})
 
 # ── Endpoint: /export/<id> ────────────────────────────────────────────────────
 

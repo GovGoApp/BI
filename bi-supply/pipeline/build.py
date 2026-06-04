@@ -1965,6 +1965,10 @@ const _S = {
   promptContent: '',
   promptUpdatedAt: '',
   promptDirty: false,
+  promptVersions: [],        // [{version,filename,updatedAt,active}]
+  promptActiveVersion: 'v2', // versão usada na geração de SQL
+  promptContents: {},        // {v1:'...', v2:'...'} cache de conteúdo carregado
+  promptDirtyMap: {},        // {v2: true} — versão com mudança não salva
   classify: {},   // tabId → {loading, suggestions, activeType}
   modal: null,    // {tid, tipo, config, title, destTab, columns, rows} ou null
   elements: [],   // lista de elementos salvos (GET /elements)
@@ -2107,7 +2111,6 @@ function _renderMsgs(){
 // ── Render: barra de abas ───────────────────────────────────────────────────
 function _renderTabs(){
   const el=$('rel-tabs-bar'); if(!el) return;
-  if(_S.sideMode==='assistant'){ el.innerHTML=''; el.style.display='none'; return; }
   el.style.display='';
   const ts=_S.tabs.map(t=>{
     const act=t.id===_S.activeId;
@@ -2335,7 +2338,12 @@ function _renderTableSection(r, tid){
 // ── Render: conteúdo direita ────────────────────────────────────────────────
 function _renderContent(){
   const el=$('rel-content'); if(!el) return;
-  if(_S.sideMode==='assistant'){ el.classList.add('rel-asst-mode'); _renderPrompt(el); return; }
+  // Tabs de versão do assistente: __prompt_v1, __prompt_v2
+  if(_S.activeId && _S.activeId.startsWith('__prompt_')){
+    el.classList.add('rel-asst-mode');
+    _renderPromptVersion(el, _S.activeId.replace('__prompt_',''));
+    return;
+  }
   el.classList.remove('rel-asst-mode');
   if(!_S.activeId||!_S.reports[_S.activeId]){
     el.innerHTML='<div class="rel-intro"><strong>BI de Suprimentos · Relatório</strong><br><br>Use o chat à esquerda para fazer perguntas em português.<br>O SQL gerado e os resultados aparecem aqui, em abas.<br><br><em>Exemplos:</em><br>· "Top 10 fornecedores por gasto em SP"<br>· "Quantos IDs únicos comprados em 2025?"<br>· "Impacto de cotação por categoria no último trimestre"</div>';
@@ -2373,34 +2381,71 @@ function _renderContent(){
   if(r.status==='ok'&&!_S.classify[tid]) _classify(tid);
 }
 
-// ── Render: prompt editor (no main) ─────────────────────────────────────────
-function _renderPrompt(c){
-  c.innerHTML=`<div class="rel-prompt-section"><textarea class="rel-prompt-ta" id="rl-pta" spellcheck="false">${_esc(_S.promptContent)}</textarea></div>`;
-  const ta=$('rl-pta');
-  if(ta) ta.addEventListener('input',()=>{
-    _S.promptDirty=true;
-    _renderAssistant(); // atualiza botões na sidebar
-  });
+// ── Render: prompt de versão específica (no main) ───────────────────────────
+async function _renderPromptVersion(c, version){
+  // Carrega conteúdo se ainda não está em cache
+  if(!_S.promptContents[version]){
+    const r=await _api('GET',`/prompt?version=${version}`);
+    if(r.ok){ _S.promptContents[version]=r.content; if(r.updatedAt) _S.promptUpdatedAt=r.updatedAt; }
+    else { c.innerHTML=`<div style="padding:20px;color:#dc2626">Erro ao carregar versão ${version}: ${_esc(r.error||'')}</div>`; return; }
+  }
+  const isActive=version===_S.promptActiveVersion;
+  const isDirty=!!_S.promptDirtyMap[version];
+  c.innerHTML=`<div class="rel-prompt-section">
+    <div style="padding:8px 14px 4px;font-size:11px;color:var(--muted);flex-shrink:0;display:flex;align-items:center;gap:8px">
+      <span style="font-weight:700">bi_suprimentos_sql_${version}.md</span>
+      ${isActive?'<span style="background:#eff6ff;color:var(--blue);padding:1px 6px;border-radius:6px;font-size:10px;font-weight:700">Em uso</span>':''}
+      ${isDirty?'<span style="background:#fef9c3;color:#a16207;padding:1px 6px;border-radius:6px;font-size:10px">editado</span>':''}
+      ${!isActive?'<span style="color:var(--muted);font-size:10px">(somente leitura)</span>':''}
+    </div>
+    <textarea class="rel-prompt-ta" id="rl-pta-${version}" spellcheck="false" ${!isActive?'readonly style="background:#f8fafc;color:#64748b"':''}>${_esc(_S.promptContents[version])}</textarea>
+  </div>`;
+  if(isActive){
+    const ta=document.getElementById('rl-pta-'+version);
+    if(ta) ta.addEventListener('input',()=>{
+      _S.promptDirtyMap[version]=true;
+      _S.promptContents[version]=ta.value;
+      _renderAssistant();
+    });
+  }
 }
 
-// ── Render: sidebar assistente ───────────────────────────────────────────────
+// ── Render: sidebar assistente — cards de versão ─────────────────────────────
 function _renderAssistant(){
   const el=$('rel-side-body'); if(!el) return;
-  const mt=_S.promptUpdatedAt?'Atualizado: '+_ts(_S.promptUpdatedAt):'Arquivo: bi_suprimentos_sql.md';
-  const d=_S.promptDirty;
-  el.innerHTML=`<div class="rel-asst-info-box">${mt}</div><div class="rel-asst-sub"><button class="rel-asst-sub-btn${d?' dirty':''}" id="rl-psave" ${d?'':'disabled'}>Salvar</button><button class="rel-asst-sub-btn" id="rl-prst" ${d?'':'disabled'}>Restaurar</button></div>`;
-  $('rl-psave').onclick=async()=>{
-    const ta=$('rl-pta'); if(!ta) return;
-    const v=ta.value; const r=await _api('POST','/prompt',{content:v});
-    if(r.ok){ _S.promptContent=v; _S.promptDirty=false; _S.promptUpdatedAt=new Date().toISOString(); _renderAssistant(); }
-    else alert('Erro ao salvar: '+(r.error||''));
-  };
-  $('rl-prst').onclick=async()=>{
-    if(!confirm('Restaurar backup original?')) return;
-    const r=await _api('POST','/prompt/reset');
-    if(r.ok){ const g=await _api('GET','/prompt'); if(g.ok){_S.promptContent=g.content;_S.promptUpdatedAt=g.updatedAt;} _S.promptDirty=false; _renderAssistant(); _renderContent(); }
-    else alert('Sem backup.');
-  };
+  const vers=_S.promptVersions;
+  if(!vers.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Carregando versões…</div>';
+    return;
+  }
+  const cards=vers.map(v=>{
+    const isActive=v.active;
+    const isDirty=!!_S.promptDirtyMap[v.version];
+    const isOpen=_S.activeId===`__prompt_${v.version}`;
+    const activeBadge=isActive?'<span style="background:#eff6ff;color:var(--blue);padding:1px 6px;border-radius:6px;font-size:9.5px;font-weight:700;flex-shrink:0">Em uso</span>':'';
+    const dirtyBadge=isDirty?'<span style="background:#fef9c3;color:#a16207;padding:1px 5px;border-radius:5px;font-size:9.5px">editado</span>':'';
+    const btns=isActive && isDirty
+      ? `<div class="rel-asst-sub" style="padding:6px 0 0"><button class="rel-asst-sub-btn dirty" onclick="window._RL.savePromptVersion('${v.version}')">Salvar</button><button class="rel-asst-sub-btn" onclick="window._RL.resetPromptVersion('${v.version}')">Restaurar</button></div>`
+      : '';
+    return `<div class="rel-hist-item${isOpen?' active':''}" style="margin-bottom:6px;cursor:pointer" onclick="window._RL.openPromptVersion('${v.version}')">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span class="rel-hi-title" style="font-size:12.5px">${v.version.toUpperCase()}</span>
+          ${activeBadge}${dirtyBadge}
+        </div>
+        <div class="rel-hi-sub">${v.filename}</div>
+        <div class="rel-hi-sub">${_ts(v.updatedAt)} · ${Math.round(v.sizeBytes/1024)} KB</div>
+      </div>
+      <div style="flex-shrink:0;align-self:flex-start;padding-top:2px">
+        ${!isActive?`<button class="rel-act-btn" title="Usar para gerar SQL" onclick="event.stopPropagation();window._RL.activateVersion('${v.version}')" style="font-size:10.5px;padding:2px 8px">Usar</button>`:''}
+      </div>
+      ${btns}
+    </div>`;
+  }).join('');
+  el.innerHTML=`<div style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+    <div style="padding:8px 10px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line);flex-shrink:0">Versões do Assistente</div>
+    <div class="rel-hist-list">${cards}</div>
+  </div>`;
 }
 
 // ── Render: sidebar histórico ───────────────────────────────────────────────
@@ -2695,13 +2740,65 @@ window._RL = {
     }
   },
   showPrompt: async () => {
-    if(!_S.promptContent){
-      const r=await _api('GET','/prompt');
-      if(r.ok){_S.promptContent=r.content;_S.promptUpdatedAt=r.updatedAt;}
-      else _S.promptContent='# Servidor NL-SQL não está respondendo.\n# Inicie com: python nlsql/server.py\n\n# Quando o servidor estiver rodando, o prompt aparecerá aqui.';
+    _S.sideMode='assistant';
+    // Carrega lista de versões
+    const vr=await _api('GET','/prompt/versions');
+    if(vr.ok){
+      _S.promptVersions=vr.versions||[];
+      _S.promptActiveVersion=vr.active||'v2';
+    } else {
+      _S.promptVersions=[{version:'v2',filename:'bi_suprimentos_sql_v2.md',updatedAt:'',sizeBytes:0,active:true}];
     }
-    _S.sideMode='assistant'; _S.promptDirty=false;
-    _renderSide(); _renderTabs(); _renderContent();
+    _renderSide(); _renderTabs();
+    // Abre a versão ativa no main
+    await window._RL.openPromptVersion(_S.promptActiveVersion);
+  },
+
+  openPromptVersion: async (version) => {
+    const tabId=`__prompt_${version}`;
+    const label=`Assistente ${version.toUpperCase()}`;
+    if(!_S.tabs.find(t=>t.id===tabId)){
+      _S.tabs.push({id:tabId,title:label,st:'ok',count:0,closable:true});
+    }
+    _S.activeId=tabId;
+    _renderTabs(); _renderContent();
+  },
+
+  activateVersion: async (version) => {
+    const r=await _api('POST','/prompt/activate',{version});
+    if(r.ok){
+      _S.promptActiveVersion=version;
+      // Atualiza badge na lista de versões
+      _S.promptVersions.forEach(v=>{ v.active=v.version===version; });
+      _renderAssistant();
+      _showToast(`Assistente ${version.toUpperCase()} ativo para geração de SQL.`);
+    } else _showToast(`Erro: ${r.error||'falha ao ativar'}`);
+  },
+
+  savePromptVersion: async (version) => {
+    const ta=document.getElementById(`rl-pta-${version}`); if(!ta) return;
+    const content=ta.value;
+    const r=await _api('POST','/prompt',{content,version});
+    if(r.ok){
+      _S.promptContents[version]=content;
+      _S.promptDirtyMap[version]=false;
+      if(r.updatedAt) _S.promptUpdatedAt=r.updatedAt;
+      // Atualiza updatedAt na lista
+      const vi=_S.promptVersions.find(v=>v.version===version);
+      if(vi) vi.updatedAt=r.updatedAt;
+      _renderAssistant();
+      _showToast(`Versão ${version.toUpperCase()} salva.`);
+    } else _showToast(`Erro ao salvar: ${r.error||''}`);
+  },
+
+  resetPromptVersion: async (version) => {
+    if(!confirm(`Restaurar backup da versão ${version.toUpperCase()}?`)) return;
+    const r=await _api('POST','/prompt/reset',{version});
+    if(r.ok){
+      delete _S.promptContents[version]; // força reload
+      _S.promptDirtyMap[version]=false;
+      _renderAssistant(); _renderContent();
+    } else _showToast(`Sem backup para ${version.toUpperCase()}.`);
   },
 };
 
