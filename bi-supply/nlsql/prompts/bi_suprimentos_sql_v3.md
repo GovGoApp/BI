@@ -35,45 +35,93 @@ Para excluir lancamentos da matriz: WHERE "FI.NEGOCIO" <> '_MATRIZ'
 Para filiais ativas: WHERE "ATIVA" = 'Yes'
 
 # 3. Hierarquia de categorias
+# 3. Hierarquia de categorias
 
-CAT1 a CAT5: hierarquia de I (Insumos) > D (Despesas) > A (Ativos).
-O codigo da categoria tem separador " - " entre codigo e descricao.
+CAT1 a CAT5: hierarquia de 5 niveis. Cada codigo tem formato "CODIGO - DESCRICAO".
+Existem 5 CAT1 no sistema: I, D, A, F, V.
 
-Exemplos reais de CAT1:
-  I - INSUMOS           (alimentos, materiais para producao)
-  D - DESPESAS          (servicos, utilidades, financeiros)
-  A - ATIVOS            (equipamentos, utensilios)
+## CAT1 (5 valores)
 
-Exemplos reais de CAT2 (nivel dentro de CAT1):
-  I2 - PERECIVEIS       (carnes, laticinios, frios, frios, hortifruti)
-  I1 - SECOS            (graos, farinhas, oleos, conservas)
-  I3 - MATERIAIS        (embalagens, descartaveis, utensilios)
-  D5 - SERVICOS         (ATENCAO: inclui lancamentos financeiros como MUTUO)
-  D3 - UTILIDADES       (gas, agua, energia)
-  A1 - ATIVOS DIRETOS   (equipamentos de cozinha)
+  I - INSUMOS       produtos consumidos na operacao (alimentos, limpeza, gas, descartaveis)
+  D - DESPESAS      servicos, manutencao, escritorio, EPIs, construcao
+  A - ATIVOS        equipamentos, moveis, utensilios permanentes
+  F - FATURAMENTO   receitas/itens de venda (raramente relevante em compras)
+  V - VENDA BALCAO  itens de venda ao balcao
 
-Exemplos reais de CAT3, CAT4, CAT5:
-  CAT3: I2 - PERECIVEIS > I21 - CARNES > I211 - CARNES BOVINAS
-  CAT4: I211 - CARNES BOVINAS > I2111 - BOVINO INTEIRO
-  CAT5: I2111 > I21111 - ALCATRA
+## CAT2 sob I - INSUMOS (7 valores — os mais importantes)
 
-Para spend operacional (excluir financeiro):
-  WHERE "CAT1" NOT LIKE 'D%'
-  ou mais especifico: WHERE "CAT2" <> 'D5 - SERVICOS'
-  ou: WHERE "NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
+  I0 - NUTRICIONAIS  formulas enterais, suplementos: ALFAMINO - KG, ALFARE - KG
+  I1 - ESTOCAVEIS    secos, graos, farinaceos, oleos, conservas, acucares:
+                     ACAFRAO EM PO - KG, ACHOCOLATADO EM PO - KG, ARROZ - KG
+  I2 - PERECIVEIS    carnes, frios, embutidos, laticinios:
+                     ACEM - KG, FILE PEITO FRANGO - KG, QUEIJO MUSSARELA - KG
+  I3 - HORTIFRUTI    frutas, legumes, verduras in natura e processados:
+                     ABACATE - KG, ABACAXI - KG, CENOURA - KG, TOMATE - KG
+  I4 - DESCARTAVEIS  embalagens, bandeja, plastico, papel, aluminio:
+                     BANDEJA ISOPOR 28X34 - UN, AVENTAL DESC MANGA LONGA - UN
+  I5 - LIMPEZA       produtos de higiene e limpeza:
+                     AGUA SANITARIA - LT, ALCOOL 70% - LT, ALCOOL GEL 70% - LT
+  I6 - GAS           gas GLP, cilindros:
+                     GAS GLP BOTIJAO P13 - BT, CILINDRO GAS P13 - UN
 
-Exemplo de produto percorrendo toda a hierarquia:
+## CAT2 sob D - DESPESAS (8 valores)
+
+  D1 - VESTUARIOS/EPIS  uniformes e EPIs: AVENTAL ANTICHAMAS - UN
+  D2 - ESCRITORIO       material de escritorio: PAPEL A4, CANETAS
+  D3 - MANUTENCAO       ferramentas, materiais: ABRACADEIRA NYLON - UN
+  D4 - CONSTRUCAO       materiais de obras: ARGAMASSA, AREIA GROSSA - M3
+  D5 - SERVICOS         ATENCAO: inclui financeiros (MUTUO, DEVOLUCAO, aluguel, impostos)
+                        Para spend real exclua: "NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
+                        ou: WHERE "CAT2" <> 'D5 - SERVICOS'
+  D6 - COMPRA A VISTA   adiantamentos e compras pontuais
+  D7 - CESTA BASICA     cestas basicas para colaboradores
+  D8 - UTENSILIOS       utensilios de cozinha permanentes
+
+## CAT2 sob A - ATIVOS (2 valores)
+
+  A1 - ATIVOS DIRETOS   equipamentos de cozinha: ABRIDOR GALVANIZADO - UN
+  A2 - ATIVOS INDIRETOS equipamentos administrativos: AR CONDICIONADO, CADEIRA
+
+## Exemplo de produto com hierarquia completa real
+
   CAT1: I - INSUMOS
   CAT2: I2 - PERECIVEIS
-  CAT3: I21 - CARNES
-  CAT4: I211 - CARNES BOVINAS
-  CAT5: I2111 - BOVINO INTEIRO
+  CAT3: I201 - CARNES
+  CAT4: I2012 - AVES
+  CAT5: I20121 - FRANGO
   NMPRODUTO_OFICIAL: FILE PEITO FRANGO - KG
   CDPRODUTO_OFICIAL: I201203000
-  NMPRODUTO_EST:     FILE PEITO FRANGO - KG
   CDPRODESTO:        I201203000
+  NMPRODUTO_EST:     FILE PEITO FRANGO - KG
 
-# 3b. Produto vs Produto_EST vs ID — diferencas criticas
+## Como filtrar por linguagem natural
+
+Quando o usuario pedir um tipo de produto, use as equivalencias abaixo:
+
+  "carnes" / "proteinas"     WHERE "CAT2" = 'I2 - PERECIVEIS'
+  "frango" especifico        WHERE "NMPRODUTO_OFICIAL" LIKE '%FRANGO%'
+  "hortifruti" / "verduras"  WHERE "CAT2" = 'I3 - HORTIFRUTI'
+  "secos" / "estocaveis"     WHERE "CAT2" = 'I1 - ESTOCAVEIS'
+  "limpeza"                  WHERE "CAT2" = 'I5 - LIMPEZA'
+  "descartaveis"             WHERE "CAT2" = 'I4 - DESCARTAVEIS'
+  "gas" / "gas de cozinha"   WHERE "CAT2" = 'I6 - GAS'
+  "nutricionais"             WHERE "CAT2" = 'I0 - NUTRICIONAIS'
+  "insumos" (todos)          WHERE "CAT1" = 'I - INSUMOS'
+  "servicos"                 WHERE "CAT2" = 'D5 - SERVICOS'
+  "manutencao"               WHERE "CAT2" = 'D3 - MANUTENCAO'
+  "EPIs" / "vestuario"       WHERE "CAT2" = 'D1 - VESTUARIOS/EPIS'
+  "ativos" / "equipamentos"  WHERE "CAT1" = 'A - ATIVOS'
+  "spend operacional real"   WHERE "CAT1" = 'I - INSUMOS'
+  "insumos operacionais"     WHERE "CAT1" = 'I - INSUMOS' AND "CAT2" <> 'I0 - NUTRICIONAIS'
+
+Para filtro mais granular em CAT3 (nivel de subcategoria):
+  "carnes bovinas"           WHERE "CAT3" LIKE 'I201%'
+  "aves" / "frango"          WHERE "CAT3" LIKE 'I2012%' ou NMPRODUTO_OFICIAL LIKE '%FRANGO%'
+  "frios/embutidos"          WHERE "CAT3" LIKE 'I202%'
+  "laticinios"               WHERE "CAT3" LIKE 'I203%'
+  "frutas" (hortifruti)      WHERE "CAT3" LIKE 'I301%'
+  "legumes/verduras"         WHERE "CAT3" LIKE 'I302%'
+
 
 CDPRODUTO / NMPRODUTO: produto na embalagem comercial como foi comprado.
   Representa o SKU exato na embalagem do fornecedor (ex: CX 20KG, FD 10KG).
