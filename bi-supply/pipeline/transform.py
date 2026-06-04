@@ -134,16 +134,22 @@ def aba_resumo(nfe, cp, ad, lk):
     t2025 = sum(flt(r["TOTAL"]) for r in nfe if str(r.get("ANO",""))=="2025")
     yoy   = pct(t2025-t2024, t2024)
     fat   = len({r.get("CDFORNECED_OFICIAL") or r.get("CDFORNECED","") for r in nfe})
+    ids_u = len({r.get("ID","") for r in nfe if r.get("ID","")})
+    prod_u= len({r.get("CDPRODUTO_OFICIAL","") for r in nfe if r.get("CDPRODUTO_OFICIAL","")})
     cc    = sum(1 for r in nfe if r.get("PRE_MIN_COT","").strip() not in ("","0"))
     imp   = sum(flt(r.get("IMP_COT","")) for r in nfe if flt(r.get("IMP_COT",""))>0)
     cp_ab = sum(flt(r.get("VRATUAPAG","")) for r in cp if r.get("STATUSPAG","")=="Em Aberto")
     cp_t  = sum(1 for r in cp if r.get("STATUSPAG","")=="Em Aberto")
+    cp_v  = sum(flt(r.get("VRATUAPAG","")) for r in cp
+                if r.get("STATUSPAG","")=="Em Aberto" and r.get("STATUS_VENC","")=="Vencido")
     adp   = sum(flt(r.get("VALOR_FINAL","")) for r in ad if r.get("STATUS_CONCILIACAO","")=="ADIANTAMENTO ?")
 
     kpis = {"total_comprado_operacional":r2(t_op),"total_comprado_periodo":r2(tg),
             "crescimento_yoy_pct":yoy,"fornecedores_ativos":fat,
+            "ids_unicos":ids_u,"produtos_unicos":prod_u,
             "pct_com_cotacao":pct(cc,len(nfe)),"imp_cot_total":r2(imp),
-            "cp_aberto":r2(cp_ab),"cp_titulos":cp_t,"ad_pendente":r2(adp)}
+            "cp_aberto":r2(cp_ab),"cp_titulos":cp_t,"cp_vencido":r2(cp_v),
+            "ad_pendente":r2(adp)}
     sj(F,"01_resumo_k00_kpis.json", kpis)
 
     # r01 evolução mensal
