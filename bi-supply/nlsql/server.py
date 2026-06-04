@@ -80,9 +80,6 @@ def _prompt_bak(version: str | None = None) -> "Path":
     v = version or _active_version()
     return PROMPT_DIR / f"bi_suprimentos_sql_{v}.backup.md"
 
-# Compatibilidade com código antigo
-PROMPT_FILE = property(_prompt_file)   # não é mais usado diretamente
-PROMPT_BAK  = property(_prompt_bak)
 ELEMENTOS_FILE = ROOT / "docs" / "design" / "ELEMENTOS_BI.md"
 ELEMENTS_FILE  = NLSQL_DIR / "elements.json"
 
@@ -652,5 +649,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("NLSQL_PORT", 5001))
     print(f"BI NL-SQL Server → http://localhost:{port}")
     print(f"  Modelo: {MODEL}")
-    print(f"  Prompt: {PROMPT_FILE}")
+    print(f"  Prompt: {_prompt_file()} (versão ativa: {_active_version()})")
     app.run(host="0.0.0.0", port=port, debug=False)
