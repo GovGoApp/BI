@@ -2427,7 +2427,10 @@ function _renderAssistant(){
     const btns=isActive && isDirty
       ? `<div class="rel-asst-sub" style="padding:6px 0 0"><button class="rel-asst-sub-btn dirty" onclick="window._RL.savePromptVersion('${v.version}')">Salvar</button><button class="rel-asst-sub-btn" onclick="window._RL.resetPromptVersion('${v.version}')">Restaurar</button></div>`
       : '';
-    return `<div class="rel-hist-item${isOpen?' active':''}" style="margin-bottom:6px;cursor:pointer" onclick="window._RL.openPromptVersion('${v.version}')">
+    const usarBtn=!isActive
+      ?`<button class="rel-act-btn" title="Usar para gerar SQL" onclick="event.stopPropagation();window._RL.activateVersion('${v.version}')" style="font-size:10.5px;padding:2px 8px;white-space:nowrap">Usar</button>`
+      :'';
+    return `<div class="rel-hist-item${isOpen?' active':''}" style="margin-bottom:6px;cursor:pointer;display:flex;align-items:center;gap:8px" onclick="window._RL.openPromptVersion('${v.version}')">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
           <span class="rel-hi-title" style="font-size:12.5px">${v.version.toUpperCase()}</span>
@@ -2435,11 +2438,9 @@ function _renderAssistant(){
         </div>
         <div class="rel-hi-sub">${v.filename}</div>
         <div class="rel-hi-sub">${_ts(v.updatedAt)} · ${Math.round(v.sizeBytes/1024)} KB</div>
+        ${btns}
       </div>
-      <div style="flex-shrink:0;align-self:flex-start;padding-top:2px">
-        ${!isActive?`<button class="rel-act-btn" title="Usar para gerar SQL" onclick="event.stopPropagation();window._RL.activateVersion('${v.version}')" style="font-size:10.5px;padding:2px 8px">Usar</button>`:''}
-      </div>
-      ${btns}
+      <div style="flex-shrink:0">${usarBtn}</div>
     </div>`;
   }).join('');
   el.innerHTML=`<div style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
