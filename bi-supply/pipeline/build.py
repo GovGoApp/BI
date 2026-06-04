@@ -2820,10 +2820,11 @@ function _repositionKpis(pg){
   let r=1;
   for(let i=0;i<N;i+=8){
     const rk=kpis.slice(i,i+8), K=rk.length;
-    const bw=Math.floor(16/K), ex=16-bw*K;
+    const bw=Math.floor(16/K);
     let c=1;
     rk.forEach((kpi,j)=>{
-      const cs=j<ex?bw+1:bw;
+      // Ultimo KPI fecha ate a coluna 16 (cobre o resto da divisao)
+      const cs=(j===K-1)?17-c:bw;
       kpi.layout={...(kpi.layout||{}),col:c,col_span:cs,row:r,row_span:2,visivel:true};
       (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,kpi.id,{col:c,col_span:cs,row:r,row_span:2,visivel:true});
       c+=cs;
