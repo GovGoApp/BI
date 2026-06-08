@@ -238,13 +238,12 @@ def build_js_injection(indexes):
 # ── CSS do grid ───────────────────────────────────────────────────────────────
 
 GRID_CSS = """
-/* ── Controles tabela nas abas ── */
-.t-ctrl { display:flex;align-items:center;gap:4px;padding:4px 6px 4px 4px;border-bottom:1px solid var(--line,#e2e8f0);flex-shrink:0;background:var(--head,#f1f5f9); }
-.t-ctrl .rel-pg-btn { min-width:24px;height:24px;padding:0;font-size:12px;background:var(--card,#fff);border:1px solid var(--line,#e2e8f0);border-radius:4px;cursor:pointer;color:var(--ink,#0f172a); }
-.t-ctrl .rel-pg-btn:disabled { opacity:.35;cursor:default; }
-.t-ctrl .rel-pg-num { font-size:11px;font-weight:600;color:var(--ink,#0f172a);padding:0 4px;white-space:nowrap; }
-.t-ctrl .rel-act-btn { height:24px;padding:0 7px;font-size:11px;font-weight:600;background:var(--card,#fff);border:1px solid var(--line,#e2e8f0);border-radius:4px;cursor:pointer;color:var(--ink,#0f172a); }
-.t-ctrl .rel-act-btn:hover { background:var(--blue-soft,#eff6ff);color:var(--blue,#2563eb);border-color:var(--blue,#2563eb); }
+/* ── Controles tabela (no cabeçalho) ── */
+.t-pgb { min-width:20px;height:20px;padding:0 3px;font-size:11px;background:transparent;border:1px solid var(--line,#e2e8f0);border-radius:3px;cursor:pointer;color:var(--muted,#64748b);line-height:1; }
+.t-pgb:hover:not(:disabled) { background:var(--blue-soft,#eff6ff);color:var(--blue,#2563eb);border-color:var(--blue,#2563eb); }
+.t-pgb:disabled { opacity:.3;cursor:default; }
+.t-pgn { font-size:10px;font-weight:600;color:var(--muted,#64748b);padding:0 3px;white-space:nowrap; }
+.t-info { font-size:10px;color:var(--muted,#64748b);padding:0 4px;white-space:nowrap; }
 /* ── Grid 16 colunas × 40px — gerado por build.py ── */
 .page-grid {
   display: grid;
@@ -382,59 +381,54 @@ function _fmtTCell(v, c) {
   return String(v);
 }
 
+/* Controles do cabeçalho: paginação + CSV + expandir */
+function _tCtrlHtml(vjs) {
+  const st=window._TS[vjs]; if(!st) return '';
+  const total=st.data.length, pgs=Math.ceil(total/_T_PS), pg=st.pg;
+  let pgr='';
+  if(pgs>1) pgr=`<button class="t-pgb" onclick="window._T_NAV('${vjs}',0)" ${pg===0?'disabled':''}>«</button><button class="t-pgb" onclick="window._T_NAV('${vjs}',${pg-1})" ${pg===0?'disabled':''}>‹</button><span class="t-pgn">${pg+1}/${pgs}</span><button class="t-pgb" onclick="window._T_NAV('${vjs}',${pg+1})" ${pg>=pgs-1?'disabled':''}>›</button><button class="t-pgb" onclick="window._T_NAV('${vjs}',${pgs-1})" ${pg>=pgs-1?'disabled':''}>»</button>`;
+  return `${pgr}<span class="t-info">${total.toLocaleString('pt-BR')} linhas</span><button class="t-pgb" onclick="window._T_CSV('${vjs}')" title="Exportar CSV" style="padding:0 5px">CSV</button><button class="t-pgb" onclick="window._T_EXPAND('${vjs}')" title="${st.exp?'Recolher':'Expandir'}">${st.exp?'⤡':'⤢'}</button>`;
+}
+
 function _renderTInner(vjs) {
-  const st = window._TS[vjs]; if (!st) return '';
-  const {cols, data, pg} = st;
-  const total = data.length, pgs = Math.ceil(total/_T_PS);
-  const vis = data.slice(pg*_T_PS, (pg+1)*_T_PS);
-  const ths = cols.map(c=>`<th class="${c.cls||''}" data-key="${c.key}">${c.label||c.key}</th>`).join('');
-  const trs = vis.map(r=>'<tr>'+cols.map(c=>`<td class="${c.cls||''}">${_fmtTCell(r[c.key]!=null?r[c.key]:'',c)}</td>`).join('')+'</tr>').join('');
-  const info = `<span style="color:var(--muted);font-size:11px">${total.toLocaleString('pt-BR')} linhas</span>`;
-  let pgr = '';
-  if(pgs>1) pgr=`<button class="rel-pg-btn" onclick="window._T_NAV('${vjs}',0)" ${pg===0?'disabled':''}>«</button><button class="rel-pg-btn" onclick="window._T_NAV('${vjs}',${pg-1})" ${pg===0?'disabled':''}>‹</button><span class="rel-pg-num">${pg+1}/${pgs}</span><button class="rel-pg-btn" onclick="window._T_NAV('${vjs}',${pg+1})" ${pg>=pgs-1?'disabled':''}>›</button><button class="rel-pg-btn" onclick="window._T_NAV('${vjs}',${pgs-1})" ${pg>=pgs-1?'disabled':''}>»</button>`;
-  const expIcon = st.exp ? '⤡' : '⤢';
-  const hd=`<div class="t-ctrl">${pgr}<span style="flex:1"></span>${info}<button class="rel-act-btn" onclick="window._T_CSV('${vjs}')" title="Exportar CSV">⬇ CSV</button><button class="rel-act-btn" onclick="window._T_EXPAND('${vjs}')" title="${st.exp?'Recolher':'Expandir'}">${expIcon}</button></div>`;
-  return hd+`<div style="overflow:auto;flex:1;min-height:0"><table class="table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
+  const st=window._TS[vjs]; if(!st) return '';
+  const {cols,data,pg}=st;
+  const vis=data.slice(pg*_T_PS,(pg+1)*_T_PS);
+  const ths=cols.map(c=>`<th class="${c.cls||''}" data-key="${c.key}">${c.label||c.key}</th>`).join('');
+  const trs=vis.map(r=>'<tr>'+cols.map(c=>`<td class="${c.cls||''}">${_fmtTCell(r[c.key]!=null?r[c.key]:'',c)}</td>`).join('')+'</tr>').join('');
+  return `<div style="overflow:auto;height:100%"><table class="table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
 }
 
 function _renderT(elem, data) {
-  if (!data || !data.length) return '<div class="muted" style="padding:10px;font-size:12px">Sem dados</div>';
-  const cfg = elem.config || {};
-  const vjs = elem.variavel_js || elem.id || '';
-  let cols = cfg.colunas;
-  if (!cols || !cols.length) {
-    const keys = (elem.columns && elem.columns.length) ? elem.columns : Object.keys(data[0]);
-    cols = keys.map(k => ({key: k, label: k}));
-  }
-  const st = window._TS[vjs] || {};
-  window._TS[vjs] = {cols, data, pg: st.pg||0, exp: st.exp||false};
-  return `<div id="tw_${vjs}" style="display:flex;flex-direction:column;height:100%">${_renderTInner(vjs)}</div>`;
+  if(!data||!data.length) return '<div class="muted" style="padding:10px;font-size:12px">Sem dados</div>';
+  const cfg=elem.config||{}, vjs=elem.variavel_js||elem.id||'';
+  let cols=cfg.colunas;
+  if(!cols||!cols.length){const keys=(elem.columns&&elem.columns.length)?elem.columns:Object.keys(data[0]);cols=keys.map(k=>({key:k,label:k}));}
+  const st=window._TS[vjs]||{};
+  window._TS[vjs]={cols,data,pg:st.pg||0,exp:st.exp||false};
+  return `<div id="tw_${vjs}" style="height:100%">${_renderTInner(vjs)}</div>`;
 }
 
-window._T_NAV = function(vjs, p) {
+window._T_NAV=function(vjs,p){
   const st=window._TS[vjs]; if(!st) return;
   st.pg=Math.max(0,Math.min(p,Math.ceil(st.data.length/_T_PS)-1));
   const w=document.getElementById('tw_'+vjs); if(w) w.innerHTML=_renderTInner(vjs);
+  const c=document.getElementById('tc_'+vjs); if(c) c.innerHTML=_tCtrlHtml(vjs);
 };
-window._T_CSV = function(vjs) {
+window._T_CSV=function(vjs){
   const st=window._TS[vjs]; if(!st||!st.data.length) return;
   const hd=st.cols.map(c=>c.label||c.key).join(';');
   const rows=st.data.map(r=>st.cols.map(c=>{const v=r[c.key]!=null?r[c.key]:'';return'"'+String(v).replace(/"/g,'""')+'"';}).join(';')).join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(hd+'\n'+rows);
-  a.download=(vjs||'tabela').toLowerCase().replace(/[^a-z0-9]/g,'_')+'.csv';
-  a.click();
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(hd+'\n'+rows);
+  a.download=(vjs||'tabela').toLowerCase().replace(/[^a-z0-9]/g,'_')+'.csv'; a.click();
 };
-window._T_EXPAND = function(vjs) {
+window._T_EXPAND=function(vjs){
   const st=window._TS[vjs]; if(!st) return;
   st.exp=!st.exp;
-  const w=document.getElementById('tw_'+vjs); if(!w) return;
-  if(st.exp){
-    w.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:#fff;padding:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.4)';
-  } else {
-    w.style.cssText='display:flex;flex-direction:column;height:100%';
-  }
-  w.innerHTML=_renderTInner(vjs);
+  const card=document.getElementById('tw_'+vjs)?.closest('.card');
+  if(card) card.style.cssText=st.exp?'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:#fff;border-radius:0;box-shadow:0 0 0 9999px rgba(0,0,0,.5);display:flex;flex-direction:column':'height:100%;display:flex;flex-direction:column;overflow:hidden';
+  const w=document.getElementById('tw_'+vjs); if(w) w.innerHTML=_renderTInner(vjs);
+  const c=document.getElementById('tc_'+vjs); if(c) c.innerHTML=_tCtrlHtml(vjs);
 };
 
 // ── Gráfico de Linhas ─────────────────────────────────────────────────────────
@@ -598,8 +592,18 @@ function _renderElemento(elem, data) {
     case 'GB': body = _renderGB(elem, data); break;
     case 'GE': body = _renderGE(elem, data); break;
     case 'HL': body = _renderHL(elem, data); break;
-    case 'T':  body = _renderT(elem, data);  break;
-    case 'TE': body = _renderT(elem, data);  break;  // expandable como tabela por ora
+    case 'T':
+    case 'TE': {
+      body = _renderT(elem, data);
+      const vjs = elem.variavel_js || elem.id || '';
+      const sub = elem.subtitulo ? `<div class="sub" style="font-size:10.5px">${elem.subtitulo}</div>` : '';
+      const zb  = elem.zoho_origem ? `${_zohoSrc(elem.zoho_origem)}` : '';
+      header = `<div class="card-h" style="flex-shrink:0">
+        <div><h3 style="margin:0;font-size:12px">${elem.titulo}</h3>${sub}</div>
+        <div class="meta" style="display:flex;align-items:center;gap:4px">${zb}<span id="tc_${vjs}" style="display:flex;align-items:center;gap:2px">${_tCtrlHtml(vjs)}</span></div>
+      </div>`;
+      break;
+    }
     case 'MX': body = _renderMX(elem, data); break;
     case 'AL': body = _renderAL(elem, data); break;
     case 'FU': body = _renderFU(elem, data); break;
@@ -610,7 +614,7 @@ function _renderElemento(elem, data) {
 
   return `<div class="card" style="height:100%;display:flex;flex-direction:column;overflow:hidden">
     ${header}
-    <div class="card-b" style="flex:1;overflow:auto;padding:8px 10px;min-height:0">${body}</div>
+    <div class="card-b" style="flex:1;overflow:auto;padding:${(elem.tipo==='T'||elem.tipo==='TE')?'0':'8px 10px'};min-height:0">${body}</div>
   </div>`;
 }
 
