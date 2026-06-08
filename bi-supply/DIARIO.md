@@ -1247,3 +1247,25 @@ CSS adicionado ao RELATORIO_CSS para distinguir o botão da aba Relatório:
 
 ### Commits
 - `5e01727` build.py: corrigir _isN (parseFloat->Number) + alinhar th numericos
+
+---
+
+## [2026-06-08] server.py: export CSV padrão BR + _isN parseFloat→Number
+
+### Bugs reportados
+1. inflacao_media_pct no CSV exportado aparecia como "30.033.919.057.555.400" em vez de "-3,003"
+2. MESANO virava data "01/07/2025" no Excel
+
+### Causa raiz — CSV export
+Os dados armazenados estão corretos: `inflacao_media_pct = '-3.0033919057555445'`. O CSV era gerado com ponto como separador decimal (padrão Python), mas o Excel Brasil interpreta ponto como separador de MILHAR, convertendo -3.003...445 em -30.033.919.057.555.445 (~10^16 vezes maior).
+
+### Fix — server.py
+- `_csv_val()`: converte floats para formato BR (vírgula como decimal). Texto permanece inalterado (MESANO '2025/07' não vira float).
+- Delimitador trocado de `,` para `;` (padrão CSV Brasil/Europa, evita conflito com vírgula decimal).
+
+### Fix anterior — build.py (_isN parseFloat→Number)
+MESANO '2025/07' era tratado como número pela tabela BI porque `parseFloat('2025/07') = 2025` (JS para no `/`). Trocado por `Number('2025/07') = NaN` → texto.
+
+### Commits
+- `5e01727` build.py: _isN + alinhamento th
+- `fa081f7` server.py: export CSV padrão BR
