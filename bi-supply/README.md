@@ -47,14 +47,32 @@ O dashboard tem 15 abas:
 ```
 Zoho Analytics (workspace SUPRIMENTOS)
           ↓
-   pipeline/extract.py      → data/raw/        (CSVs brutos, um por fonte)
+   pipeline/extract.py        → data/raw/        (CSVs brutos, um por fonte)
           ↓
-   pipeline/transform.py    → data/processed/  (métricas calculadas)
+   pipeline/transform.py      → data/processed/  (métricas calculadas)
           ↓
-   pipeline/build.py        → dist/index.html  (dashboard completo)
+   pipeline/generate_indexes.py → data/processed/ (índices de elementos por aba)
+          ↓
+   pipeline/build.py          → dist/index.html  (dashboard completo)
 ```
 
 O dashboard HTML final é **auto-contido**: todos os dados ficam embutidos dentro do arquivo. Pode ser aberto offline, enviado por e-mail ou copiado para outra máquina.
+
+### Aba Relatório (NL-SQL)
+
+A aba **Relatório** permite fazer perguntas em português que são convertidas em SQL e executadas no Zoho:
+
+```
+Pergunta em PT-BR → nlsql/server.py → SQL → Zoho API → resultado
+```
+
+Para usar a aba Relatório:
+```powershell
+python nlsql/server.py   # iniciar servidor na porta 5001
+# abrir dist/index.html → aba Relatório
+```
+
+O servidor usa o prompt em `nlsql/prompts/bi_suprimentos_sql_v3.md` (versão ativa configurável pelo Assistente).
 
 ---
 
@@ -94,9 +112,10 @@ copy zoho\zoho.env.example zoho\zoho.env
 Ou passo a passo:
 
 ```powershell
-python pipeline/extract.py        # baixa dados do Zoho → data/raw/
-python pipeline/transform.py      # calcula métricas → data/processed/
-python pipeline/build.py          # gera dashboard → dist/index.html
+python pipeline/extract.py          # baixa dados do Zoho → data/raw/
+python pipeline/transform.py        # calcula métricas → data/processed/
+python pipeline/generate_indexes.py # gera índices de elementos (sempre após transform)
+python pipeline/build.py            # gera dashboard → dist/index.html
 ```
 
 Abrir o resultado:
@@ -122,12 +141,19 @@ bi-supply/
 │   ├── extract.py          ← Zoho → data/raw/
 │   ├── transform.py        ← data/raw/ → data/processed/
 │   └── build.py            ← gera dist/index.html
-├── nlsql/                  ← módulo de perguntas em linguagem natural
-│   ├── catalog.py          ← catálogo de schemas das fontes
+├── nlsql/                  ← módulo de perguntas em linguagem natural (Aba Relatório)
+│   ├── server.py           ← Flask API na porta 5001
+│   ├── orchestrator.py     ← converte NL → SQL via LLM
 │   ├── adapter.py          ← executa SQL no Zoho
 │   ├── guard.py            ← valida que SQL é somente leitura
-│   ├── orchestrator.py     ← loop de tool calls com LLM
-│   └── renderer.py         ← formata resultados para o BI
+│   ├── history.json        ← histórico de queries (não commitar)
+│   ├── chats.json          ← histórico de chats (não commitar)
+│   ├── elements.json       ← elementos salvos via "Adicionar ao BI"
+│   ├── active_version.txt  ← versão ativa do prompt (v1/v2/v3)
+│   └── prompts/
+│       ├── bi_suprimentos_sql_v1.md  ← prompt original
+│       ├── bi_suprimentos_sql_v2.md  ← prompt melhorado (JOINs, CTEs)
+│       └── bi_suprimentos_sql_v3.md  ← prompt completo (dados reais, 39KB)
 ├── dashboard/
 │   ├── tabs/               ← um .yml por aba (15 arquivos)
 │   ├── templates/          ← templates HTML por tipo de elemento
@@ -168,3 +194,6 @@ bi-supply/
 | [docs/design/MAPA_ABAS.md](docs/design/MAPA_ABAS.md) | Mapa das 15 abas e seus componentes |
 | [docs/design/ESPECIFICACAO_ABAS.md](docs/design/ESPECIFICACAO_ABAS.md) | Especificação detalhada de cada aba |
 | [docs/design/COBERTURA_ABAS.md](docs/design/COBERTURA_ABAS.md) | Auditoria do mock contra Zoho real |
+| [docs/design/ELEMENTOS_BI.md](docs/design/ELEMENTOS_BI.md) | Guia dos 11 tipos de elemento (KPI, GL, HL, etc.) |
+| [docs/dados/ANALISE_DADOS_REAIS.md](docs/dados/ANALISE_DADOS_REAIS.md) | Perfil das 18 fontes Zoho com campos e filtros reais |
+| [docs/zoho/MAPA_PAINEIS.md](docs/zoho/MAPA_PAINEIS.md) | 72 pivots + 31 analysis views + Design System |
