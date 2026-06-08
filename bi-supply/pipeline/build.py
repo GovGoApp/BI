@@ -381,7 +381,6 @@ function _renderT(elem, data) {
         try { const pts = JSON.parse(v || '[]'); v = pts.length ? svgSpark(pts.map(Number)) : '—'; }
         catch(e) { v = '—'; }
       }
-      else if (!fmt && _isN(v)) v = _fv(v);
       return `<td class="${c.cls || ''}">${v}</td>`;
     }).join('');
     return `<tr>${tds}</tr>`;
@@ -2017,8 +2016,9 @@ async function _api(m, path, body) {
 function _fv(v) {
   const n = parseFloat(v);
   if (isNaN(n)) return String(v ?? '—');
-  if (Number.isInteger(n)) return n.toLocaleString('pt-BR');
-  return n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  if (Math.abs(n) >= 1e6) return 'R$ '+(n/1e6).toFixed(1).replace('.',',')+' mi';
+  if (Math.abs(n) >= 1e3) return n.toLocaleString('pt-BR',{maximumFractionDigits:2});
+  return n.toLocaleString('pt-BR',{maximumFractionDigits:4});
 }
 function _isN(v){ return v!==null&&v!==''&&v!==undefined&&!isNaN(Number(v)); }
 function _ts(s){ if(!s) return ''; try{ return new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){return '';} }
@@ -2331,7 +2331,7 @@ function _renderPreview(tipo,config,data,columns){
     if(tipo==='MX') return _renderMX(elem,data);
     if(tipo==='T'||tipo==='TE'){
       if(!cfg.colunas&&columns&&columns.length){
-        elem.config={...cfg,colunas:columns.map(c=>({key:c,label:c}))};
+        elem.config={...cfg,colunas:columns.slice(0,6).map(c=>({key:c,label:c}))};
       }
       return _renderT(elem,data);
     }
