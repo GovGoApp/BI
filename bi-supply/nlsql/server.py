@@ -651,6 +651,34 @@ def delete_element(eid):
     return jsonify({"ok": True})
 
 
+# ── Layout persistence ────────────────────────────────────────────────────────
+
+LAYOUT_DIR = ROOT / "dashboard" / "tabs"
+
+@app.route("/layout/<page_key>", methods=["POST"])
+def save_layout(page_key: str):
+    """Salva overrides de layout em dashboard/tabs/<page_key>.layout.json"""
+    if not page_key or "/" in page_key or ".." in page_key:
+        return jsonify({"ok": False, "error": "page_key inválido"}), 400
+    body = request.get_json(force=True, silent=True) or {}
+    overrides = body.get("overrides", {})
+    LAYOUT_DIR.mkdir(parents=True, exist_ok=True)
+    path = LAYOUT_DIR / f"{page_key}.layout.json"
+    path.write_text(json.dumps({"overrides": overrides}, ensure_ascii=False, indent=2), encoding="utf-8")
+    return jsonify({"ok": True, "saved": str(path)})
+
+@app.route("/layout/<page_key>", methods=["GET"])
+def get_layout(page_key: str):
+    """Lê overrides de layout salvo em disco"""
+    path = LAYOUT_DIR / f"{page_key}.layout.json"
+    if not path.exists():
+        return jsonify({"ok": True, "overrides": {}})
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return jsonify({"ok": True, "overrides": data.get("overrides", {})})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 # ── Health ─────────────────────────────────────────────────────────────────────
 
 @app.route("/health", methods=["GET"])

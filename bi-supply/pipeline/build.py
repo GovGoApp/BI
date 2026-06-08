@@ -888,17 +888,45 @@ function _setL(el,l) { el.style.gridColumn=`${l.col}/span ${l.col_span}`; el.sty
 function _autoSave(pk) {
   try {
     const ov=(_st[pk]||{}).overrides||{};
+    // 1. localStorage (imediato, funciona sem servidor)
     localStorage.setItem(LS_PFX+pk, JSON.stringify(ov));
-    _flashSaved();
-  } catch(e) {}
+    // 2. Disco via servidor (persistência real entre builds/browsers)
+    const url=(window._BI_NLSQL_URL||'http://localhost:5001')+'/layout/'+pk;
+    fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({overrides:ov})})
+      .then(r=>r.ok?_flashSaved():_flashSaved('⚠ local'))
+      .catch(()=>_flashSaved('local'));
+  } catch(e) { _flashSaved('local'); }
+}
+
+function _flashSaved(suffix) {
+  let el=document.getElementById('ed-saved');
+  if(!el){el=document.createElement('span');el.id='ed-saved';el.style.cssText='font-size:11px;color:var(--green,#16a34a);transition:opacity .5s';document.getElementById('ed-tb')?.appendChild(el);}
+  el.textContent='✓ salvo'+(suffix?' ('+suffix+')':'');el.style.opacity='1';
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},2000);
 }
 
 function _loadAll() {
+  // 1. Restaurar do localStorage (fallback imediato)
   for (let i=0;i<localStorage.length;i++) {
     const key=localStorage.key(i);
     if (!key||!key.startsWith(LS_PFX)) continue;
     const pk=key.slice(LS_PFX.length);
     try { const ov=JSON.parse(localStorage.getItem(key)||'{}'); _ens(pk); _st[pk].overrides=ov; } catch(e) {}
+  }
+  // 2. Sincronizar com disco via servidor (sobrescreve localStorage se servidor tiver versão mais recente)
+  const base=window._BI_NLSQL_URL||'http://localhost:5001';
+  if(typeof ABAS_INDEX!=='undefined'){
+    Object.keys(ABAS_INDEX).forEach(pk=>{
+      fetch(base+'/layout/'+pk)
+        .then(r=>r.json())
+        .then(d=>{
+          if(!d.ok||!d.overrides||!Object.keys(d.overrides).length) return;
+          _ens(pk);
+          Object.assign(_st[pk].overrides, d.overrides);
+          localStorage.setItem(LS_PFX+pk, JSON.stringify(_st[pk].overrides));
+        })
+        .catch(()=>{});
+    });
   }
 }
 
@@ -936,12 +964,6 @@ function _applyLayout(pk) {
 }
 
 // ── Flash "salvo" no topbar ───────────────────────────────────────────────────
-function _flashSaved() {
-  let el=document.getElementById('ed-saved');
-  if(!el){el=document.createElement('span');el.id='ed-saved';el.style.cssText='font-size:11px;color:var(--green,#16a34a);transition:opacity .5s';document.getElementById('ed-tb')?.appendChild(el);}
-  el.textContent='✓ salvo';el.style.opacity='1';
-  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},1500);
-}
 
 // ── Snapshot para undo ────────────────────────────────────────────────────────
 function _snap(pk) {
