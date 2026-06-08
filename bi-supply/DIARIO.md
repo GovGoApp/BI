@@ -1338,3 +1338,29 @@ N chamadas `_init()` simultâneas → a última re-renderizava com estado limpo.
 → `c8802ee` NMPRODUTO/GROUP BY → `b567613` ORDER BY → `6145490` CURVA_PROD/POS_PROD
 → `63a54a1` NMPRODUTO_OFICIAL INFLAÇÃO → `1acff97` ❌QUEBROU → `1226a5a` fix parcial
 → `71ee3fe` revert seguro → `6ba7a37` ❌QUEBROU NOVAMENTE → `b0156af` revert final
+
+---
+
+## [2026-06-08] Correção definitiva: Relatório sumia ao voltar para a aba
+
+### Sintoma
+Ao clicar na aba Relatório após ter estado em outra aba, o conteúdo aparecia por ~30ms (blink) e depois sumia, deixando a tela branca.
+
+### Causa raiz
+`_applyF()` em FILTER_JS (linha 1294) é chamada 90ms após qualquer clique de aba **quando há filtros ativos**. Ela re-renderiza a aba ativa com `pg.innerHTML = pages[pk]()` — inserindo HTML limpo e apagando o que o `_init()` do Relatório havia renderizado 60ms antes.
+
+Timeline do bug:
+- t=0ms: clica Relatório → HTML limpo inserido pelo tab system
+- t=60ms: `_init()` do Relatório → conteúdo renderizado (blink visível)
+- t=90ms: `_applyF()` → `pg.innerHTML = pages['relatorio']()` → HTML limpo novamente → tela branca
+
+### Correção
+Uma linha em `_applyF()`: `if(pk && pk !== 'relatorio')` — pula o re-render da aba Relatório porque ela tem sistema de renderização próprio via `_init()` e não usa o pipeline de dados filtrados.
+
+### Outros bugs desta rodada (ja registrados acima)
+- `else if (!fmt && _isN(v))` em `_renderT` quebra abas — causa ainda não identificada, não tocar
+- `_RL_CLICK_BOUND` guard adicionado (listener do Relatório era já single-use, guard redundante mas inofensivo)
+
+### Commits
+- `b0156af` reverter else-if numerico em _renderT (terceira vez)
+- `d04bf5a` corrigir Relatorio sumindo — _applyF nao re-renderiza aba relatorio
