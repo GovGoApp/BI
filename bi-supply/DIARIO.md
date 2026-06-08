@@ -1157,3 +1157,33 @@ Revisão da aba Fornecedor comparando implementação vs MAPA_PAINEIS.md e ESPEC
 
 ### Commits
 - `373e53b` aba Fornecedor: +3 KPIs, 8 KPIs col_span=2, +4 colunas r01
+
+---
+
+## [2026-06-08] Prompt v3: bug PERC_INF_* em NFE
+
+### Problema relatado
+Usuário usou o assistente NL-SQL para "percentual de inflação por categoria CAT2 por mês nos últimos 12 meses". O assistente gerou `PERC_INF_PROD_PMP` com `FROM "NFE"`, causando HTTP 400 INVALID_COLUMN.
+
+### Causa raiz (dois bugs no prompt)
+1. **Seção #6 sem atribuição de tabela**: listava PERC_INF_* e SOMA_INF_* como campos genéricos sem dizer que pertencem à tabela INFLACAO. NFE tem `INF_PROD_PMP` (sem PERC_/SOMA_).
+2. **Documentação INFLACAO incompleta**: prompt omitia CAT1..CAT5, UF, NMEMP, NMPRODUTO_EST, ANO da tabela INFLACAO — modelo não sabia que CAT2 existe lá para GROUP BY direto.
+
+### Correções — bi_suprimentos_sql_v3.md
+- Seção #6: aviso crítico "PERC_INF_*/SOMA_INF_* SOMENTE em INFLACAO"; regra de roteamento (por CAT2/UF → FROM INFLACAO); exemplos com FROM explícito
+- Seção INFLACAO: +12 campos documentados (CAT1..CAT5, UF, NMEMP, NMPRODUTO_EST, CDPRODUTO_OFICIAL, POS_ID, ANO)
+- Novo exemplo SQL: inflação por CAT2 por mês com FROM INFLACAO correto
+
+### SQL correto para a consulta do usuário
+```sql
+SELECT "CAT2", "MESANO", AVG("PERC_INF_PROD_PMP") AS inflacao_media_pct
+FROM "INFLACAO"
+WHERE "CAT2" IN ('I1 - ESTOCAVEIS','I2 - PERECIVEIS','I3 - HORTIFRUTI','I4 - DESCARTAVEIS','I5 - LIMPEZA','I6 - GAS')
+  AND "PERC_INF_PROD_PMP" IS NOT NULL
+  AND "MESANO" >= '2025/07' AND "MESANO" <= '2026/06'
+GROUP BY "CAT2", "MESANO"
+ORDER BY "CAT2", "MESANO" ASC
+```
+
+### Commits
+- `62481a3` prompt v3: corrigir bug PERC_INF_* em NFE + adicionar CAT2 em INFLACAO
