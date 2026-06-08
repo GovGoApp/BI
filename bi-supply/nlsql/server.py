@@ -480,6 +480,19 @@ def reset_prompt():
 
 # ── Endpoint: /export/<id> ────────────────────────────────────────────────────
 
+def _csv_val(v: str) -> str:
+    """Formata valor para CSV no padrão brasileiro (vírgula como decimal).
+    Evita que Excel BR interprete ponto como separador de milhar."""
+    if v is None or v == "":
+        return ""
+    try:
+        f = float(v)
+        # Formata sem notação científica, troca ponto por vírgula
+        formatted = f"{f:.10g}".replace(".", ",")
+        return formatted
+    except (ValueError, TypeError):
+        return str(v)
+
 @app.route("/export/<rid>", methods=["GET"])
 def export_report(rid):
     r = _get_report(rid)
@@ -490,10 +503,10 @@ def export_report(rid):
     rows = r.get("rows", [])
 
     out = io.StringIO()
-    writer = csv.writer(out)
+    writer = csv.writer(out, delimiter=";")   # ponto-e-vírgula: padrão Excel BR
     writer.writerow(cols)
     for row in rows:
-        writer.writerow([row.get(c, "") for c in cols])
+        writer.writerow([_csv_val(row.get(c, "")) for c in cols])
 
     filename = f"BI_Relatorio_{rid[:8]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     return Response(
