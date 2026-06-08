@@ -1493,3 +1493,23 @@ b) Após F5, posições manuais do editor desapareciam
 
 ### Commits
 - `55ddc78` build.py: corrigir posicionamento e persistencia do editor de layout
+
+---
+
+## [2026-06-08] _findFreePos: busca 2D completa no grid
+
+### Mudança
+Substituiu `_findFreeRow` (bounding box + col=1 fixo) por `_findFreePos`:
+varredura esquerda→direita, cima→baixo, verificando CADA CÉLULA do bloco candidato contra mapa de ocupação célula a célula.
+
+**Algoritmo:**
+1. Constrói `taken[r][c] = 1` para cada célula ocupada por elemento visível
+2. Testa cada posição (row, col) de cima para baixo, esquerda para direita
+3. Para cada candidato, verifica todas as `col_span × row_span` células
+4. Retorna `{row, col}` da primeira posição sem conflito
+
+**Resultado:** novo elemento ocupa o primeiro espaço livre no grid (ex: gap deixado por elemento removido), com posição `col` também otimizada.
+
+### Commits
+- `eaa20c6` _findFreeRow primeira versão
+- `bb03223` _findFreePos busca 2D completa
