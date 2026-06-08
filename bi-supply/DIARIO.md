@@ -1403,3 +1403,31 @@ Resultado: `20.9900000002` → `20,99` | `3.899...` → `3,90` | `1234567` → `
 ### Commits
 - `90cb8fb` reverter formatacao numerica (estado seguro)
 - `c679c56` formatacao BR definitiva — inline sem chamar IIFE
+
+---
+
+## [2026-06-08] Tabelas das abas: paginação + CSV + expandir
+
+### Features adicionadas às tabelas T/TE das abas do BI
+
+**a) Paginação** — `«` `‹` `[1/20]` `›` `»`
+- 25 linhas por página (mesmo padrão do Relatório)
+- Estado global `window._TS[vjs]` por `variavel_js`
+- Navegação substitui só o innerHTML do wrapper sem re-render do elemento inteiro
+
+**b) Export CSV** — botão `⬇ CSV`
+- Exporta todos os dados (todas as páginas) como CSV com `;` como delimitador
+- UTF-8 BOM para Excel BR
+
+**c) Expandir/Recolher** — botão `⤢` / `⤡`
+- `position:fixed` para ocupar toda a área visível
+- Overlay escuro ao fundo; clicar novamente recolhe
+
+### Implementação
+- `_fmtTCell`: formatação de célula inline (sem chamar `_isN`/`_fv` do IIFE)
+- `_renderTInner(vjs)`: conteúdo paginado, reutilizado na navegação
+- `_renderT`: cria wrapper `id="tw_{vjs}"`, chama `_renderTInner`
+- CSS `.t-ctrl` adicionado ao GRID_CSS
+
+### Commits
+- `f5792bc` build.py: paginacao + CSV + expandir nas tabelas das abas BI
