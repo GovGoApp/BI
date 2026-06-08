@@ -1229,3 +1229,21 @@ CSS adicionado ao RELATORIO_CSS para distinguir o botão da aba Relatório:
 ### Commits
 - `51facf8` prompt v3: reverter DATEFORMAT
 - `7e4130b` prompt v3: reverter DATEFORMAT; build.py: botao aba Relatorio azul
+
+---
+
+## [2026-06-08] build.py: _isN parseFloat→Number + alinhar th numéricos
+
+### Bugs reportados
+1. MESANO exibido como "2.025" em vez de "2025/07" na tabela do Relatório
+2. Cabeçalho de colunas numéricas centralizado enquanto valores estavam à direita
+
+### Causa raiz
+`_isN` usava `parseFloat('2025/07')` = 2025 (JavaScript para de parsear no `/`), então retornava `true` para MESANO. A função `_fv` formatava `2025` como número em notação brasileira "2.025".
+
+### Correções — build.py (_renderTableSection)
+- `_isN`: `parseFloat(v)` → `Number(v)`. `Number('2025/07') = NaN` → identifica corretamente como texto
+- `ths` generator: detecta se primeira linha da coluna é numérica e aplica `text-align:right` ao `<th>` correspondente
+
+### Commits
+- `5e01727` build.py: corrigir _isN (parseFloat->Number) + alinhar th numericos
