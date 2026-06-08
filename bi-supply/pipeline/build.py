@@ -1524,6 +1524,23 @@ else _init();
 # ── CSS da Aba Relatório ─────────────────────────────────────────────────────
 
 RELATORIO_CSS = """
+/* ── Botão da aba Relatório — azul quando inativo, azul sólido quando ativo ── */
+.tab[data-page="relatorio"] {
+  background: var(--blue-soft,#eff6ff);
+  color: var(--blue,#2563eb);
+  border-color: var(--blue,#2563eb);
+}
+.tab[data-page="relatorio"]:hover:not(.active) {
+  background: #dbeafe;
+  color: var(--blue,#2563eb);
+  border-color: var(--blue,#2563eb);
+}
+.tab[data-page="relatorio"].active {
+  background: var(--blue,#2563eb);
+  color: #fff;
+  border-color: var(--blue,#2563eb);
+}
+
 /* ── Aba Relatório — GovGo v2 layout + BI Design System ── */
 .rel-wrap {
   display: grid;
