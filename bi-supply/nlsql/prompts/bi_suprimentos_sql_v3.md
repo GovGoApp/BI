@@ -140,9 +140,9 @@ CDPRODESTO / NMPRODUTO_EST: produto convertido para a unidade basica de estoque.
 
 CDPRODUTO_OFICIAL / NMPRODUTO_OFICIAL: versao padronizada do codigo e nome.
   Padronizacao editorial feita pelo time de suprimentos para unificar nomes.
-  Use NMPRODUTO_OFICIAL em filtros de busca por nome de produto.
-  ATENCAO: NMPRODUTO_OFICIAL existe em NFE, CURVA PROD, PMP_PROD_INF_12.
-  NAO EXISTE em INFLACAO nem em CURVA ID — nessas tabelas o nome e NMPRODUTO_EST.
+  Use NMPRODUTO_OFICIAL em filtros e exibicao de nome de produto — e o campo preferido.
+  Existe em: NFE, INFLACAO, CURVA PROD, PMP_PROD_INF_12.
+  NAO EXISTE em CURVA ID — nessa tabela o nome e NMPRODUTO_EST.
 
 ID = NMEMP + UF + CDPRODESTO
   Chave analitica que representa "este produto nesta empresa neste estado".
@@ -445,13 +445,13 @@ Campos e tipos:
   CAT3            texto    | categoria nivel 3
   CAT4            texto    | categoria nivel 4
   CAT5            texto    | categoria nivel 5
-  NMPRODUTO_EST   texto    | nome do produto: 'FILE PEITO FRANGO - KG'  ← usar para nome
+  NMPRODUTO_OFICIAL texto  | nome padronizado do produto  ← PRIORIDADE para nome
+  NMPRODUTO_EST   texto    | nome em unidade de estoque (usar so se NMPRODUTO_OFICIAL nao atender)
   CDPRODUTO_OFICIAL texto  | codigo padronizado do produto
   CURVA_ID        texto    | curva do ID (empresa+UF+produto): 'AAA', 'A', 'C'
   POS_ID          inteiro  | posicao no ranking por ID
   CURVA_PROD      texto    | curva do produto NACIONAL (sem segmentacao por UF ou empresa)
   POS_PROD        inteiro  | posicao no ranking nacional do produto
-  (NMPRODUTO_OFICIAL NAO EXISTE em INFLACAO — usar NMPRODUTO_EST)
 
 Quando usar CURVA_ID vs CURVA_PROD em INFLACAO:
   CURVA_ID   → curva do ID (empresa+UF+produto) — varia por filial/UF
