@@ -238,6 +238,13 @@ def build_js_injection(indexes):
 # ── CSS do grid ───────────────────────────────────────────────────────────────
 
 GRID_CSS = """
+/* ── Controles tabela nas abas ── */
+.t-ctrl { display:flex;align-items:center;gap:4px;padding:4px 6px 4px 4px;border-bottom:1px solid var(--line,#e2e8f0);flex-shrink:0;background:var(--head,#f1f5f9); }
+.t-ctrl .rel-pg-btn { min-width:24px;height:24px;padding:0;font-size:12px;background:var(--card,#fff);border:1px solid var(--line,#e2e8f0);border-radius:4px;cursor:pointer;color:var(--ink,#0f172a); }
+.t-ctrl .rel-pg-btn:disabled { opacity:.35;cursor:default; }
+.t-ctrl .rel-pg-num { font-size:11px;font-weight:600;color:var(--ink,#0f172a);padding:0 4px;white-space:nowrap; }
+.t-ctrl .rel-act-btn { height:24px;padding:0 7px;font-size:11px;font-weight:600;background:var(--card,#fff);border:1px solid var(--line,#e2e8f0);border-radius:4px;cursor:pointer;color:var(--ink,#0f172a); }
+.t-ctrl .rel-act-btn:hover { background:var(--blue-soft,#eff6ff);color:var(--blue,#2563eb);border-color:var(--blue,#2563eb); }
 /* ── Grid 16 colunas × 40px — gerado por build.py ── */
 .page-grid {
   display: grid;
@@ -357,40 +364,78 @@ function _renderHL(elem, data) {
 }
 
 // ── Tabela ────────────────────────────────────────────────────────────────────
+/* ── Estado de paginação das tabelas das abas ── */
+window._TS = window._TS || {};
+const _T_PS = 25; // page size
+
+function _fmtTCell(v, c) {
+  const fmt = c.fmt || '';
+  if (fmt === 'brl')  return FMT.brl(parseFloat(v) || 0);
+  if (fmt === 'brl2') return FMT.brl2(parseFloat(v) || 0);
+  if (fmt === 'mi')   return FMT.mi(parseFloat(v) || 0);
+  if (fmt === 'pct')  { const n=parseFloat(v)||0; return `<span class="pill ${n>15?'r':n>5?'y':n<-3?'g':'k'}">${n>0?'+':''}${n.toFixed(1).replace('.',',')}%</span>`; }
+  if (c.cls === 'spark') { try{ const p=JSON.parse(v||'[]'); return p.length?svgSpark(p.map(Number)):'—'; }catch(e){ return '—'; } }
+  if (!fmt && v!==null&&v!==''&&v!==undefined&&!isNaN(Number(v))) {
+    const n=parseFloat(v);
+    if(isFinite(n)){const f=n.toFixed(2),d=f.indexOf('.');const neg=f[0]==='-',ab=neg?f.slice(1,d):f.slice(0,d);return(neg?'-':'')+ab.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+f.slice(d+1);}
+  }
+  return String(v);
+}
+
+function _renderTInner(vjs) {
+  const st = window._TS[vjs]; if (!st) return '';
+  const {cols, data, pg} = st;
+  const total = data.length, pgs = Math.ceil(total/_T_PS);
+  const vis = data.slice(pg*_T_PS, (pg+1)*_T_PS);
+  const ths = cols.map(c=>`<th class="${c.cls||''}" data-key="${c.key}">${c.label||c.key}</th>`).join('');
+  const trs = vis.map(r=>'<tr>'+cols.map(c=>`<td class="${c.cls||''}">${_fmtTCell(r[c.key]!=null?r[c.key]:'',c)}</td>`).join('')+'</tr>').join('');
+  const info = `<span style="color:var(--muted);font-size:11px">${total.toLocaleString('pt-BR')} linhas</span>`;
+  let pgr = '';
+  if(pgs>1) pgr=`<button class="rel-pg-btn" onclick="window._T_NAV('${vjs}',0)" ${pg===0?'disabled':''}>«</button><button class="rel-pg-btn" onclick="window._T_NAV('${vjs}',${pg-1})" ${pg===0?'disabled':''}>‹</button><span class="rel-pg-num">${pg+1}/${pgs}</span><button class="rel-pg-btn" onclick="window._T_NAV('${vjs}',${pg+1})" ${pg>=pgs-1?'disabled':''}>›</button><button class="rel-pg-btn" onclick="window._T_NAV('${vjs}',${pgs-1})" ${pg>=pgs-1?'disabled':''}>»</button>`;
+  const expIcon = st.exp ? '⤡' : '⤢';
+  const hd=`<div class="t-ctrl">${pgr}<span style="flex:1"></span>${info}<button class="rel-act-btn" onclick="window._T_CSV('${vjs}')" title="Exportar CSV">⬇ CSV</button><button class="rel-act-btn" onclick="window._T_EXPAND('${vjs}')" title="${st.exp?'Recolher':'Expandir'}">${expIcon}</button></div>`;
+  return hd+`<div style="overflow:auto;flex:1;min-height:0"><table class="table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
+}
+
 function _renderT(elem, data) {
   if (!data || !data.length) return '<div class="muted" style="padding:10px;font-size:12px">Sem dados</div>';
   const cfg = elem.config || {};
+  const vjs = elem.variavel_js || elem.id || '';
   let cols = cfg.colunas;
   if (!cols || !cols.length) {
     const keys = (elem.columns && elem.columns.length) ? elem.columns : Object.keys(data[0]);
     cols = keys.map(k => ({key: k, label: k}));
   }
-  const ths = cols.map(c => `<th class="${c.cls || ''}" data-key="${c.key}">${c.label || c.key}</th>`).join('');
-  const trs = data.slice(0, 25).map(r => {
-    const tds = cols.map(c => {
-      let v = r[c.key] != null ? r[c.key] : '';
-      const fmt = c.fmt || '';
-      if (fmt === 'brl')  v = FMT.brl(parseFloat(v) || 0);
-      else if (fmt === 'brl2') v = FMT.brl2(parseFloat(v) || 0);
-      else if (fmt === 'mi')   v = FMT.mi(parseFloat(v) || 0);
-      else if (fmt === 'pct')  {
-        const n = parseFloat(v) || 0;
-        v = `<span class="pill ${n > 15 ? 'r' : n > 5 ? 'y' : n < -3 ? 'g' : 'k'}">${n > 0 ? '+' : ''}${n.toFixed(1).replace('.', ',')}%</span>`;
-      }
-      else if (c.cls === 'spark') {
-        try { const pts = JSON.parse(v || '[]'); v = pts.length ? svgSpark(pts.map(Number)) : '—'; }
-        catch(e) { v = '—'; }
-      }
-      else if (!fmt && v!==null&&v!==''&&v!==undefined&&!isNaN(Number(v))) {
-        const n=parseFloat(v);
-        if(isFinite(n)){const f=n.toFixed(2),d=f.indexOf('.');const neg=f[0]==='-',ab=neg?f.slice(1,d):f.slice(0,d);v=(neg?'-':'')+ab.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+f.slice(d+1);}
-      }
-      return `<td class="${c.cls || ''}">${v}</td>`;
-    }).join('');
-    return `<tr>${tds}</tr>`;
-  }).join('');
-  return `<div style="overflow:auto;height:100%"><table class="table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table></div>`;
+  const st = window._TS[vjs] || {};
+  window._TS[vjs] = {cols, data, pg: st.pg||0, exp: st.exp||false};
+  return `<div id="tw_${vjs}" style="display:flex;flex-direction:column;height:100%">${_renderTInner(vjs)}</div>`;
 }
+
+window._T_NAV = function(vjs, p) {
+  const st=window._TS[vjs]; if(!st) return;
+  st.pg=Math.max(0,Math.min(p,Math.ceil(st.data.length/_T_PS)-1));
+  const w=document.getElementById('tw_'+vjs); if(w) w.innerHTML=_renderTInner(vjs);
+};
+window._T_CSV = function(vjs) {
+  const st=window._TS[vjs]; if(!st||!st.data.length) return;
+  const hd=st.cols.map(c=>c.label||c.key).join(';');
+  const rows=st.data.map(r=>st.cols.map(c=>{const v=r[c.key]!=null?r[c.key]:'';return'"'+String(v).replace(/"/g,'""')+'"';}).join(';')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(hd+'\n'+rows);
+  a.download=(vjs||'tabela').toLowerCase().replace(/[^a-z0-9]/g,'_')+'.csv';
+  a.click();
+};
+window._T_EXPAND = function(vjs) {
+  const st=window._TS[vjs]; if(!st) return;
+  st.exp=!st.exp;
+  const w=document.getElementById('tw_'+vjs); if(!w) return;
+  if(st.exp){
+    w.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:9000;background:#fff;padding:16px;box-shadow:0 0 0 9999px rgba(0,0,0,.4)';
+  } else {
+    w.style.cssText='display:flex;flex-direction:column;height:100%';
+  }
+  w.innerHTML=_renderTInner(vjs);
+};
 
 // ── Gráfico de Linhas ─────────────────────────────────────────────────────────
 function _renderGL(elem, data) {
