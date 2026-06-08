@@ -229,11 +229,7 @@ Roteamento — quando usar cada tabela para inflacao:
   inflacao por linha de NF junto com outras colunas NFE → LEFT JOIN "INFLAÇÃO" ON "ID"="ID" AND "MESANO"="MESANO"
   calcular inflacao 12m sem tabela INFLAÇÃO → (PMP_1 - PMP_12) / PMP_12 * 100 FROM "PMP_ID_INF_12"
 
-ATENCAO — MESANO em "INFLAÇÃO" e tipo data (Ano-Mes), nao texto puro:
-  SELECT/GROUP BY "MESANO" exibe apenas o ano (ex: 2026 = "2.026" em formatacao BR)
-  Para mostrar no formato YYYY/MM, usar: DATEFORMAT("MESANO", 'yyyy/MM')
-  Filtros continuam funcionando com texto: WHERE "MESANO" >= '2025/07'
-  SEMPRE use DATEFORMAT ao SELECT e GROUP BY em queries sobre INFLAÇÃO por mes.
+MESANO em "INFLAÇÃO" e texto 'YYYY/MM' — usar "MESANO" diretamente no SELECT, GROUP BY e WHERE.
 
 Regras de uso (sempre FROM "INFLAÇÃO" para PERC_INF_* / SOMA_INF_*):
   "inflacao media de frango em %"   → AVG("PERC_INF_PROD_PMP") FROM "INFLAÇÃO"
@@ -429,8 +425,7 @@ Exemplos reais (2 linhas):
 ## INFLAÇÃO — variacao do PMP (115.273 linhas)
 Mostra como o preco medio ponderado (PMP) variou no tempo por ID e mes.
 MUITOS CAMPOS SAO NULL — sempre use IS NULL / IS NOT NULL, nunca = 0 ou = ''.
-ATENCAO MESANO: coluna tipo data (Ano-Mes). SELECT "MESANO" exibe so o ano ("2.026" = 2026).
-Usar DATEFORMAT("MESANO", 'yyyy/MM') no SELECT e GROUP BY para obter formato 'YYYY/MM'.
+MESANO e texto 'YYYY/MM' — usar diretamente em SELECT, GROUP BY e WHERE sem conversao.
 
 Campos e tipos:
   ID              texto    | chave analitica: 'RCMAI102303000'
@@ -753,16 +748,13 @@ SELECT * FROM forn_rank WHERE "TOT_ACUM" <= 80 ORDER BY "POS" LIMIT 10
 -- FONTE VIVA ALIMENTOS| 56.6mi | ACUM=11.70% | CURVA=AAA | POS=2
 
 ## Inflacao por categoria CAT2 por mes (ultimos 12 meses)
--- MESANO em INFLAÇÃO e tipo data: usar DATEFORMAT para exibir YYYY/MM
-SELECT "CAT2",
-       DATEFORMAT("MESANO", 'yyyy/MM') AS mesano,
-       AVG("PERC_INF_PROD_PMP") AS inflacao_media_pct
+SELECT "CAT2", "MESANO", AVG("PERC_INF_PROD_PMP") AS inflacao_media_pct
 FROM "INFLAÇÃO"
 WHERE "CAT2" IN ('I1 - ESTOCAVEIS','I2 - PERECIVEIS','I3 - HORTIFRUTI','I4 - DESCARTAVEIS','I5 - LIMPEZA','I6 - GAS')
   AND "PERC_INF_PROD_PMP" IS NOT NULL
   AND "MESANO" >= '2025/07' AND "MESANO" <= '2026/06'
-GROUP BY "CAT2", DATEFORMAT("MESANO", 'yyyy/MM')
-ORDER BY "CAT2", DATEFORMAT("MESANO", 'yyyy/MM') ASC
+GROUP BY "CAT2", "MESANO"
+ORDER BY "CAT2", "MESANO" ASC
 -- Resultado (exemplos):
 -- I1 - ESTOCAVEIS | 2025/07 | inflacao_media_pct=1.8
 -- I2 - PERECIVEIS | 2025/07 | inflacao_media_pct=4.2
