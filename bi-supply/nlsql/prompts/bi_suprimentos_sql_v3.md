@@ -207,12 +207,13 @@ PMP_1 a PMP_12: serie temporal (PMP_1 = mes atual, PMP_12 = 12 meses atras).
 ATENCAO CRITICA: PMP_0 SEMPRE VAZIO — nunca usar.
 Calcular variacao: (PMP_1 - PMP_12) / PMP_12 * 100 = inflacao % nos 12 meses.
 
-CAMPOS DE INFLACAO:
-ATENCAO CRITICA — PERC_INF_* e SOMA_INF_* existem SOMENTE na tabela "INFLACAO".
+CAMPOS DE INFLAÇÃO:
+ATENCAO CRITICA — PERC_INF_* e SOMA_INF_* existem SOMENTE na tabela "INFLAÇÃO".
 NFE tem: INF_ID_PMP, INF_PROD_PMP (sem prefixo PERC_/SOMA_ — semantica similar).
 NUNCA use PERC_INF_* ou SOMA_INF_* em FROM "NFE" — esses campos nao existem em NFE.
 
-Campos da tabela "INFLACAO" (sempre em percentual salvo prefixo SOMA_ que e R$):
+Campos da tabela "INFLAÇÃO" — nome real no Zoho e "INFLAÇÃO" (com acento):
+(sempre em percentual salvo prefixo SOMA_ que e R$):
   PERC_INF_ID_1:     variacao % do PMP do ID vs 1 mes anterior      (ex: +3.2%)
   PERC_INF_ID_PMP:   variacao % do PMP do ID vs PMP historico       (ex: +8.5%)
   PERC_INF_PROD_1:   variacao % do produto vs 1 mes anterior        (ex: +1.8%)
@@ -224,14 +225,14 @@ Campos da tabela "INFLACAO" (sempre em percentual salvo prefixo SOMA_ que e R$):
   SOMA_INF_PROD_PMP: diferenca em R$ produto vs PMP historico
 
 Roteamento — quando usar cada tabela para inflacao:
-  inflacao por categoria (CAT2), UF ou mes  → FROM "INFLACAO" (tem CAT2, UF, MESANO, ANO)
-  inflacao por linha de NF junto com outras colunas NFE → LEFT JOIN "INFLACAO" ON "ID"="ID" AND "MESANO"="MESANO"
-  calcular inflacao 12m sem tabela INFLACAO → (PMP_1 - PMP_12) / PMP_12 * 100 FROM "PMP_ID_INF_12"
+  inflacao por categoria (CAT2), UF ou mes  → FROM "INFLAÇÃO" (tem CAT2, UF, MESANO, ANO)
+  inflacao por linha de NF junto com outras colunas NFE → LEFT JOIN "INFLAÇÃO" ON "ID"="ID" AND "MESANO"="MESANO"
+  calcular inflacao 12m sem tabela INFLAÇÃO → (PMP_1 - PMP_12) / PMP_12 * 100 FROM "PMP_ID_INF_12"
 
-Regras de uso (sempre FROM "INFLACAO" para PERC_INF_* / SOMA_INF_*):
-  "inflacao media de frango em %"   → AVG("PERC_INF_PROD_PMP") FROM "INFLACAO"
-  "impacto da inflacao em R$"       → SUM("SOMA_INF_PROD_PMP") FROM "INFLACAO"
-  "produtos com inflacao acima 10%" → WHERE "PERC_INF_PROD_PMP" > 10 FROM "INFLACAO"
+Regras de uso (sempre FROM "INFLAÇÃO" para PERC_INF_* / SOMA_INF_*):
+  "inflacao media de frango em %"   → AVG("PERC_INF_PROD_PMP") FROM "INFLAÇÃO"
+  "impacto da inflacao em R$"       → SUM("SOMA_INF_PROD_PMP") FROM "INFLAÇÃO"
+  "produtos com inflacao acima 10%" → WHERE "PERC_INF_PROD_PMP" > 10 FROM "INFLAÇÃO"
   Sempre filtre NULL: WHERE "PERC_INF_PROD_PMP" IS NOT NULL
   Cuidado com outliers: use WHERE ABS("PERC_INF_ID_PMP") < 200 para excluir divisao por PMP=0
 
@@ -419,7 +420,7 @@ Exemplos reais (2 linhas):
   I201203000 | FILE PEITO FRANGO - KG | TOT=34.5mi | POS=1 | CURVA=AAA
   I201104000 | CARNE MOIDA 1a - KG    | TOT=23.5mi | POS=2 | CURVA=AAA
 
-## INFLACAO — variacao do PMP (115.273 linhas)
+## INFLAÇÃO — variacao do PMP (115.273 linhas)
 Mostra como o preco medio ponderado (PMP) variou no tempo por ID e mes.
 MUITOS CAMPOS SAO NULL — sempre use IS NULL / IS NOT NULL, nunca = 0 ou = ''.
 
@@ -561,7 +562,7 @@ Exemplos reais (2 linhas):
   CONSELHO REGIONAL NUTRICIONISTAS | ANO=2026 | SEM=18 | VENC=23521.08 | QTD=2
   FRIGELAR COM.DISTRIBUICAO        | ANO=2025 | SEM=9  | VENC=3689.68  | QTD=1
 
-## CP_SALDO_2026 — saldo semanal 2026 (10.200 linhas)
+## CP_SALDO_2026_v2 — saldo semanal 2026 (10.200 linhas)
 Fonte especifica para 2026 com saldo de divida por fornecedor e semana.
 
 Campos e tipos:
@@ -678,11 +679,11 @@ ORDER BY cp_aberto DESC LIMIT 10
 -- HOSP. OURO VERDE | HOSPITAL | SP | cp_aberto=2.450.000 | titulos=124
 -- MERENDA RECIFE   | MERENDA  | PE | cp_aberto=1.890.000 | titulos=87
 
-## NFE + INFLACAO — produtos com maior inflacao
+## NFE + INFLAÇÃO — produtos com maior inflacao
 SELECT n."NMPRODUTO_OFICIAL", n."CAT2", i."PERC_INF_PROD_PMP" AS inflacao_pct,
        i."SOMA_INF_PROD_PMP" AS inflacao_rs, n."MESANO"
 FROM "NFE" n
-LEFT JOIN "INFLACAO" i ON n."ID" = i."ID" AND n."MESANO" = i."MESANO"
+LEFT JOIN "INFLAÇÃO" i ON n."ID" = i."ID" AND n."MESANO" = i."MESANO"
 WHERE i."PERC_INF_PROD_PMP" IS NOT NULL AND i."PERC_INF_PROD_PMP" > 0
 ORDER BY i."PERC_INF_PROD_PMP" DESC LIMIT 10
 -- Resultado esperado (exemplos):
@@ -745,7 +746,7 @@ SELECT * FROM forn_rank WHERE "TOT_ACUM" <= 80 ORDER BY "POS" LIMIT 10
 
 ## Inflacao por categoria CAT2 por mes (ultimos 12 meses)
 SELECT "CAT2", "MESANO", AVG("PERC_INF_PROD_PMP") AS inflacao_media_pct
-FROM "INFLACAO"
+FROM "INFLAÇÃO"
 WHERE "CAT2" IN ('I1 - ESTOCAVEIS','I2 - PERECIVEIS','I3 - HORTIFRUTI','I4 - DESCARTAVEIS','I5 - LIMPEZA','I6 - GAS')
   AND "PERC_INF_PROD_PMP" IS NOT NULL
   AND "MESANO" >= '2025/07' AND "MESANO" <= '2026/06'
@@ -760,7 +761,7 @@ WITH inf_anual AS (
   SELECT "ID", "NMPRODUTO_EST", "ANO",
          AVG("PERC_INF_PROD_PMP") AS inflacao_media_pct,
          SUM("SOMA_INF_PROD_PMP") AS inflacao_total_rs
-  FROM "INFLACAO"
+  FROM "INFLAÇÃO"
   WHERE "PERC_INF_PROD_PMP" IS NOT NULL AND "ANO" = 2025
   GROUP BY "ID", "NMPRODUTO_EST", "ANO"
 )
@@ -815,7 +816,7 @@ GROUP BY "NMFANTFORN" ORDER BY vencido DESC LIMIT 20
 
 ## Saldo semanal de CP 2026
 SELECT "NMFANTFORN", "SEMANA_ANO", "INI_SEMANA", "SALDO_DIVIDA_SEMANA"
-FROM "CP_SALDO_2026" WHERE "ANO" = 2026
+FROM "CP_SALDO_2026_v2" WHERE "ANO" = 2026
 ORDER BY "SALDO_DIVIDA_SEMANA" DESC LIMIT 20
 
 # 13. Anti-padroes
