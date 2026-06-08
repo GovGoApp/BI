@@ -1449,3 +1449,26 @@ Paginação, CSV e expandir agora ficam no lado direito do `card-h` (cabeçalho 
 ### Commits
 - `f5792bc` paginacao + CSV + expandir (linha extra)
 - `7f397ed` controles movidos para o cabecalho
+
+---
+
+## [2026-06-08] Registry FIELD_FORMATS + _fmt unificado
+
+### Problema resolvido
+Formatação inconsistente: CDFILIAL (código) aparecia como "3.002,00", POS_PROD (inteiro) como "1,00". A causa era lógica de auto-format sem distinguir tipos de dado.
+
+### Solução: arquitetura em 3 camadas
+1. **`FIELD_FORMATS`** (Python, ~100 campos): registry central derivado de análise de todos os CSVs raw + generate_indexes.py. Injetado como `window._FF`.
+2. **`_fmt(v, key, override)`** (RENDERER_JS global): função única de formatação. Prioridade: `override` > `window._FF[key]` > raw. Exposta como `window._fmt`.
+3. **Aliases `_FA`**: retrocompat com códigos antigos (`brl`→`r0`, `pct`→`p1`, etc.)
+
+### Catálogo de formatos
+`d0/d2/d4` (decimal sem R$) | `r0/r2/r4` (com R$) | `rmi` (milhões)
+`n0/n2/n4` (numérico puro) | `p1` (% pill c/sinal) | `p2/p4` (% simples)
+`code` (ID/código) | `text` | `date`
+
+### Para novos campos
+Usar assistente OpenAI com nome do campo + 3 exemplos de valores + lista de formatos → retorna código sugerido para adicionar ao FIELD_FORMATS.
+
+### Commits
+- `4dcb660` build.py: registry FIELD_FORMATS + _fmt unificado
