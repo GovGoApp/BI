@@ -1536,3 +1536,35 @@ varredura esquerda→direita, cima→baixo, verificando CADA CÉLULA do bloco ca
 - `55ddc78` _applyLayout sincroniza ABAS_INDEX; _lastRow usa overrides reais
 - `bb03223` _findFreePos busca 2D completa
 - `1b877bb` _renderPage usa overrides do editor (fix real da persistência)
+
+---
+
+## [2026-06-08] Persistência real de layout em disco
+
+### Problema raiz (definitivo)
+As mudanças de layout só viviam no `localStorage` do browser — volátil, browser-específico, perdido ao limpar dados. O usuário esperava persistência real ("a atualização dentro do json deveria ser automática").
+
+### Solução completa: localStorage + servidor + disco
+
+**`server.py` — 2 novos endpoints:**
+- `POST /layout/<page_key>` → salva `dashboard/tabs/<page_key>.layout.json`
+- `GET /layout/<page_key>` → lê o arquivo de disco
+
+**`build.py` EDITOR_JS:**
+- `_autoSave`: salva no localStorage E faz `POST /layout/{pk}` (async, fire-and-forget)
+- `_flashSaved`: mostra `✓ salvo` ou `✓ salvo (local)` se servidor indisponível
+- `_loadAll`: restaura do localStorage (imediato) + sincroniza com servidor (async)
+
+**`build.py` pipeline:**
+- `apply_layout_overrides` já lia `dashboard/tabs/{page_key}.layout.json` — compatível
+
+### Fluxo completo
+1. Editor move elemento → localStorage + `POST /layout/produtos`
+2. F5 → `_loadAll` lê localStorage (imediato) + fetch `/layout` (async, atualiza)
+3. Novo browser/PC → só fetch `/layout` → layouts restaurados
+4. `build.py` recompila → `apply_layout_overrides` lê arquivos → ABAS_INDEX correto desde o início
+
+### Commits
+- `55ddc78` → `bb03223` → `1b877bb` → bugs de layout/posicionamento
+- `8b82898` persistencia real em disco
+
