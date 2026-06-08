@@ -1513,3 +1513,26 @@ varredura esquerda→direita, cima→baixo, verificando CADA CÉLULA do bloco ca
 ### Commits
 - `eaa20c6` _findFreeRow primeira versão
 - `bb03223` _findFreePos busca 2D completa
+
+---
+
+## [2026-06-08] Persistência de layout: causa raiz real corrigida
+
+### Causa raiz
+`_renderPage` usava `e.layout.col/row` (posições originais do build.py) para gerar o HTML. Os overrides do editor só eram aplicados **60ms depois** via `_applyLayout` (CSS patch após render). Isso causava flash visual e aparência de "não salvar" ao trocar de aba.
+
+### Correção definitiva
+`_renderPage` agora consulta `window._BI_EDITOR.getOv(pageKey, e.id)` **antes** de ler `e.layout`. Prioridade: override > layout original. Resultado: elementos já renderizam nas posições corretas desde o primeiro frame — sem flash, sem delay.
+
+`_applyLayout` continua rodando (60ms) mas agora é redundante para posições — serve de safety net para edge cases.
+
+### Flow após fix
+1. F5 → `_loadAll()` restaura overrides no `_st`
+2. Usuário clica aba Produtos
+3. `_renderPage` consulta `_BI_EDITOR.getOv` → HTML gerado com posições corretas
+4. Elementos visualmente corretos desde o primeiro frame ✓
+
+### Commits
+- `55ddc78` _applyLayout sincroniza ABAS_INDEX; _lastRow usa overrides reais
+- `bb03223` _findFreePos busca 2D completa
+- `1b877bb` _renderPage usa overrides do editor (fix real da persistência)
