@@ -1381,3 +1381,25 @@ Resultado: `20.9900000002` → `20,99` | `3.899...` → `3,90` | `1234567` → `
 
 ### Commits
 - `0350f5c` build.py: formato numerico BR 2 casas decimais
+
+---
+
+## [2026-06-08] Causa raiz confirmada + formatação numérica BR definitiva
+
+### Causa raiz dos crashes (confirmada com inspeção de código)
+- **RENDERER_JS**: escopo GLOBAL (sem IIFE)
+- **RELATORIO_JS**: tem `(function(){ 'use strict'; ... })()` — IIFE privado
+- `_isN` e `_fv` estão DENTRO do IIFE do RELATORIO_JS → não acessíveis globalmente
+- Chamar `_isN(v)` ou `_fv(v)` de `_renderT` (global) = `ReferenceError: _isN is not defined`
+- Esse ReferenceError quebrava a inicialização das abas silenciosamente
+
+### Solução definitiva
+- `_renderT` (RENDERER_JS global): substituir `_isN(v)` pela lógica inline completa. Zero chamadas a funções do IIFE.
+- `_fv` (dentro do RELATORIO_JS IIFE): seguro alterar, não sai do escopo. 2 casas decimais fixas.
+
+### Formato resultante
+`20.9900000002` → `20,99` | `3.899...` → `3,90` | `1.234.567,89` | `-3,00`
+
+### Commits
+- `90cb8fb` reverter formatacao numerica (estado seguro)
+- `c679c56` formatacao BR definitiva — inline sem chamar IIFE
