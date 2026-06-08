@@ -136,6 +136,8 @@ CDPRODESTO / NMPRODUTO_EST: produto convertido para a unidade basica de estoque.
 CDPRODUTO_OFICIAL / NMPRODUTO_OFICIAL: versao padronizada do codigo e nome.
   Padronizacao editorial feita pelo time de suprimentos para unificar nomes.
   Use NMPRODUTO_OFICIAL em filtros de busca por nome de produto.
+  ATENCAO: NMPRODUTO_OFICIAL existe em NFE, CURVA PROD, PMP_PROD_INF_12.
+  NAO EXISTE em INFLACAO nem em CURVA ID — nessas tabelas o nome e NMPRODUTO_EST.
 
 ID = NMEMP + UF + CDPRODESTO
   Chave analitica que representa "este produto nesta empresa neste estado".
@@ -438,9 +440,10 @@ Campos e tipos:
   CAT3            texto    | categoria nivel 3
   CAT4            texto    | categoria nivel 4
   CAT5            texto    | categoria nivel 5
-  NMPRODUTO_EST   texto    | nome do produto: 'FILE PEITO FRANGO - KG'
+  NMPRODUTO_EST   texto    | nome do produto: 'FILE PEITO FRANGO - KG'  ← usar para nome
   CDPRODUTO_OFICIAL texto  | codigo padronizado do produto
   CURVA_ID        texto    | curva do ID: 'AAA', 'A', 'C'
+  (NMPRODUTO_OFICIAL NAO EXISTE em INFLACAO — usar NMPRODUTO_EST)
   POS_ID          inteiro  | posicao no ranking de IDs
   TOTAL           decimal  | spend do periodo: 283.88
   PMP_ID          decimal  | PMP do ID no periodo: 94.63
@@ -746,6 +749,16 @@ SELECT * FROM forn_rank WHERE "TOT_ACUM" <= 80 ORDER BY "POS" LIMIT 10
 -- Resultado (exemplos):
 -- MM SECURITIZADORA   | 64.8mi | ACUM=6.25%  | CURVA=AAA | POS=1
 -- FONTE VIVA ALIMENTOS| 56.6mi | ACUM=11.70% | CURVA=AAA | POS=2
+
+## PMP por produto e UF em INFLACAO (maio/2026) ordenado por curva ID
+-- NMPRODUTO_EST (nao NMPRODUTO_OFICIAL) + CURVA_ID no GROUP BY para ORDER BY funcionar
+SELECT "UF", "NMPRODUTO_EST", "CURVA_ID", AVG("PMP_ID") AS preco_medio
+FROM "INFLAÇÃO"
+WHERE "MESANO" = '2026/05' AND "CURVA_ID" IN ('AAA', 'AA', 'A')
+GROUP BY "UF", "NMPRODUTO_EST", "CURVA_ID"
+ORDER BY "CURVA_ID" ASC, preco_medio DESC
+LIMIT 500
+-- Regra: se coluna aparece no ORDER BY mas nao e agregada, deve estar no GROUP BY
 
 ## Inflacao por categoria CAT2 por mes (ultimos 12 meses)
 SELECT "CAT2", "MESANO", AVG("PERC_INF_PROD_PMP") AS inflacao_media_pct
