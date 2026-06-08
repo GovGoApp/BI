@@ -584,7 +584,7 @@ function _renderTB(elem, data) {
 function _renderElemento(elem, data) {
   if (elem.tipo === 'KPI') return _renderKPI(elem, data);
 
-  const header = _cardHeader(elem);
+  let header = _cardHeader(elem);
   let body = '';
 
   switch(elem.tipo) {
