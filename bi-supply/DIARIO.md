@@ -1126,3 +1126,34 @@ Usuário clica [HL 92%] → setVizType() → preview renderizado acima da tabela
 - Adicionado: ids_unicos (16.343), produtos_unicos (6.302), cp_vencido (R$ 65.9mi)
 - K07: era placeholder 'fornecedores_ativos' -> agora 'ad_pendente' (R$ 44mi)
 - K08 CP: delta era 'cp_titulos' -> agora 'cp_vencido' com delta_dir=down
+
+---
+
+## [2026-06-08] Aba Fornecedor: KPIs + layout + colunas r01
+
+### Motivação
+Revisão da aba Fornecedor comparando implementação vs MAPA_PAINEIS.md e ESPECIFICACAO_ABAS.md. Mesmo processo aplicado à aba Resumo na sessão anterior.
+
+### Gaps identificados
+- `forn_curva_aaa_aa` (contagem fornecedores AAA+AA) ausente — citado no MAPA_PAINEIS linha 179
+- `cp_aberto_total` e `ad_pendente_total` (somas R$) ausentes — existiam apenas as contagens
+- Layout: 5 KPIs com col_span variável (3/3/3/3/4), inconsistente com padrão 8×2 da aba Resumo
+- r01_tabela: 4 colunas do CSV ausentes no IDX (ufs, categorias_top, pct, cp_vencido)
+- K02/K03 sem `state` visual
+
+### Correções — transform.py (`aba_fornecedor`)
+- `forn_curva_aaa_aa = sum(1 for cd,d in fv.items() if curva in ("AAA","AA"))`
+- `cp_aberto_total = r2(sum(fcp.get(cd,{}).get("aberto",0) for cd in fv))`
+- `ad_pendente_total = r2(sum(fad.get(cd,{}).get("pendente",0) for cd in fv))`
+
+### Correções — generate_indexes.py (IDX_06)
+- Reorganizado para 8 KPIs × col_span=2 (cols 1→16):
+  - k01 Fornecedores Ativos | k02 Forn. AAA+AA (ok) | k03 Spend AAA/AA/A (ok) | k04 % Spend Top (ok)
+  - k05 Forn. c/ CP Aberto (warn) | k06 CP Aberto R$ (warn) | k07 Forn. c/ AD Pendente (warn) | k08 AD Pendente R$ (warn)
+- r01_tabela: +ufs, +categorias_top, +pct, +cp_vencido
+
+### Valores gerados
+- forn_curva_aaa_aa: 54 | cp_aberto_total: R$ 105mi | ad_pendente_total: R$ 44mi
+
+### Commits
+- `373e53b` aba Fornecedor: +3 KPIs, 8 KPIs col_span=2, +4 colunas r01
