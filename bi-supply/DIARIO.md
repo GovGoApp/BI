@@ -1472,3 +1472,24 @@ Usar assistente OpenAI com nome do campo + 3 exemplos de valores + lista de form
 
 ### Commits
 - `4dcb660` build.py: registry FIELD_FORMATS + _fmt unificado
+
+---
+
+## [2026-06-08] Editor de layout: sobreposição + persistência F5
+
+### Bugs reportados
+a) Novo elemento inserido ficava sobre o último elemento (sobreposição)
+b) Após F5, posições manuais do editor desapareciam
+
+### Diagnóstico
+**Bug a:** `_lastRow(pg)` lia `ABAS_INDEX[pg].elementos[i].layout.row` — posições ORIGINAIS do build.py. Quando o editor arrasta um elemento, `_st[pk].overrides` é atualizado mas `ABAS_INDEX` não. Então `_lastRow` retornava linha já ocupada por elemento movido.
+
+**Bug b:** `_applyLayout` aplicava overrides ao CSS do DOM mas não atualizava `ABAS_INDEX`. Em qualquer re-render posterior (troca de aba, filtros), `ABAS_INDEX` regenerava posições originais.
+
+### Correções
+- `_lastRow`: usa `_BI_EDITOR.getOv(pg, e.id)` para ler posição REAL, com fallback ao layout
+- `_insertElem`: loop de detecção de sobreposição — avança a linha até encontrar espaço livre
+- `_applyLayout`: sincroniza `ABAS_INDEX.elementos[i].layout` com os overrides ao aplicar
+
+### Commits
+- `55ddc78` build.py: corrigir posicionamento e persistencia do editor de layout
