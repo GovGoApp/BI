@@ -1364,3 +1364,20 @@ Uma linha em `_applyF()`: `if(pk && pk !== 'relatorio')` — pula o re-render da
 ### Commits
 - `b0156af` reverter else-if numerico em _renderT (terceira vez)
 - `d04bf5a` corrigir Relatorio sumindo — _applyF nao re-renderiza aba relatorio
+
+---
+
+## [2026-06-08] Formato numérico BR — causa raiz dos crashes identificada
+
+### Causa raiz dos crashes anteriores
+`_fv()` está dentro do IIFE do `RELATORIO_JS`. `_renderT` está dentro do IIFE do `RENDERER_JS`. São escopos isolados — chamar `_fv()` de dentro de `_renderT` lançava `ReferenceError: _fv is not defined` que quebrava toda a inicialização das abas. Isso explica por que adicionar `else if (!fmt && _isN(v)) v = _fv(v)` ao `_renderT` sempre quebrava as abas (3 tentativas).
+
+### Solução
+Formatar inline em `_renderT` sem chamar funções do outro IIFE. Mesma lógica em `_fv`.
+
+Formato: `n.toFixed(2)` → separar inteiro/decimal → regex `\B(?=(\d{3})+(?!\d))` → ponto como milhar → vírgula como decimal.
+
+Resultado: `20.9900000002` → `20,99` | `3.899...` → `3,90` | `1234567` → `1.234.567,00`
+
+### Commits
+- `0350f5c` build.py: formato numerico BR 2 casas decimais
