@@ -155,13 +155,13 @@ Escala unica para as tres curvas: AAA > AA > A > B > BB > C > CC > CCC
 
 Faixas acumuladas:
   AAA: 0  a 50%  (poucos itens, muito valor — foco estrategico)
-  AA:  50 a 65%
-  A:   65 a 80%  — corte: AAA+AA+A = 80% do spend total
-  B:   80 a 90%
-  BB:  90 a 95%
-  C:   95 a 99%
-  CC:  99 a 99,5%
-  CCC: 99,5 a 100% (cauda longa — muitos itens, pouco valor)
+  AA:  50 a 60%
+  A:   60 a 70%  — corte: AAA+AA+A = 70% do spend total
+  B:   70 a 80%
+  BB:  80 a 90%
+  C:   90 a 95%
+  CC:  95 a 98%
+  CCC: 98 a 100% (cauda longa — muitos itens, pouco valor)
 
 POS: posicao ordinal (POS=1 = maior spend).
 
@@ -207,8 +207,12 @@ PMP_1 a PMP_12: serie temporal (PMP_1 = mes atual, PMP_12 = 12 meses atras).
 ATENCAO CRITICA: PMP_0 SEMPRE VAZIO — nunca usar.
 Calcular variacao: (PMP_1 - PMP_12) / PMP_12 * 100 = inflacao % nos 12 meses.
 
-CAMPOS DE INFLACAO — SEMPRE em percentual (%) salvo prefixo SOMA_ que e em R$:
+CAMPOS DE INFLACAO:
+ATENCAO CRITICA — PERC_INF_* e SOMA_INF_* existem SOMENTE na tabela "INFLACAO".
+NFE tem: INF_ID_PMP, INF_PROD_PMP (sem prefixo PERC_/SOMA_ — semantica similar).
+NUNCA use PERC_INF_* ou SOMA_INF_* em FROM "NFE" — esses campos nao existem em NFE.
 
+Campos da tabela "INFLACAO" (sempre em percentual salvo prefixo SOMA_ que e R$):
   PERC_INF_ID_1:     variacao % do PMP do ID vs 1 mes anterior      (ex: +3.2%)
   PERC_INF_ID_PMP:   variacao % do PMP do ID vs PMP historico       (ex: +8.5%)
   PERC_INF_PROD_1:   variacao % do produto vs 1 mes anterior        (ex: +1.8%)
@@ -219,10 +223,15 @@ CAMPOS DE INFLACAO — SEMPRE em percentual (%) salvo prefixo SOMA_ que e em R$:
   SOMA_INF_PROD_1:   diferenca em R$ produto vs 1 mes anterior
   SOMA_INF_PROD_PMP: diferenca em R$ produto vs PMP historico
 
-Regras de uso da inflacao:
-  "inflacao media de frango em %"  → AVG("PERC_INF_PROD_PMP")
-  "impacto da inflacao em R$"      → SUM("SOMA_INF_PROD_PMP")
-  "produtos com inflacao acima 10%" → WHERE "PERC_INF_PROD_PMP" > 10
+Roteamento — quando usar cada tabela para inflacao:
+  inflacao por categoria (CAT2), UF ou mes  → FROM "INFLACAO" (tem CAT2, UF, MESANO, ANO)
+  inflacao por linha de NF junto com outras colunas NFE → LEFT JOIN "INFLACAO" ON "ID"="ID" AND "MESANO"="MESANO"
+  calcular inflacao 12m sem tabela INFLACAO → (PMP_1 - PMP_12) / PMP_12 * 100 FROM "PMP_ID_INF_12"
+
+Regras de uso (sempre FROM "INFLACAO" para PERC_INF_* / SOMA_INF_*):
+  "inflacao media de frango em %"   → AVG("PERC_INF_PROD_PMP") FROM "INFLACAO"
+  "impacto da inflacao em R$"       → SUM("SOMA_INF_PROD_PMP") FROM "INFLACAO"
+  "produtos com inflacao acima 10%" → WHERE "PERC_INF_PROD_PMP" > 10 FROM "INFLACAO"
   Sempre filtre NULL: WHERE "PERC_INF_PROD_PMP" IS NOT NULL
   Cuidado com outliers: use WHERE ABS("PERC_INF_ID_PMP") < 200 para excluir divisao por PMP=0
 
@@ -417,7 +426,18 @@ MUITOS CAMPOS SAO NULL — sempre use IS NULL / IS NOT NULL, nunca = 0 ou = ''.
 Campos e tipos:
   ID              texto    | chave analitica: 'RCMAI102303000'
   MESANO          texto    | periodo: '2024/08'
-  CURVA_ID        texto    | curva do ID
+  ANO             inteiro  | ano: 2024
+  UF              texto    | estado: 'SP', 'PE', 'MA'
+  NMEMP           texto    | empresa: 'RC', 'ME', 'SU'
+  CAT1            texto    | categoria nivel 1: 'I - INSUMOS'
+  CAT2            texto    | categoria nivel 2: 'I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', ...
+  CAT3            texto    | categoria nivel 3
+  CAT4            texto    | categoria nivel 4
+  CAT5            texto    | categoria nivel 5
+  NMPRODUTO_EST   texto    | nome do produto: 'FILE PEITO FRANGO - KG'
+  CDPRODUTO_OFICIAL texto  | codigo padronizado do produto
+  CURVA_ID        texto    | curva do ID: 'AAA', 'A', 'C'
+  POS_ID          inteiro  | posicao no ranking de IDs
   TOTAL           decimal  | spend do periodo: 283.88
   PMP_ID          decimal  | PMP do ID no periodo: 94.63
   PMP_PROD        decimal  | PMP do produto no periodo: 14.63
@@ -433,8 +453,8 @@ Campos e tipos:
   PERC_INF_PROD_PMP decimal| inflacao % produto vs PMP
 
 Exemplos reais (2 linhas):
-  RCMAI102303000 | 2024/08 | TOTAL=283.88 | PMP_ID=94.63 | PMP_PROD=14.63 | PMP_PROD_1=13.55
-  RCMAD201113020 | 2025/03 | TOTAL=25.28  | PMP_ID=3.16  | PMP_PROD=4.67  | PMP_PROD_1=5.23
+  RCMAI102303000 | 2024/08 | UF=MA | NMEMP=RC | CAT2=I2 - PERECIVEIS | TOTAL=283.88 | PMP_PROD=14.63
+  RCMAD201113020 | 2025/03 | UF=AD | NMEMP=SU | CAT2=I2 - PERECIVEIS | TOTAL=25.28  | PMP_PROD=4.67
 
 ## PMP_ID_INF_12 — serie PMP 12 meses por ID (16.300 linhas)
 Serie temporal do preco medio por ID para os ultimos 12 meses.
@@ -722,6 +742,18 @@ SELECT * FROM forn_rank WHERE "TOT_ACUM" <= 80 ORDER BY "POS" LIMIT 10
 -- Resultado (exemplos):
 -- MM SECURITIZADORA   | 64.8mi | ACUM=6.25%  | CURVA=AAA | POS=1
 -- FONTE VIVA ALIMENTOS| 56.6mi | ACUM=11.70% | CURVA=AAA | POS=2
+
+## Inflacao por categoria CAT2 por mes (ultimos 12 meses)
+SELECT "CAT2", "MESANO", AVG("PERC_INF_PROD_PMP") AS inflacao_media_pct
+FROM "INFLACAO"
+WHERE "CAT2" IN ('I1 - ESTOCAVEIS','I2 - PERECIVEIS','I3 - HORTIFRUTI','I4 - DESCARTAVEIS','I5 - LIMPEZA','I6 - GAS')
+  AND "PERC_INF_PROD_PMP" IS NOT NULL
+  AND "MESANO" >= '2025/07' AND "MESANO" <= '2026/06'
+GROUP BY "CAT2", "MESANO"
+ORDER BY "CAT2", "MESANO" ASC
+-- Resultado (exemplos):
+-- I1 - ESTOCAVEIS | 2025/07 | inflacao_media_pct=1.8
+-- I2 - PERECIVEIS | 2025/07 | inflacao_media_pct=4.2
 
 ## Inflacao acumulada anual por produto
 WITH inf_anual AS (
