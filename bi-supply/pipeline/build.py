@@ -381,6 +381,10 @@ function _renderT(elem, data) {
         try { const pts = JSON.parse(v || '[]'); v = pts.length ? svgSpark(pts.map(Number)) : '—'; }
         catch(e) { v = '—'; }
       }
+      else if (!fmt && _isN(v)) {
+        const n = parseFloat(v);
+        v = n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+      }
       return `<td class="${c.cls || ''}">${v}</td>`;
     }).join('');
     return `<tr>${tds}</tr>`;
@@ -2884,17 +2888,20 @@ if(typeof pages!=='undefined'){
     <div class="rel-content" id="rel-content"></div>
   </main>
 </div>`;
-  // Esconder/mostrar filtros ao entrar/sair da aba Relatório
-  document.addEventListener('click',e=>{
-    const tab=e.target.closest('.tab[data-page]');
-    if(!tab) return;
-    const isRel = tab.dataset.page==='relatorio';
-    const filters=document.getElementById('filters');
-    if(filters) filters.style.display = isRel ? 'none' : '';
-    const app=document.querySelector('.app');
-    if(app) app.style.paddingBottom = isRel ? '0' : '';
-    if(isRel) setTimeout(_init,60);
-  });
+  // Esconder/mostrar filtros ao entrar/sair da aba Relatório (registrar só uma vez)
+  if(!window._RL_CLICK_BOUND){
+    window._RL_CLICK_BOUND=true;
+    document.addEventListener('click',e=>{
+      const tab=e.target.closest('.tab[data-page]');
+      if(!tab) return;
+      const isRel = tab.dataset.page==='relatorio';
+      const filters=document.getElementById('filters');
+      if(filters) filters.style.display = isRel ? 'none' : '';
+      const app=document.querySelector('.app');
+      if(app) app.style.paddingBottom = isRel ? '0' : '';
+      if(isRel) setTimeout(_init,60);
+    });
+  }
 }
 
 })();
