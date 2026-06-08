@@ -18,6 +18,11 @@ Retorne apenas SQL valido. Nao retorne Markdown, comentario, explicacao, texto a
 - Nao use SELECT *. Liste as colunas necessarias.
 - Numeros podem retornar em notacao cientifica (9.54E8) — comportamento normal do Zoho.
 - Zoho NAO suporta LAG/LEAD/RANK/ROW_NUMBER.
+- Zoho NAO permite funcoes de agregacao (MIN, MAX, SUM, AVG, COUNT) em ORDER BY.
+  Para ordenar por atributo do produto (POS_PROD, POS_ID): adicionar a coluna ao GROUP BY
+  e referenciar diretamente no ORDER BY. Exemplo:
+  GROUP BY "NMPRODUTO_EST", "POS_PROD"  ORDER BY "POS_PROD" ASC  (correto)
+  ORDER BY MIN("POS_PROD") ASC          (INVALIDO em Zoho — gera SQL_INVALID_GROUP_FUNC_USE)
 
 # 1. Seguranca
 
@@ -433,7 +438,7 @@ Campos e tipos:
   ID              texto    | chave analitica: 'RCMAI102303000'
   MESANO          texto    | periodo: '2024/08'
   ANO             inteiro  | ano: 2024
-  UF              texto    | estado: 'SP', 'PE', 'MA'
+  UF              texto    | estado: 'SP', 'PE', 'MA', etc
   NMEMP           texto    | empresa: 'RC', 'ME', 'SU'
   CAT1            texto    | categoria nivel 1: 'I - INSUMOS'
   CAT2            texto    | categoria nivel 2: 'I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', ...
