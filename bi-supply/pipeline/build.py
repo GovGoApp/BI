@@ -3152,28 +3152,40 @@ function _repositionKpis(pg){
   }
 }
 
-/* Encontra a primeira linha livre no grid para um elemento de col/col_span/row_span dados.
-   Varre de cima para baixo — usa espaços vagos deixados por elementos removidos. */
-function _findFreeRow(pg, excludeId, col, col_span, row_span) {
-  const occupied = (ABAS_INDEX?.[pg]?.elementos || [])
+/* Encontra a primeira posição livre no grid (varredura esquerda→direita, cima→baixo).
+   Constrói mapa de ocupação célula a célula e testa cada célula do bloco candidato.
+   Retorna {row, col} da primeira posição onde col_span × row_span cabe sem nenhum conflito. */
+function _findFreePos(pg, excludeId, col_span, row_span) {
+  const COLS = 16;
+  // Monta mapa de ocupação: taken[r][c] = true se célula ocupada
+  const taken = {};
+  (ABAS_INDEX?.[pg]?.elementos || [])
     .filter(e => e.id !== excludeId && _isInGrid(e, pg))
-    .map(e => {
+    .forEach(e => {
       const ov = (window._BI_EDITOR?.getOv(pg, e.id)) || {};
-      return {
-        r1: ov.row      || e.layout.row      || 1,
-        r2: (ov.row     || e.layout.row      || 1) + (ov.row_span || e.layout.row_span || 2),
-        c1: ov.col      || e.layout.col      || 1,
-        c2: (ov.col     || e.layout.col      || 1) + (ov.col_span || e.layout.col_span || 16),
-      };
+      const r1 = ov.row      || e.layout.row      || 1;
+      const rs = ov.row_span || e.layout.row_span || 2;
+      const c1 = ov.col      || e.layout.col      || 1;
+      const cs = ov.col_span || e.layout.col_span || COLS;
+      for (let r = r1; r < r1 + rs; r++) {
+        taken[r] = taken[r] || {};
+        for (let c = c1; c < c1 + cs; c++) taken[r][c] = 1;
+      }
     });
+  // Varredura top-left → bottom-right
   for (let row = 1; row < 500; row++) {
-    const overlap = occupied.some(o =>
-      row < o.r2 && row + row_span > o.r1 &&
-      col < o.c2 && col + col_span > o.c1
-    );
-    if (!overlap) return row;
+    for (let col = 1; col <= COLS - col_span + 1; col++) {
+      let fits = true;
+      outer:
+      for (let r = row; r < row + row_span; r++) {
+        for (let c = col; c < col + col_span; c++) {
+          if (taken[r] && taken[r][c]) { fits = false; break outer; }
+        }
+      }
+      if (fits) return {row, col};
+    }
   }
-  return 1;
+  return {row: 1, col: 1};
 }
 
 function _insertElem(id,pg){
@@ -3204,10 +3216,10 @@ function _insertElem(id,pg){
     // Reposiciona TODOS os KPIs do grid
     _repositionKpis(pg);
   } else {
-    const col=1,col_span=10,row_span=6;
-    const row=_findFreeRow(pg,id,col,col_span,row_span);
-    elem.layout={...(elem.layout||{}),col,col_span,row,row_span,visivel:true};
-    (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{col,col_span,row,row_span,visivel:true});
+    const col_span=10, row_span=6;
+    const pos=_findFreePos(pg,id,col_span,row_span);
+    elem.layout={...(elem.layout||{}),col:pos.col,col_span,row:pos.row,row_span,visivel:true};
+    (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{col:pos.col,col_span,row:pos.row,row_span,visivel:true});
   }
   _rerender(pg);
 }
