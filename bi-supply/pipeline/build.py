@@ -892,15 +892,27 @@ function _loadAll() {
   }
 }
 
-// ── Aplicar overrides salvos ao DOM da aba atual ──────────────────────────────
+// ── Aplicar overrides salvos ao DOM e sincronizar ABAS_INDEX ──────────────────
 function _applyLayout(pk) {
   const ov=(_st[pk]||{}).overrides||{};
+  const tabData=(typeof ABAS_INDEX!=='undefined')&&ABAS_INDEX[pk];
   document.querySelectorAll('.grid-element').forEach(el=>{
     const id=el.dataset.id; if(!id||!ov[id]) return;
     const o=ov[id];
     if ('col' in o && 'col_span' in o) el.style.gridColumn=`${o.col}/span ${o.col_span}`;
     if ('row' in o && 'row_span' in o) el.style.gridRow   =`${o.row}/span ${o.row_span}`;
     if ('visivel' in o && !o.visivel) el.classList.add('ed-hidden');
+    // Sincronizar ABAS_INDEX para que _lastRow e _renderPage usem posições actuais
+    if(tabData){
+      const elem=tabData.elementos?.find(e=>e.id===id);
+      if(elem&&elem.layout){
+        if('col'      in o) elem.layout.col=o.col;
+        if('col_span' in o) elem.layout.col_span=o.col_span;
+        if('row'      in o) elem.layout.row=o.row;
+        if('row_span' in o) elem.layout.row_span=o.row_span;
+        if('visivel'  in o) elem.layout.visivel=o.visivel;
+      }
+    }
     if (o.texto) {
       if (o.texto.titulo)    { const h=el.querySelector('.card-h h3')||el.querySelector('.kpi .lab'); if(h) h.textContent=o.texto.titulo; }
       if (o.texto.subtitulo) { const s=el.querySelector('.card-h .sub');if(s) s.textContent=o.texto.subtitulo; }
@@ -3100,7 +3112,11 @@ function _isInGrid(e,pg){
 
 function _lastRow(pg){
   const rows=(ABAS_INDEX?.[pg]?.elementos||[]).filter(e=>_isInGrid(e,pg));
-  return rows.length?Math.max(...rows.map(e=>(e.layout.row||1)+(e.layout.row_span||2))):2;
+  if(!rows.length) return 2;
+  return Math.max(...rows.map(e=>{
+    const ov=(window._BI_EDITOR?.getOv(pg,e.id))||{};
+    return (ov.row||e.layout.row||1)+(ov.row_span||e.layout.row_span||2);
+  }));
 }
 
 function _rerender(pg){
@@ -3164,7 +3180,20 @@ function _insertElem(id,pg){
     // Reposiciona TODOS os KPIs do grid
     _repositionKpis(pg);
   } else {
-    const col=1,col_span=10,row=_lastRow(pg),row_span=6;
+    const col=1,col_span=10,row_span=6;
+    // Garante que nao ha sobreposicao: avanca ate encontrar linha livre
+    let row=_lastRow(pg);
+    const elems=(ABAS_INDEX?.[pg]?.elementos||[]).filter(e=>e.id!==id&&_isInGrid(e,pg));
+    let safe=false;
+    while(!safe){
+      safe=true;
+      for(const e of elems){
+        const ov=(window._BI_EDITOR?.getOv(pg,e.id))||{};
+        const er=ov.row||e.layout.row||1, ers=ov.row_span||e.layout.row_span||2;
+        const ec=ov.col||e.layout.col||1, ecs=ov.col_span||e.layout.col_span||16;
+        if(row<er+ers && row+row_span>er && col<ec+ecs && col+col_span>ec){safe=false;row=er+ers;break;}
+      }
+    }
     elem.layout={...(elem.layout||{}),col,col_span,row,row_span,visivel:true};
     (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{col,col_span,row,row_span,visivel:true});
   }
