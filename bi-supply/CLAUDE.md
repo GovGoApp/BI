@@ -73,3 +73,5 @@ KPIs ficam em `{aba}_k00_kpis.json`. Para adicionar:
 - Não pedir confirmação antes de executar (usuário autorizou commits automáticos)
 - Não abrir browser (nunca `start dist\index.html`)
 - Sempre listar arquivos alterados com links ao final de cada entrega
+- **README.md**: atualizar quando houver mudança estrutural (nova aba, nova feature, novo endpoint)
+- **DIARIO.md**: append no FINAL a cada sessão de trabalho com data, commits e detalhes técnicos
