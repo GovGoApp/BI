@@ -2012,7 +2012,7 @@ function _fv(v) {
   if (Math.abs(n) >= 1e3) return n.toLocaleString('pt-BR',{maximumFractionDigits:2});
   return n.toLocaleString('pt-BR',{maximumFractionDigits:4});
 }
-function _isN(v){ return v!==null&&v!==''&&v!==undefined&&!isNaN(parseFloat(v)); }
+function _isN(v){ return v!==null&&v!==''&&v!==undefined&&!isNaN(Number(v)); }
 function _ts(s){ if(!s) return ''; try{ return new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){return '';} }
 const $ = id => document.getElementById(id);
 const _esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -2339,7 +2339,11 @@ function _renderTableSection(r, tid){
   const pg=_S.pages[tid]||0;
   const pgs=Math.ceil(rows.length/PAGE_SZ);
   const vis=rows.slice(pg*PAGE_SZ,(pg+1)*PAGE_SZ);
-  const ths=cols.map(c=>`<th>${_esc(c)}</th>`).join('');
+  const ths=cols.map(c=>{
+    const fv=rows.length?rows[0][c]??'':'';
+    const s=_isN(fv)?' style="text-align:right"':'';
+    return `<th${s}>${_esc(c)}</th>`;
+  }).join('');
   const trs=vis.map(row=>'<tr>'+cols.map(c=>{
     const v=row[c]??'';
     const d=_isN(v)?_fv(v):_esc(String(v));
