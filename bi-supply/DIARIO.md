@@ -1568,3 +1568,20 @@ As mudanças de layout só viviam no `localStorage` do browser — volátil, bro
 - `55ddc78` → `bb03223` → `1b877bb` → bugs de layout/posicionamento
 - `8b82898` persistencia real em disco
 
+
+---
+
+## [2026-06-08] Fix: elementos NL-SQL (tag Relatório) não persistiam
+
+### Causa raiz confirmada
+Havia dois comportamentos distintos:
+- **Elementos BI** (gerados pelo build.py): sempre no ABAS_INDEX → `_renderPage` os encontra → persistência funcionava ✓
+- **Elementos NL-SQL** (adicionados via Relatório): só no ABAS_INDEX em memória (via `_insertElem`). Após F5, ABAS_INDEX resetado pelo HTML → sumiam ✗
+
+### Fix
+`_injectNlData` (ELEMENTS_RUNTIME_JS) agora re-injeta cada elemento de `_nlEls()` no `ABAS_INDEX[destination_tab].elementos` com a posição recuperada de `_BI_EDITOR.getOv` (que já leu o localStorage via `_loadAll`).
+
+Timing: ELEMENTS_RUNTIME_JS roda após EDITOR_JS → `_BI_EDITOR.getOv` disponível → posições corretas.
+
+### Commits
+- `dec8fae` _injectNlData re-injeta NL-SQL no ABAS_INDEX após F5
