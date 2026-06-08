@@ -381,10 +381,6 @@ function _renderT(elem, data) {
         try { const pts = JSON.parse(v || '[]'); v = pts.length ? svgSpark(pts.map(Number)) : '—'; }
         catch(e) { v = '—'; }
       }
-      else if (!fmt && _isN(v)) {
-        const n = parseFloat(v);
-        v = n.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
-      }
       return `<td class="${c.cls || ''}">${v}</td>`;
     }).join('');
     return `<tr>${tds}</tr>`;
