@@ -739,9 +739,19 @@ function _renderPage(pageKey) {
     </div>`;
   }
 
-  const elems = (idx.elementos || []).filter(e => e.layout && e.layout.visivel);
+  // Usa overrides do editor (localStorage) quando disponíveis — sem flash de posição
+  const elems = (idx.elementos || []).filter(e => {
+    if (!e.layout) return false;
+    const ov = window._BI_EDITOR?.getOv(pageKey, e.id) || {};
+    if ('visivel' in ov) return ov.visivel !== false;
+    return e.layout.visivel !== false;
+  });
   const cells = elems.map(e => {
-    const {col, col_span, row, row_span} = e.layout;
+    const ov = window._BI_EDITOR?.getOv(pageKey, e.id) || {};
+    const col      = ov.col      ?? e.layout.col;
+    const col_span = ov.col_span ?? e.layout.col_span;
+    const row      = ov.row      ?? e.layout.row;
+    const row_span = ov.row_span ?? e.layout.row_span;
     const data = window._BI_DATA ? window._BI_DATA[e.variavel_js] : undefined;
     const content = _renderElemento(e, data);
     const handle = `<div class="grid-editor-handle" data-id="${e.id}" title="${e.id}">⠿</div>`;
