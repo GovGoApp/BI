@@ -1187,3 +1187,26 @@ ORDER BY "CAT2", "MESANO" ASC
 
 ### Commits
 - `62481a3` prompt v3: corrigir bug PERC_INF_* em NFE + adicionar CAT2 em INFLACAO
+
+---
+
+## [2026-06-08] Prompt v3: MESANO INFLAÇÃO tipo data + nomes de tabela Zoho
+
+### Problemas reportados
+1. MESANO na INFLAÇÃO mostrava "2.026" (= 2026) em vez de "2025/07"
+2. `"INFLACAO"` (sem acento) gerava HTTP 400 INVALID_TABLE (commit anterior desta sessão)
+
+### Causa raiz MESANO
+A view INFLAÇÃO no Zoho é do tipo `QueryTable`. O Zoho detecta `MESANO` como coluna data (Ano-Mês). `SELECT "MESANO"` retorna apenas o ano exibido em notação brasileira (ponto como separador de milhar). Os dados estão corretos (72 linhas = 6 cat × 12 meses), mas o Zoho oculta o mês.
+
+### Correção MESANO
+Usar `DATEFORMAT("MESANO", 'yyyy/MM')` no SELECT, GROUP BY e ORDER BY.
+Filtros `WHERE "MESANO" >= '2025/07'` continuam funcionando normalmente.
+
+### Correções nomes de tabela (commit anterior)
+- `"INFLACAO"` → `"INFLAÇÃO"` (replace_all no prompt)
+- `"CP_SALDO_2026"` → `"CP_SALDO_2026_v2"` (replace_all no prompt)
+
+### Commits
+- `db95b33` prompt v3: corrigir nomes de tabela Zoho
+- `42137f1` prompt v3: MESANO INFLACAO e tipo data — usar DATEFORMAT para YYYY/MM
