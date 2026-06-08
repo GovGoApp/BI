@@ -360,11 +360,11 @@ function _renderHL(elem, data) {
 function _renderT(elem, data) {
   if (!data || !data.length) return '<div class="muted" style="padding:10px;font-size:12px">Sem dados</div>';
   const cfg = elem.config || {};
-  // Prioridade: colunas configuradas > columns SQL (ordem original) > Object.keys (sem limite)
-  const colKeys = cfg.colunas
-    ? null
-    : (elem.columns && elem.columns.length ? elem.columns : Object.keys(data[0]));
-  const cols = cfg.colunas || colKeys.map(k => ({key: k, label: k}));
+  let cols = cfg.colunas;
+  if (!cols || !cols.length) {
+    const keys = (elem.columns && elem.columns.length) ? elem.columns : Object.keys(data[0]);
+    cols = keys.map(k => ({key: k, label: k}));
+  }
   const ths = cols.map(c => `<th class="${c.cls || ''}" data-key="${c.key}">${c.label || c.key}</th>`).join('');
   const trs = data.slice(0, 25).map(r => {
     const tds = cols.map(c => {
