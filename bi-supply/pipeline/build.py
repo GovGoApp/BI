@@ -1854,7 +1854,11 @@ RELATORIO_CSS = """
 .rel-table td { padding: 9px 12px; border-bottom: 1px solid rgba(226,232,240,.5); font-size: 12.5px; color: var(--text); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 40px; }
 .rel-table tbody tr:first-child td { background: #eff6ff; }
 .rel-table tbody tr:hover td { background: rgba(37,99,235,.03); }
-.rel-err { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 12px 14px; color: #dc2626; font-size: 13px; margin-bottom: 12px; }
+.rel-err { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 8px; padding: 10px 12px; color: #dc2626; font-size: 13px; margin-bottom: 12px; }
+.rel-err-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.rel-err-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #b91c1c; }
+.rel-err-copy { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-size: 11px; font-weight: 600; color: #b91c1c; background: rgba(185,28,28,.08); border: 1px solid #fca5a5; border-radius: 5px; cursor: pointer; }
+.rel-err-copy:hover { background: rgba(185,28,28,.15); }
 /* ── Aba Elementos (sidebar) ── */
 .rel-elem-group { margin-bottom: 10px; }
 .rel-elem-group-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 0 2px 5px; display: flex; align-items: center; gap: 6px; }
@@ -2378,7 +2382,7 @@ function _renderContent(){
   let h=`<h2 class="rel-r-title">${_esc(r.title||r.question||'Resultado')}</h2>`;
   if(r.subtitle) h+=`<div class="rel-r-sub">${_esc(r.subtitle)}</div>`;
   else h+='<div style="margin-bottom:6px"></div>';
-  if(r.status==='error') h+=`<div class="rel-err">${_esc(r.error||'Erro desconhecido')}</div>`;
+  if(r.status==='error') h+=`<div class="rel-err"><div class="rel-err-hd"><span class="rel-err-lbl">Erro</span><button class="rel-err-copy" onclick="window._RL.copyError('${tid}')" title="Copiar pergunta + SQL + erro para colar no chat">${_SVG_COPY} Copiar contexto</button></div><div>${_esc(r.error||'Erro desconhecido')}</div></div>`;
   if(r.sql){
     h+=`<div class="rel-sql-wrap"><div class="rel-sql-head"><span class="rel-sql-lbl">Comando SQL</span><button class="rel-sql-copy" onclick="window._RL.copySql('${tid}')" title="Copiar SQL">${_SVG_COPY}</button></div><pre class="rel-sql-pre">${_esc(r.sql)}</pre></div>`;
   }
@@ -2692,6 +2696,20 @@ window._RL = {
 
   copySql: id => {
     const r=_S.reports[id]; if(r?.sql) navigator.clipboard.writeText(r.sql);
+  },
+
+  copyError: id => {
+    const r=_S.reports[id]; if(!r) return;
+    const txt=[
+      `Pergunta: ${r.question||''}`,
+      ``,
+      `SQL gerado:`,
+      r.sql||'(sem SQL)',
+      ``,
+      `Erro:`,
+      r.error||'(sem mensagem de erro)',
+    ].join('\n');
+    navigator.clipboard.writeText(txt);
   },
 
   // Abre resultado do chat
