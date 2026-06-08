@@ -1431,3 +1431,21 @@ Resultado: `20.9900000002` → `20,99` | `3.899...` → `3,90` | `1234567` → `
 
 ### Commits
 - `f5792bc` build.py: paginacao + CSV + expandir nas tabelas das abas BI
+
+---
+
+## [2026-06-08] Controles tabela movidos para o cabeçalho
+
+### Mudança
+Paginação, CSV e expandir agora ficam no lado direito do `card-h` (cabeçalho da tabela), sem criar linha adicional.
+
+### Implementação
+- `_tCtrlHtml(vjs)`: retorna apenas os botões (sem wrapper)
+- `_renderTInner`: retorna apenas a tabela (sem barra)
+- `_renderElemento` T/TE: gera cabeçalho customizado com `id="tc_{vjs}"` para update sem re-render
+- `_T_NAV` e `_T_EXPAND`: atualizam `tw_{vjs}` (tabela) E `tc_{vjs}` (controles no header)
+- CSS: `.t-pgb`, `.t-pgn`, `.t-info` — botões compactos para caber no header
+
+### Commits
+- `f5792bc` paginacao + CSV + expandir (linha extra)
+- `7f397ed` controles movidos para o cabecalho
