@@ -20,6 +20,86 @@ from datetime import datetime, timezone
 
 ROOT     = Path(__file__).resolve().parents[1]
 PROC     = ROOT / "data" / "processed"
+
+# ── Registry central de formatos por campo ────────────────────────────────────
+# Fonte: análise de todos os CSVs raw + generate_indexes.py + documentação
+# Códigos: d0/d2/d4=decimal s/R$  r0/r2/r4=com R$  rmi=milhões
+#          n0/n2/n4=numérico puro  p1=% c/sinal/pill  p2=% s/sinal  p4=% 4 casas
+#          code=código/ID  text=texto  date=data
+# Para novos campos: usar assistente OpenAI com exemplos de valores
+FIELD_FORMATS = {
+    # ── Códigos / IDs — exibir sem formatação ────────────────────────────
+    "ID": "code",          "TE.ID": "code",
+    "CDFILIAL": "code",    "CDFILIAL_CP": "code",
+    "CDFORNECED": "code",  "CDFORNECED_OFICIAL": "code",
+    "CDPRODUTO": "code",   "CDPRODUTO_EST": "code",
+    "CDPRODUTO_OFICIAL": "code",  "CDPRODESTO": "code",
+    "NRNOTA": "code",      "CHAVE": "code",
+    "CDTPCTPAGAR": "code", "CNPJ_MENOR_PRECO": "code",
+    "T.FORNECEDOR": "code",
+    # ── Texto / categorias / labels — exibir como veio ──────────────────
+    "MESANO": "text",   "ANO": "text",    "MES": "text",   "SGMES": "text",
+    "NMEMP": "text",    "UF": "text",     "SGESTADO": "text",
+    "CURVA": "text",    "CURVA_ID": "text",  "CURVA_PROD": "text",  "CURVA_FORN": "text",
+    "CAT1": "text",     "CAT2": "text",   "CAT3": "text",  "CAT4": "text",  "CAT5": "text",
+    "STATUSPAG": "text",  "STATUS_VENC": "text",  "STATUS_CONCILIACAO": "text",
+    "FAIXA_DIAS": "text", "ATIVA": "text",  "NEGOCIO": "text",  "REGIAO": "text",
+    "MARCA": "text",    "PRIORIDADE": "text",
+    "NMPRODUTO": "text",  "NMPRODUTO_EST": "text",  "NMPRODUTO_OFICIAL": "text",
+    "NMRAZSOCFORN": "text",  "NMFANTFORN": "text",
+    "FANTASIA_OFICIAL": "text",  "RAZAO_OFICIAL": "text",
+    "NMFILIAL": "text",  "EMPRESA": "text",  "S_EMP": "text",
+    "LOCAL": "text",    "SIGLA": "text",  "NEGOCIO": "text",
+    # ── Datas ────────────────────────────────────────────────────────────
+    "DTENTRADA": "date",   "DTEMISSAO": "date",   "DTENTRSAID": "date",
+    "DTORIGVENPAG": "date","DTATUAVENPAG": "date", "DTBAIXAPAG": "date",
+    "INI_SEMANA": "date",  "FIM_SEMANA": "date",
+    # ── Inteiros: posições e contagens (n0 = inteiro com milhar) ────────
+    "POS": "n0",     "POS_ID": "n0",   "POS_PROD": "n0",  "POS_FORN": "n0",
+    "QTD_COT": "n0", "QTDE_EST": "n0", "E.QTDE_EST": "n0",
+    "QTD_PAGAMENTOS_SEMANA": "n0",  "QTD_VENCIMENTOS_SEMANA": "n0",
+    "QTD_VENCIDOS_SEMANA": "n0",
+    # ── Preços unitários e PMP (d2 = decimal 2 casas, sem R$) ───────────
+    "PRECOUNIT": "d2",     "PRECOUNIT_EST": "d2",  "PRECOUNIT_COT": "d4",
+    "VLRUNIT": "d2",       "VLRUNITPOND": "d2",    "VLRUNITPOND_EST": "d2",
+    "PMP_ID": "d2",        "PMP_PROD": "d2",
+    "PMP_ID_1": "d2",      "PMP_PROD_1": "d2",
+    "PMP_1":  "d2",  "PMP_2":  "d2",  "PMP_3":  "d2",  "PMP_4":  "d2",
+    "PMP_5":  "d2",  "PMP_6":  "d2",  "PMP_7":  "d2",  "PMP_8":  "d2",
+    "PMP_9":  "d2",  "PMP_10": "d2",  "PMP_11": "d2",  "PMP_12": "d2",
+    "PRE_MIN_COT": "d2",   "MIN_COT": "d2",  "MED_COT": "d2",  "MAX_COT": "d2",
+    "IMP_COT": "d2",       "IMP_ID": "d2",
+    "INF_ID_1": "d2",      "INF_ID_PMP": "d2",
+    "INF_PROD_1": "d2",    "INF_PROD_PMP": "d2",
+    "SOMA_INF_ID_1": "d2", "SOMA_INF_ID_PMP": "d2",
+    "SOMA_INF_PROD_1": "d2","SOMA_INF_PROD_PMP": "d2",
+    # ── Totais monetários (d0 = inteiro sem R$) ──────────────────────────
+    "TOTAL": "d0",         "TOTAL_PROD": "d0",
+    "VRORIGPAG": "d0",     "VRATUAPAG": "d0",   "VRBAIXAPAG": "d0",
+    "TOT_FORN": "d0",      "TOT_ITEM": "d0",    "TE.TOT_ITEM": "d0",
+    "VALOR_FINAL": "d0",
+    "ENTRA_DIVIDA_SEMANA": "d0",  "SAI_DIVIDA_SEMANA": "d0",
+    "VAR_LIQ_SEMANA": "d0",       "SALDO_DIVIDA_SEMANA": "d0",
+    "VALOR_PAGO_SEMANA": "d0",    "VALOR_VENCIMENTOS_SEMANA": "d0",
+    "VALOR_VENCIDO_SEMANA": "d0",
+    # ── Percentuais ──────────────────────────────────────────────────────
+    "PERC": "p2",         "TOT_ACUM": "p2",
+    "PERC_INF_ID_1": "p4",   "PERC_INF_ID_PMP": "p4",
+    "PERC_INF_PROD_1": "p4", "PERC_INF_PROD_PMP": "p4",
+    # ── Campos calculados (processed + NL-SQL aliases) ───────────────────
+    "spend": "d0",         "spend_total": "d0",
+    "imp_cot": "d2",       "oportunidade_total": "d0",  "exposicao_rs": "d0",
+    "ad_pendente": "d0",   "cp_aberto": "d0",   "cp_vencido": "d0",
+    "pendente": "d0",      "conciliado": "d0",  "saldo": "d0",
+    "preco_med": "d2",     "preco_min": "d2",   "preco_min_global": "d2",
+    "preco_minimo": "d2",  "pmp_atual": "d2",   "pmp_medio": "d2",
+    "preco_medio": "d2",
+    "inflacao_media_pct": "p4",  "var_pmp_pct": "p1",
+    "imp_sobre_spend_pct": "p2", "pct_cobertura": "p2",
+    "pct": "p2",
+    "vezes_menor_preco": "n0",   "ids_unicos": "n0",
+    "n_meses_cotados": "n0",     "n_concorrentes": "n0",
+}
 DESIGN   = ROOT / "design" / "BI Suprimentos v4.html"
 DIST     = ROOT / "dist"
 TABS_DIR = ROOT / "dashboard" / "tabs"
@@ -316,6 +396,41 @@ function _zohoSrc(src) {
   return src ? `<span style="font-size:10px;font-weight:700;color:var(--blue);background:var(--blue-soft);border:1px solid #bfdbfe;border-radius:4px;padding:1px 6px;white-space:nowrap">${src}</span>` : '';
 }
 
+/* ── Aliases de compatibilidade (códigos antigos → novos) ── */
+const _FA={'brl':'r0','brl2':'r2','brl4':'r4','mi':'rmi','mil':'rmil',
+           'num':'n0','dec':'d2','dec4':'d4','str':'text','pct':'p1'};
+
+/* ── Função única de formatação — usa window._FF (registry) ou override ── */
+function _fmt(v, key, override) {
+  if (v===null||v===undefined||v==='') return '—';
+  const raw=String(v);
+  const code=_FA[override]||override||(window._FF&&window._FF[key])||null;
+  if (!code||code==='text'||code==='code') return raw;
+  if (code==='date') { return raw.length>=10?raw.slice(0,10):raw; }
+  const n=parseFloat(v);
+  if (!isFinite(n)) return raw;
+  const _si=s=>{const neg=s[0]==='-',ab=neg?s.slice(1):s;return(neg?'-':'')+ab.replace(/\B(?=(\d{3})+(?!\d))/g,'.');};
+  const _d=(n,p)=>{const f=n.toFixed(p),d=f.indexOf('.');return _si(d>=0?f.slice(0,d):f)+(p>0?','+f.slice(d+1):'');};
+  switch(code){
+    case 'd0': return _d(n,0);
+    case 'd2': return _d(n,2);
+    case 'd4': return _d(n,4);
+    case 'r0': return 'R$ '+_d(n,0);
+    case 'r2': return 'R$ '+_d(n,2);
+    case 'r4': return 'R$ '+_d(n,4);
+    case 'rmi':{ const m=n/1e6; return 'R$ '+_d(m,1)+' mi'; }
+    case 'rmil':{ return _d(n/1e3,0)+' mil'; }
+    case 'n0': return _d(n,0);
+    case 'n2': return _d(n,2);
+    case 'n4': return _d(n,4);
+    case 'p1':{ const s=n>0?'+':''; const c=n>15?'r':n>5?'y':n<-3?'g':'k'; return `<span class="pill ${c}">${s}${_d(n,1)}%</span>`; }
+    case 'p2': return _d(Math.abs(n),2)+'%';
+    case 'p4': return _d(n,4)+'%';
+    default:   return raw;
+  }
+}
+window._fmt=_fmt;
+
 function _cardHeader(elem) {
   return `<div class="card-h" style="flex-shrink:0">
     <div><h3 style="margin:0;font-size:12px">${elem.titulo}</h3>${elem.subtitulo ? `<div class="sub" style="font-size:10.5px">${elem.subtitulo}</div>` : ''}</div>
@@ -368,17 +483,11 @@ window._TS = window._TS || {};
 const _T_PS = 25; // page size
 
 function _fmtTCell(v, c) {
-  const fmt = c.fmt || '';
-  if (fmt === 'brl')  return FMT.brl(parseFloat(v) || 0);
-  if (fmt === 'brl2') return FMT.brl2(parseFloat(v) || 0);
-  if (fmt === 'mi')   return FMT.mi(parseFloat(v) || 0);
-  if (fmt === 'pct')  { const n=parseFloat(v)||0; return `<span class="pill ${n>15?'r':n>5?'y':n<-3?'g':'k'}">${n>0?'+':''}${n.toFixed(1).replace('.',',')}%</span>`; }
-  if (c.cls === 'spark') { try{ const p=JSON.parse(v||'[]'); return p.length?svgSpark(p.map(Number)):'—'; }catch(e){ return '—'; } }
-  if (!fmt && v!==null&&v!==''&&v!==undefined&&!isNaN(Number(v))) {
-    const n=parseFloat(v);
-    if(isFinite(n)){const f=n.toFixed(2),d=f.indexOf('.');const neg=f[0]==='-',ab=neg?f.slice(1,d):f.slice(0,d);return(neg?'-':'')+ab.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+f.slice(d+1);}
+  if (c.cls === 'spark') {
+    try { const pts=JSON.parse(v||'[]'); return pts.length?svgSpark(pts.map(Number)):'—'; }
+    catch(e) { return '—'; }
   }
-  return String(v);
+  return _fmt(v, c.key, c.fmt);
 }
 
 /* Controles do cabeçalho: paginação + CSV + expandir */
@@ -2066,13 +2175,7 @@ async function _api(m, path, body) {
 }
 
 // ── Formatação ──────────────────────────────────────────────────────────────
-function _fv(v) {
-  const n = parseFloat(v);
-  if (!isFinite(n)) return String(v ?? '—');
-  const f=n.toFixed(2),d=f.indexOf('.');
-  const neg=f[0]==='-',ab=neg?f.slice(1,d):f.slice(0,d);
-  return (neg?'-':'')+ab.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+f.slice(d+1);
-}
+function _fv(v){ return window._fmt?window._fmt(v,null,'d2'):String(v??'—'); }
 function _isN(v){ return v!==null&&v!==''&&v!==undefined&&!isNaN(Number(v)); }
 function _ts(s){ if(!s) return ''; try{ return new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){return '';} }
 const $ = id => document.getElementById(id);
@@ -2400,16 +2503,18 @@ function _renderTableSection(r, tid){
   const pg=_S.pages[tid]||0;
   const pgs=Math.ceil(rows.length/PAGE_SZ);
   const vis=rows.slice(pg*PAGE_SZ,(pg+1)*PAGE_SZ);
+  const _numCode=c=>{const ff=window._FF&&window._FF[c];return ff?/^[dnr]/.test(ff):false;};
   const ths=cols.map(c=>{
-    const fv=rows.length?rows[0][c]??'':'';
-    const s=_isN(fv)?' style="text-align:right"':'';
-    return `<th${s}>${_esc(c)}</th>`;
+    const isNum=_numCode(c)||_isN(rows.length?rows[0][c]??'':'');
+    return `<th${isNum?' style="text-align:right"':''}>${_esc(c)}</th>`;
   }).join('');
   const trs=vis.map(row=>'<tr>'+cols.map(c=>{
     const v=row[c]??'';
-    const d=_isN(v)?_fv(v):_esc(String(v));
-    const s=_isN(v)?' style="text-align:right;font-variant-numeric:tabular-nums"':'';
-    return `<td${s}>${d}</td>`;
+    const fmt=window._fmt?window._fmt(v,c):(_isN(v)?_fv(v):String(v));
+    const isHtml=/^</.test(fmt);
+    const d=isHtml?fmt:_esc(fmt);
+    const isNum=_numCode(c)||(!isHtml&&_isN(v));
+    return `<td${isNum?' style="text-align:right;font-variant-numeric:tabular-nums"':''}>${d}</td>`;
   }).join('')+'</tr>').join('');
   let pgr='';
   if(pgs>1) pgr=`<div class="rel-pager"><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',0)">«</button><button class="rel-pg-btn" ${pg===0?'disabled':''} onclick="window._RL.page('${tid}',${pg-1})">‹</button><span class="rel-pg-num">${pg+1}/${pgs}</span><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pg+1})">›</button><button class="rel-pg-btn" ${pg>=pgs-1?'disabled':''} onclick="window._RL.page('${tid}',${pgs-1})">»</button></div>`;
@@ -3384,7 +3489,8 @@ def main():
     html = inject_css(html, EDITOR_CSS)
     html = inject_css(html, FILTER_CSS)
     html = inject_css(html, RELATORIO_CSS)
-    html = inject_before_script_end(html, js_injection + "\n" + RENDERER_JS + "\n" + EDITOR_JS + "\n" + FILTER_JS + "\n" + RELATORIO_JS + "\n" + ELEMENTS_RUNTIME_JS)
+    ff_js = "window._FF=" + json.dumps(FIELD_FORMATS, ensure_ascii=False, separators=(',',':')) + ";\n"
+    html = inject_before_script_end(html, ff_js + js_injection + "\n" + RENDERER_JS + "\n" + EDITOR_JS + "\n" + FILTER_JS + "\n" + RELATORIO_JS + "\n" + ELEMENTS_RUNTIME_JS)
     html = update_timestamp(html)
 
     out = DIST / "index.html"
