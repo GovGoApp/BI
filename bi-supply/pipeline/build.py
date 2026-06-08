@@ -3117,7 +3117,29 @@ function _nlEls(){try{return JSON.parse(localStorage.getItem(_NL_KEY)||'[]');}ca
 
 function _injectNlData(){
   window._BI_DATA=window._BI_DATA||{};
-  _nlEls().forEach(el=>{if(el.variavel_js)window._BI_DATA[el.variavel_js]=el.rows_snapshot||[];});
+  _nlEls().forEach(el=>{
+    // 1. Injetar dados em _BI_DATA
+    if(el.variavel_js) window._BI_DATA[el.variavel_js]=el.rows_snapshot||[];
+    // 2. Re-injetar no ABAS_INDEX (perdido após F5)
+    const pg=el.destination_tab;
+    if(!pg||typeof ABAS_INDEX==='undefined'||!ABAS_INDEX[pg]) return;
+    const tabData=ABAS_INDEX[pg];
+    if(!tabData.elementos) tabData.elementos=[];
+    const eid='nlel_'+el.id.slice(0,8);
+    if(tabData.elementos.find(e=>e.id===eid)) return; // ja existe
+    // Recuperar posição salva (localStorage via _BI_EDITOR)
+    const ov=(window._BI_EDITOR?.getOv(pg,eid))||{};
+    const row=ov.row||99;
+    tabData.elementos.push({
+      id:eid, variavel_js:el.variavel_js, tipo:el.tipo,
+      titulo:el.title, subtitulo:'', config:el.config||{}, dados:null,
+      layout:{
+        col:ov.col||1, col_span:ov.col_span||10,
+        row:row, row_span:ov.row_span||6,
+        visivel:row<90&&ov.visivel!==false, origem:'nlsql'
+      }
+    });
+  });
 }
 _injectNlData();
 
