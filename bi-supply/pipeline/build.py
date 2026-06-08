@@ -3152,6 +3152,30 @@ function _repositionKpis(pg){
   }
 }
 
+/* Encontra a primeira linha livre no grid para um elemento de col/col_span/row_span dados.
+   Varre de cima para baixo — usa espaços vagos deixados por elementos removidos. */
+function _findFreeRow(pg, excludeId, col, col_span, row_span) {
+  const occupied = (ABAS_INDEX?.[pg]?.elementos || [])
+    .filter(e => e.id !== excludeId && _isInGrid(e, pg))
+    .map(e => {
+      const ov = (window._BI_EDITOR?.getOv(pg, e.id)) || {};
+      return {
+        r1: ov.row      || e.layout.row      || 1,
+        r2: (ov.row     || e.layout.row      || 1) + (ov.row_span || e.layout.row_span || 2),
+        c1: ov.col      || e.layout.col      || 1,
+        c2: (ov.col     || e.layout.col      || 1) + (ov.col_span || e.layout.col_span || 16),
+      };
+    });
+  for (let row = 1; row < 500; row++) {
+    const overlap = occupied.some(o =>
+      row < o.r2 && row + row_span > o.r1 &&
+      col < o.c2 && col + col_span > o.c1
+    );
+    if (!overlap) return row;
+  }
+  return 1;
+}
+
 function _insertElem(id,pg){
   if(typeof ABAS_INDEX==='undefined')return;
   const tabData=ABAS_INDEX[pg];if(!tabData)return;
@@ -3181,19 +3205,7 @@ function _insertElem(id,pg){
     _repositionKpis(pg);
   } else {
     const col=1,col_span=10,row_span=6;
-    // Garante que nao ha sobreposicao: avanca ate encontrar linha livre
-    let row=_lastRow(pg);
-    const elems=(ABAS_INDEX?.[pg]?.elementos||[]).filter(e=>e.id!==id&&_isInGrid(e,pg));
-    let safe=false;
-    while(!safe){
-      safe=true;
-      for(const e of elems){
-        const ov=(window._BI_EDITOR?.getOv(pg,e.id))||{};
-        const er=ov.row||e.layout.row||1, ers=ov.row_span||e.layout.row_span||2;
-        const ec=ov.col||e.layout.col||1, ecs=ov.col_span||e.layout.col_span||16;
-        if(row<er+ers && row+row_span>er && col<ec+ecs && col+col_span>ec){safe=false;row=er+ers;break;}
-      }
-    }
+    const row=_findFreeRow(pg,id,col,col_span,row_span);
     elem.layout={...(elem.layout||{}),col,col_span,row,row_span,visivel:true};
     (window._BI_EDITOR?.setOv||_setLayoutOv)(pg,id,{col,col_span,row,row_span,visivel:true});
   }
