@@ -561,11 +561,16 @@ def aba_fornecedor(nfe, cp, ad, lk):
     F="06_fornecedor"; print(f"  {F}/")
     tg=lk["tg"]; fv=lk["fv"]; fcp=lk["fcp"]; fad=lk["fad"]; fc=lk["fc"]
     spend_top=sum(d["spend"] for cd,d in fv.items() if (d["curva"] or fc.get(cd,"")) in ("AAA","AA","A"))
+    forn_aaa_aa=sum(1 for cd,d in fv.items() if (d["curva"] or fc.get(cd,"")) in ("AAA","AA"))
+    cp_total=r2(sum(fcp.get(cd,{}).get("aberto",0) for cd in fv))
+    ad_total=r2(sum(fad.get(cd,{}).get("pendente",0) for cd in fv))
     sj(F,"06_fornecedor_k00_kpis.json",{
-        "fornecedores_ativos":len(fv),"spend_curva_aaa_aa_a":r2(spend_top),
-        "pct_spend_top":pct(spend_top,tg),
+        "fornecedores_ativos":len(fv),"forn_curva_aaa_aa":forn_aaa_aa,
+        "spend_curva_aaa_aa_a":r2(spend_top),"pct_spend_top":pct(spend_top,tg),
         "forn_com_cp_aberto":sum(1 for cd in fv if fcp.get(cd,{}).get("aberto",0)>0),
-        "forn_com_ad_pendente":sum(1 for cd in fv if fad.get(cd,{}).get("pendente",0)>0)})
+        "cp_aberto_total":cp_total,
+        "forn_com_ad_pendente":sum(1 for cd in fv if fad.get(cd,{}).get("pendente",0)>0),
+        "ad_pendente_total":ad_total})
     rows=[]
     for cd,d in sorted(fv.items(),key=lambda x:-x[1]["spend"]):
         curva=d["curva"] or fc.get(cd,"")
