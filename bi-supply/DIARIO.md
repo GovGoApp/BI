@@ -1269,3 +1269,72 @@ MESANO '2025/07' era tratado como número pela tabela BI porque `parseFloat('202
 ### Commits
 - `5e01727` build.py: _isN + alinhamento th
 - `fa081f7` server.py: export CSV padrão BR
+
+---
+
+## [2026-06-08] Sessão tarde: NL-SQL bugs, BI elementos, BAT atualização
+
+### Prompt v3 — série de bugs e correções
+
+#### Tabela INFLAÇÃO
+- `"INFLACAO"` → `"INFLAÇÃO"` (com acento) — HTTP 400 INVALID_TABLE (`db95b33`)
+- `"CP_SALDO_2026"` → `"CP_SALDO_2026_v2"` — HTTP 400 INVALID_TABLE (`db95b33`)
+- `DATEFORMAT("MESANO",'yyyy/MM')` adicionado e depois revertido — Zoho retorna UNSUPPORTED_MYSQL_FN; MESANO é texto 'YYYY/MM' direto (`51facf8`)
+- `NMPRODUTO_OFICIAL` não existia em INFLAÇÃO → documentado + aviso; depois usuário adicionou o campo e documentação foi atualizada (`c8802ee`, `63a54a1`)
+- `CURVA_PROD` e `POS_PROD` adicionados pelo usuário à view INFLAÇÃO → documentados no prompt e em ANALISE_DADOS_REAIS.md (`6145490`)
+- Re-extract inflação: 117.578 linhas, 39.6 MB (era 36.7 MB) com novos campos
+
+#### Outros bugs SQL Zoho
+- `ORDER BY MIN("POS_PROD")` → SQL_INVALID_GROUP_FUNC_USE — Zoho não aceita agregação em ORDER BY; fix: adicionar coluna ao GROUP BY (`b567613`)
+- `NMPRODUTO_OFICIAL` usado em query de INFLAÇÃO → INVALID_COLUMN; campo correto é `NMPRODUTO_EST` em INFLAÇÃO (`c8802ee`)
+
+### BI — elementos adicionados ao BI (Adicionar ao BI)
+
+#### Bugs identificados (colunas e formatação)
+- Ordem das colunas ficava alfabética em vez de ordem SQL (`Object.keys` não garante ordem)
+- Limite de 6 colunas (`slice(0,6)`) em `_renderT` e `_renderPreview`
+- Números sem `fmt` configurado mostravam precisão total (ex: 1.0922272909392708)
+
+#### Fix aplicado (seguro)
+- `_renderT`: `let cols` com `if(!cols||!cols.length)` — usa `elem.columns` (ordem SQL) como fallback, sem limite de colunas (`1226a5a`, `71ee3fe`)
+
+#### Bug crítico recorrente — NUNCA TOCAR
+O bloco `else if (!fmt && _isN(v)) { v = toLocaleString(...) }` dentro de `_renderT`
+foi adicionado 3 vezes e TODAS as 3 vezes quebrou a inicialização das abas do BI.
+**Causa raiz: não identificada.** Parece que `_renderT` é chamada durante inicialização
+em algum contexto onde esse bloco gera um erro que cascateia.
+**Regra: não adicionar formatação automática em `_renderT` até investigar com DevTools.**
+Commits que quebraram: `1acff97`, `6ba7a37`
+Commits que reverteram: `71ee3fe`, `b0156af`
+
+### BI — Relatório sumia ao voltar para a aba
+
+#### Causa
+`pages['relatorio']()` é chamada a cada visita à aba. Dentro dela havia
+`document.addEventListener('click',...)` que acumulava listeners. Após N visitas:
+N chamadas `_init()` simultâneas → a última re-renderizava com estado limpo.
+
+#### Fix
+`window._RL_CLICK_BOUND` — guard para registrar o listener só uma vez (`6ba7a37`, `b0156af`)
+
+### BAT de atualização
+- Criado `Atualizar BI Suprimentos.bat` na área de trabalho
+- Versão 1: `mode con cols=200` para evitar quebra de linha do progress bar
+- Versão 2: output verboso redirecionado para `atualizar.log`, mostra só resumo no terminal
+
+### Aba Fornecedor (início do dia)
+- +3 KPIs: `forn_curva_aaa_aa`, `cp_aberto_total`, `ad_pendente_total`
+- Reorganizado para 8 KPIs × col_span=2 (padrão aba Resumo)
+- r01_tabela: +4 colunas (ufs, categorias_top, pct, cp_vencido)
+
+### Export CSV
+- Delimitador: `,` → `;` (padrão BR/Europa)
+- Números: ponto decimal → vírgula (`_csv_val` em server.py)
+- Evita que Excel BR interprete ponto como separador de milhar
+
+### Commits desta sessão (ordem)
+`373e53b` aba Fornecedor KPIs → `62481a3` prompt PERC_INF → `db95b33` nomes tabelas Zoho
+→ `5e01727` _isN+alinhamento → `fa081f7` CSV export BR → `7616f9e` botão copiar erro
+→ `c8802ee` NMPRODUTO/GROUP BY → `b567613` ORDER BY → `6145490` CURVA_PROD/POS_PROD
+→ `63a54a1` NMPRODUTO_OFICIAL INFLAÇÃO → `1acff97` ❌QUEBROU → `1226a5a` fix parcial
+→ `71ee3fe` revert seguro → `6ba7a37` ❌QUEBROU NOVAMENTE → `b0156af` revert final
