@@ -381,10 +381,6 @@ function _renderT(elem, data) {
         try { const pts = JSON.parse(v || '[]'); v = pts.length ? svgSpark(pts.map(Number)) : '—'; }
         catch(e) { v = '—'; }
       }
-      else if (!fmt && _isN(v)) {
-        const n=parseFloat(v);
-        if(isFinite(n)){const f=n.toFixed(2),d=f.indexOf('.');const neg=f[0]==='-',ab=neg?f.slice(1,d):f.slice(0,d);v=(neg?'-':'')+ab.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+f.slice(d+1);}
-      }
       return `<td class="${c.cls || ''}">${v}</td>`;
     }).join('');
     return `<tr>${tds}</tr>`;
@@ -2019,10 +2015,10 @@ async function _api(m, path, body) {
 // ── Formatação ──────────────────────────────────────────────────────────────
 function _fv(v) {
   const n = parseFloat(v);
-  if (!isFinite(n)) return String(v ?? '—');
-  const f = n.toFixed(2), dot = f.indexOf('.');
-  const neg = f[0]==='-', abs = neg ? f.slice(1,dot) : f.slice(0,dot);
-  return (neg?'-':'')+abs.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+f.slice(dot+1);
+  if (isNaN(n)) return String(v ?? '—');
+  if (Math.abs(n) >= 1e6) return 'R$ '+(n/1e6).toFixed(1).replace('.',',')+' mi';
+  if (Math.abs(n) >= 1e3) return n.toLocaleString('pt-BR',{maximumFractionDigits:2});
+  return n.toLocaleString('pt-BR',{maximumFractionDigits:4});
 }
 function _isN(v){ return v!==null&&v!==''&&v!==undefined&&!isNaN(Number(v)); }
 function _ts(s){ if(!s) return ''; try{ return new Date(s).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(e){return '';} }
