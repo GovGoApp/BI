@@ -442,9 +442,17 @@ Campos e tipos:
   CAT5            texto    | categoria nivel 5
   NMPRODUTO_EST   texto    | nome do produto: 'FILE PEITO FRANGO - KG'  ← usar para nome
   CDPRODUTO_OFICIAL texto  | codigo padronizado do produto
-  CURVA_ID        texto    | curva do ID: 'AAA', 'A', 'C'
+  CURVA_ID        texto    | curva do ID (empresa+UF+produto): 'AAA', 'A', 'C'
+  POS_ID          inteiro  | posicao no ranking por ID
+  CURVA_PROD      texto    | curva do produto NACIONAL (sem segmentacao por UF ou empresa)
+  POS_PROD        inteiro  | posicao no ranking nacional do produto
   (NMPRODUTO_OFICIAL NAO EXISTE em INFLACAO — usar NMPRODUTO_EST)
-  POS_ID          inteiro  | posicao no ranking de IDs
+
+Quando usar CURVA_ID vs CURVA_PROD em INFLACAO:
+  CURVA_ID   → curva do ID (empresa+UF+produto) — varia por filial/UF
+  CURVA_PROD → curva do produto nacional — igual para todas as linhas do mesmo produto
+  "top produtos nacionais" / "por curva de produto"  → usar CURVA_PROD
+  "por curva de compra por filial ou UF"             → usar CURVA_ID
   TOTAL           decimal  | spend do periodo: 283.88
   PMP_ID          decimal  | PMP do ID no periodo: 94.63
   PMP_PROD        decimal  | PMP do produto no periodo: 14.63
@@ -750,15 +758,16 @@ SELECT * FROM forn_rank WHERE "TOT_ACUM" <= 80 ORDER BY "POS" LIMIT 10
 -- MM SECURITIZADORA   | 64.8mi | ACUM=6.25%  | CURVA=AAA | POS=1
 -- FONTE VIVA ALIMENTOS| 56.6mi | ACUM=11.70% | CURVA=AAA | POS=2
 
-## PMP por produto e UF em INFLACAO (maio/2026) ordenado por curva ID
--- NMPRODUTO_EST (nao NMPRODUTO_OFICIAL) + CURVA_ID no GROUP BY para ORDER BY funcionar
-SELECT "UF", "NMPRODUTO_EST", "CURVA_ID", AVG("PMP_ID") AS preco_medio
+## PMP por produto e UF em INFLACAO (maio/2026) ordenado por curva
+-- NMPRODUTO_EST (nao NMPRODUTO_OFICIAL) + coluna de curva no GROUP BY
+-- CURVA_PROD = curva nacional do produto; CURVA_ID = curva por empresa+UF
+SELECT "UF", "NMPRODUTO_EST", "CURVA_PROD", "POS_PROD", AVG("PMP_ID") AS preco_medio
 FROM "INFLAÇÃO"
-WHERE "MESANO" = '2026/05' AND "CURVA_ID" IN ('AAA', 'AA', 'A')
-GROUP BY "UF", "NMPRODUTO_EST", "CURVA_ID"
-ORDER BY "CURVA_ID" ASC, preco_medio DESC
+WHERE "MESANO" = '2026/05' AND "CURVA_PROD" IN ('AAA', 'AA', 'A')
+GROUP BY "UF", "NMPRODUTO_EST", "CURVA_PROD", "POS_PROD"
+ORDER BY "POS_PROD" ASC, preco_medio DESC
 LIMIT 500
--- Regra: se coluna aparece no ORDER BY mas nao e agregada, deve estar no GROUP BY
+-- Regra: coluna no ORDER BY sem agregacao deve estar no GROUP BY
 
 ## Inflacao por categoria CAT2 por mes (ultimos 12 meses)
 SELECT "CAT2", "MESANO", AVG("PERC_INF_PROD_PMP") AS inflacao_media_pct

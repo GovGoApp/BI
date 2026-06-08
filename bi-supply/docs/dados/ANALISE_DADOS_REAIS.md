@@ -108,10 +108,14 @@ Valor:      VALOR_FINAL, E.QTDE_EST
 ### INFLACAO (115.2K linhas)
 ```
 Chaves:     ID, MESANO
+Dimensões:  UF, NMEMP, CAT1-CAT5, NMPRODUTO_EST, CDPRODUTO_OFICIAL, ANO
+Curvas:     CURVA_ID + POS_ID  (por empresa+UF+produto)
+            CURVA_PROD + POS_PROD  (produto nacional — novo 2026-06)
 PMP:        PMP_ID, PMP_ID_1, PMP_PROD, PMP_PROD_1
 Inflação R$: SOMA_INF_ID_1, SOMA_INF_ID_PMP, SOMA_INF_PROD_1, SOMA_INF_PROD_PMP
 Inflação %:  PERC_INF_ID_1, PERC_INF_ID_PMP, PERC_INF_PROD_1, PERC_INF_PROD_PMP
 ATENÇÃO:    Campos frequentemente NULL — usar IS NULL / IS NOT NULL
+ATENÇÃO:    NMPRODUTO_OFICIAL não existe aqui — usar NMPRODUTO_EST
 ```
 
 ### PMP_ID_INF_12 e PMP_PROD_INF_12
