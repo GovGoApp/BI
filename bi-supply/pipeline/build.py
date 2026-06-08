@@ -1338,9 +1338,9 @@ function _applyF(){
     CAT_INF=ci;
   }
 
-  // Re-renderizar aba
+  // Re-renderizar aba (exceto Relatório — tem renderização própria via _init)
   const pk=document.querySelector('.tab.active[data-page]')?.dataset.page;
-  if(pk){
+  if(pk&&pk!=='relatorio'){
     const pg=document.getElementById('page');
     if(pg&&typeof pages!=='undefined'&&pages[pk]){
       pg.innerHTML=pages[pk]();
