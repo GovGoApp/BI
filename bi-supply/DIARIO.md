@@ -1210,3 +1210,22 @@ Filtros `WHERE "MESANO" >= '2025/07'` continuam funcionando normalmente.
 ### Commits
 - `db95b33` prompt v3: corrigir nomes de tabela Zoho
 - `42137f1` prompt v3: MESANO INFLACAO e tipo data — usar DATEFORMAT para YYYY/MM
+
+---
+
+## [2026-06-08] Reverter DATEFORMAT + botão aba Relatório azul
+
+### Prompt v3 — DATEFORMAT revertido
+DATEFORMAT("MESANO", 'yyyy/MM') causava UNSUPPORTED_MYSQL_FN no Zoho.
+MESANO é texto 'YYYY/MM' em todas as tabelas, inclusive INFLAÇÃO.
+SQL correto: usar "MESANO" diretamente em SELECT, GROUP BY e WHERE.
+
+### build.py — botão aba Relatório diferenciado
+CSS adicionado ao RELATORIO_CSS para distinguir o botão da aba Relatório:
+- Inativo: `background: #eff6ff` (blue-soft) + `border-color: #2563eb`
+- Ativo: `background: #2563eb; color: #fff` — igual ao botão Enviar
+- Implementado via seletor `.tab[data-page="relatorio"]` com especificidade maior
+
+### Commits
+- `51facf8` prompt v3: reverter DATEFORMAT
+- `7e4130b` prompt v3: reverter DATEFORMAT; build.py: botao aba Relatorio azul
