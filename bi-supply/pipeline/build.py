@@ -644,16 +644,42 @@ function _renderGE(elem, data) {
 function _renderMX(elem, data) {
   if (!data || !data.length) return '<div class="muted" style="padding:10px;font-size:12px">Sem dados</div>';
   const cfg = elem.config || {};
-  const rk=cfg.row_key, ck=cfg.col_key, vk=cfg.val_key;
-  const rows=[...new Set(data.map(r=>r[rk]).filter(Boolean))];
-  const cols=[...new Set(data.map(r=>r[ck]).filter(Boolean))];
-  const lookup={};
-  data.forEach(r=>{lookup[`${r[rk]}|${r[ck]}`]=parseFloat(r[vk])||0;});
-  const maxV=Math.max(...Object.values(lookup))||1;
-  function si(v){const p=v/maxV;return p<.2?'s1':p<.4?'s2':p<.6?'s3':p<.8?'s4':'s5';}
-  const head='<div class="cell head"></div>'+cols.map(c=>`<div class="cell head" style="font-size:9px;padding:2px">${String(c).slice(0,5)}</div>`).join('');
-  const body=rows.map(rv=>`<div class="cell head" style="font-size:9px;text-align:left;justify-content:flex-start;padding:2px 4px;overflow:hidden;white-space:nowrap">${String(rv).slice(0,20)}</div>`+cols.map(cv=>{const v=lookup[`${rv}|${cv}`]||0;return `<div class="cell ${v>0?si(v):'s1'}" style="font-size:9px" title="${v?FMT.brl(v):''}">${v>0?(v/1e6).toFixed(1):'—'}</div>`;}).join('')).join('');
-  const colW=`100px repeat(${cols.length},1fr)`;
+  const keys = Object.keys(data[0]);
+  let rows, cols, cellVal;
+
+  // Modo A: dados NÃO-pivotados com row_key/col_key/val_key
+  const unpivoted = cfg.row_key && cfg.col_key && cfg.val_key && data[0][cfg.col_key] !== undefined;
+  if (unpivoted) {
+    rows = [...new Set(data.map(r=>r[cfg.row_key]).filter(Boolean))];
+    cols = [...new Set(data.map(r=>r[cfg.col_key]).filter(Boolean))];
+    const lkp = {}; data.forEach(r=>{ lkp[`${r[cfg.row_key]}|${r[cfg.col_key]}`]=parseFloat(r[cfg.val_key])||0; });
+    cellVal = (rv,cv) => lkp[`${rv}|${cv}`]||0;
+  } else {
+    // Modo B: dados JÁ-pivotados (PE,MA,RN... são colunas numéricas)
+    // Primeira coluna não-numérica = rótulo de linha
+    const rk = cfg.row_key || keys.find(k=>data.slice(0,5).every(r=>isNaN(parseFloat(r[k])))) || keys[0];
+    // Colunas numéricas = dimensão das colunas
+    const numCols = keys.filter(k=>k!==rk && data.some(r=>r[k]!==''&&r[k]!=null&&!isNaN(parseFloat(r[k]))));
+    if (!numCols.length) return '<div class="muted" style="padding:10px;font-size:12px">Sem colunas numéricas para Matriz.</div>';
+    rows = data.map(r=>r[rk]);
+    cols = numCols;
+    const byRow = {}; data.forEach(r=>{byRow[r[rk]]=r;});
+    cellVal = (rv,cv) => parseFloat(byRow[rv]?.[cv])||0;
+  }
+
+  if (!rows.length||!cols.length) return '<div class="muted" style="padding:10px;font-size:12px">Configure row_key / col_key para Matriz.</div>';
+
+  const allV = rows.flatMap(rv=>cols.map(cv=>cellVal(rv,cv)));
+  const maxV = Math.max(...allV.filter(v=>v>0))||1;
+  const si = v=>{ const p=v/maxV; return p<=0?'s0':p<.2?'s1':p<.4?'s2':p<.6?'s3':p<.8?'s4':'s5'; };
+  const fv = v => v>0 ? (window._fmt?window._fmt(v,'','d2'):v.toFixed(2).replace('.',',')) : '—';
+
+  const head='<div class="cell head"></div>'+cols.map(c=>`<div class="cell head" style="font-size:9px;padding:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c}">${String(c).slice(0,6)}</div>`).join('');
+  const body=rows.map(rv=>
+    `<div class="cell head" style="font-size:9px;text-align:left;justify-content:flex-start;padding:2px 4px;overflow:hidden;white-space:nowrap">${String(rv).slice(0,22)}</div>`+
+    cols.map(cv=>{const v=cellVal(rv,cv);return `<div class="cell ${si(v)}" style="font-size:9px" title="${fv(v)}">${fv(v)}</div>`;}).join('')
+  ).join('');
+  const colW=`130px repeat(${cols.length},1fr)`;
   return `<div style="overflow:auto;height:100%"><div class="matrix" style="grid-template-columns:${colW}">${head}${body}</div></div>`;
 }
 
