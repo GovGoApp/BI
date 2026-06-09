@@ -1,0 +1,2082 @@
+[
+  {
+    "id": "8b1e0523-befc-4c48-a7f6-51c5bcc6c266",
+    "title": "total compras por uf em 2026",
+    "messages": [
+      {
+        "id": "ca2fec16-87f9-4cfb-846b-448d7a6c03f8",
+        "role": "user",
+        "text": "total compras por uf em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-02T23:10:48.240821+00:00"
+      },
+      {
+        "id": "576e8374-245e-40fa-8e8b-cf62fb1bb325",
+        "role": "assistant",
+        "text": "Total de Compras por Estado em 2026",
+        "sql": "SELECT \"UF\", SUM(\"TOTAL\") AS total_compras FROM \"NFE\" WHERE \"ANO\" = 2026 GROUP BY \"UF\" ORDER BY total_compras DESC",
+        "reportId": "add65452-833d-4889-9aa7-67f1ef252e70",
+        "reportTitle": "Total de Compras por Estado em 2026",
+        "rowCount": 11,
+        "status": "ok",
+        "createdAt": "2026-06-02T23:10:48.240821+00:00"
+      }
+    ],
+    "reportIds": [
+      "add65452-833d-4889-9aa7-67f1ef252e70"
+    ],
+    "createdAt": "2026-06-02T23:10:27.201683+00:00",
+    "updatedAt": "2026-06-02T23:10:48.240821+00:00"
+  },
+  {
+    "id": "87aa8585-aacd-4de9-8162-09b59dcfcdb1",
+    "title": "Quantas cotacoes por produto em media por UF? Mostre UF, med",
+    "messages": [
+      {
+        "id": "90852e6c-5495-42e6-84d0-fcad88b8fd34",
+        "role": "user",
+        "text": "Quantas cotacoes por produto em media por UF? Mostre UF, media e total de produtos",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-02T23:51:14.672506+00:00"
+      },
+      {
+        "id": "c835941a-6f11-44fe-8628-dc410291ee1e",
+        "role": "assistant",
+        "text": "Média de Cotações por Produto por UF",
+        "sql": "SELECT \"UF\", AVG(\"QTD_COT\") AS media_cotacoes, COUNT(DISTINCT \"ID\") AS total_produtos FROM \"NUM_COT\" GROUP BY \"UF\" ORDER BY media_cotacoes DESC",
+        "reportId": "d54d3b12-411d-42d9-b7ab-2a6dc8ab232f",
+        "reportTitle": "Média de Cotações por Produto por UF",
+        "rowCount": 11,
+        "status": "ok",
+        "createdAt": "2026-06-02T23:51:14.672506+00:00"
+      }
+    ],
+    "reportIds": [
+      "d54d3b12-411d-42d9-b7ab-2a6dc8ab232f"
+    ],
+    "createdAt": "2026-06-02T23:51:01.754671+00:00",
+    "updatedAt": "2026-06-02T23:51:14.673111+00:00"
+  },
+  {
+    "id": "715de4fb-b837-44f3-9dc8-f91e9a04f8d7",
+    "title": "Quantas cotacoes por produto em media por UF? Mostre UF, med",
+    "messages": [
+      {
+        "id": "56f391d6-8eaf-4a63-9f2a-5f9b3654f76d",
+        "role": "user",
+        "text": "Quantas cotacoes por produto em media por UF? Mostre UF, media e total de produtos",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-02T23:55:24.228225+00:00"
+      },
+      {
+        "id": "563170da-1097-45f3-8f5b-6d3cc89b5ab0",
+        "role": "assistant",
+        "text": "Média de Cotações por Produto por UF",
+        "sql": "SELECT \"UF\", AVG(\"QTD_COT\") AS media_cotacoes, COUNT(DISTINCT \"ID\") AS total_produtos FROM \"NUM_COT\" GROUP BY \"UF\" ORDER BY media_cotacoes DESC",
+        "reportId": "732816b9-3ef1-47e0-8f4c-be284b73a37d",
+        "reportTitle": "Média de Cotações por Produto por UF",
+        "rowCount": 11,
+        "status": "ok",
+        "createdAt": "2026-06-02T23:55:24.228225+00:00"
+      }
+    ],
+    "reportIds": [
+      "732816b9-3ef1-47e0-8f4c-be284b73a37d"
+    ],
+    "createdAt": "2026-06-02T23:55:10.707639+00:00",
+    "updatedAt": "2026-06-02T23:55:24.228225+00:00"
+  },
+  {
+    "id": "01681fdd-4154-4506-ab7a-b18b7e0d6857",
+    "title": "top forncedores por categoria CAT3",
+    "messages": [
+      {
+        "id": "b79c5382-d497-4827-be13-354a63c1c9fd",
+        "role": "user",
+        "text": "top forncedores por categoria CAT3",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-02T23:56:27.320569+00:00"
+      },
+      {
+        "id": "90659e5e-b49b-4965-afee-e1a3cea0fb01",
+        "role": "assistant",
+        "text": "Principais Fornecedores por Categoria CAT3",
+        "sql": "SELECT \"CAT3\", \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend FROM \"NFE\" GROUP BY \"CAT3\", \"FANTASIA_OFICIAL\" ORDER BY spend DESC LIMIT 10",
+        "reportId": "7cf6c0a9-130c-4783-83d9-f7ef838cb4af",
+        "reportTitle": "Principais Fornecedores por Categoria CAT3",
+        "rowCount": 10,
+        "status": "ok",
+        "createdAt": "2026-06-02T23:56:27.320569+00:00"
+      },
+      {
+        "id": "b58d593b-2f04-4fd5-8e8c-86004305cfae",
+        "role": "user",
+        "text": "quero limit 500",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-02T23:57:05.277153+00:00"
+      },
+      {
+        "id": "cd982415-4ac3-4dc2-b0cf-76e8ad2ccf56",
+        "role": "assistant",
+        "text": "Top 500 Fornecedores por Categoria e Gastos Totais",
+        "sql": "SELECT \"CAT3\", \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend FROM \"NFE\" GROUP BY \"CAT3\", \"FANTASIA_OFICIAL\" ORDER BY spend DESC LIMIT 500",
+        "reportId": "f5612d90-8c9f-4f24-b487-a9de50446ecd",
+        "reportTitle": "Top 500 Fornecedores por Categoria e Gastos Totais",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-02T23:57:05.277153+00:00"
+      },
+      {
+        "id": "3e3b275d-b7a3-4255-b828-224e78d30c9e",
+        "role": "user",
+        "text": "considerar somente cat1 = I",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-02T23:58:08.993530+00:00"
+      },
+      {
+        "id": "7843f107-3030-4a53-aa02-94d889e6f6b4",
+        "role": "assistant",
+        "text": "Principais Fornecedores de Insumos por Categoria",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, \"CAT3\", SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"CAT1\" = 'I - INSUMOS' GROUP BY \"FANTASIA_OFICIAL\", \"CAT3\" ORDER BY spend DESC LIMIT 500",
+        "reportId": "9cb419bd-4ba2-4363-8615-d9d6ebabe5e0",
+        "reportTitle": "Principais Fornecedores de Insumos por Categoria",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-02T23:58:08.993530+00:00"
+      },
+      {
+        "id": "5367ee08-679d-45fb-95b2-ead5cb28e903",
+        "role": "user",
+        "text": "me de lista de fornecedores por compra , mostre ABC",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T00:05:54.332340+00:00"
+      },
+      {
+        "id": "17c31ce3-0109-4086-b730-4996cb8c03ff",
+        "role": "assistant",
+        "text": "Principais Fornecedores por Volume de Compras",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend, \"CURVA_FORN\" AS curva FROM \"NFE\" WHERE \"CAT1\" = 'I - INSUMOS' GROUP BY \"FANTASIA_OFICIAL\", \"CURVA_FORN\" ORDER BY spend DESC LIMIT 500",
+        "reportId": "4f50598b-169a-4925-b19a-d0ce7d6a4a8e",
+        "reportTitle": "Principais Fornecedores por Volume de Compras",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-03T00:05:54.332340+00:00"
+      },
+      {
+        "id": "5c2f55a5-2610-4fba-b186-05e2aae04cf4",
+        "role": "user",
+        "text": "agora quero mais tres colcunas: o total em 2024, o total em 2025 e o toal em 2026, alem do total geral. Desc por total geral",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T00:26:10.909964+00:00"
+      },
+      {
+        "id": "20347213-6314-438f-8344-d29dfe925ed4",
+        "role": "assistant",
+        "text": "Análise de Totais por Fornecedor de 2024 a 2026",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(CASE WHEN \"ANO\" = 2024 THEN \"TOTAL\" ELSE 0 END) AS total_2024, SUM(CASE WHEN \"ANO\" = 2025 THEN \"TOTAL\" ELSE 0 END) AS total_2025, SUM(CASE WHEN \"ANO\" = 2026 THEN \"TOTAL\" ELSE 0 END) AS total_2026, SUM(\"TOTAL\") AS total_geral FROM \"NFE\" WHERE \"CAT1\" = 'I - INSUMOS' GROUP BY \"FANTASIA_OFICIAL\" ORDER BY total_geral DESC LIMIT 500",
+        "reportId": "21c84ab5-5b16-4e28-aab4-d6833a97bc50",
+        "reportTitle": "Análise de Totais por Fornecedor de 2024 a 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-03T00:26:10.909964+00:00"
+      },
+      {
+        "id": "fdf2e6f2-0e20-4ddb-862d-117fd5cb83b6",
+        "role": "user",
+        "text": "coloque o abc",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T00:27:03.864398+00:00"
+      },
+      {
+        "id": "90f1dee2-57ac-4f90-b844-7aa5b41e4200",
+        "role": "assistant",
+        "text": "Análise de Vendas por Fornecedor de 2024 a 2026",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(CASE WHEN \"ANO\" = 2024 THEN \"TOTAL\" ELSE 0 END) AS total_2024, SUM(CASE WHEN \"ANO\" = 2025 THEN \"TOTAL\" ELSE 0 END) AS total_2025, SUM(CASE WHEN \"ANO\" = 2026 THEN \"TOTAL\" ELSE 0 END) AS total_2026, SUM(\"TOTAL\") AS total_geral FROM \"NFE\" WHERE \"CAT1\" = 'I - INSUMOS' GROUP BY \"FANTASIA_OFICIAL\" ORDER BY total_geral DESC LIMIT 500",
+        "reportId": "94e6ad63-7950-4ab1-b912-e96cc69fb8c0",
+        "reportTitle": "Análise de Vendas por Fornecedor de 2024 a 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-03T00:27:03.864398+00:00"
+      }
+    ],
+    "reportIds": [
+      "7cf6c0a9-130c-4783-83d9-f7ef838cb4af",
+      "f5612d90-8c9f-4f24-b487-a9de50446ecd",
+      "9cb419bd-4ba2-4363-8615-d9d6ebabe5e0",
+      "4f50598b-169a-4925-b19a-d0ce7d6a4a8e",
+      "21c84ab5-5b16-4e28-aab4-d6833a97bc50",
+      "94e6ad63-7950-4ab1-b912-e96cc69fb8c0"
+    ],
+    "createdAt": "2026-06-02T23:56:14.393319+00:00",
+    "updatedAt": "2026-06-03T00:27:03.864398+00:00"
+  },
+  {
+    "id": "a50feee6-475b-4121-b779-febf815aff5d",
+    "title": "me dê top compras por filial cujo negocio não é Matriz em 20",
+    "messages": [
+      {
+        "id": "1902d834-5377-4199-b5d1-2bca3b71def8",
+        "role": "user",
+        "text": "me dê top compras por filial cujo negocio não é Matriz em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T14:34:42.350387+00:00"
+      },
+      {
+        "id": "5b208c9c-ee34-494a-82ad-21c5b6c41b5a",
+        "role": "assistant",
+        "text": "Principais Compras por Filial em 2026",
+        "sql": "SELECT \"NMFILIAL\" AS filial, SUM(\"TOTAL\") AS total_compras FROM \"NFE\" WHERE \"ANO\" = 2026 AND \"FI.NEGOCIO\" <> 'MATRIZ' GROUP BY \"NMFILIAL\" ORDER BY total_compras DESC LIMIT 500",
+        "reportId": "dc1d9af2-e407-4595-8a47-d82ad98e8301",
+        "reportTitle": "Principais Compras por Filial em 2026",
+        "rowCount": 51,
+        "status": "ok",
+        "createdAt": "2026-06-03T14:34:42.350387+00:00"
+      },
+      {
+        "id": "a1b96e71-07ad-49e0-aa66-4127e0168a1c",
+        "role": "user",
+        "text": "me dê top compras por filial cujo negocio não é \"_MATRIZ\" em 2026. coloque os codigos de filial e negocio tambem.",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T14:36:01.156088+00:00"
+      },
+      {
+        "id": "6eb9e604-3026-41fd-9d5b-ba50fa2b3840",
+        "role": "assistant",
+        "text": "Top Compras por Filial em 2026 (Excluindo Matriz)",
+        "sql": "SELECT \"CDFILIAL\" AS codigo_filial, \"FI.NEGOCIO\" AS negocio, SUM(\"TOTAL\") AS total_compras FROM \"NFE\" WHERE \"FI.NEGOCIO\" != 'MATRIZ' AND \"ANO\" = 2026 GROUP BY \"CDFILIAL\", \"FI.NEGOCIO\" ORDER BY total_compras DESC LIMIT 500",
+        "reportId": "665c63a7-076b-4f91-aa43-1e084adeb2cc",
+        "reportTitle": "Top Compras por Filial em 2026 (Excluindo Matriz)",
+        "rowCount": 50,
+        "status": "ok",
+        "createdAt": "2026-06-03T14:36:01.156088+00:00"
+      },
+      {
+        "id": "9a379403-28a4-4edc-a0e7-3a74c80a27c7",
+        "role": "user",
+        "text": "me dê top compras por filial cujo negocio não é \"_MATRIZ\" em 2026. coloque os codigos de filial, nome da filial, uf, empresa e negocio tambem.",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T14:36:53.402277+00:00"
+      },
+      {
+        "id": "fe5f9a18-c9d4-49db-9493-9d84d0cb698a",
+        "role": "assistant",
+        "text": "Top Compras por Filial em 2026 Excluindo Negócio Matriz",
+        "sql": "SELECT \"CDFILIAL\" AS codigo_filial, \"NMFILIAL\" AS nome_filial, \"UF\", \"NMEMP\" AS empresa, \"FI.NEGOCIO\" AS negocio, SUM(\"TOTAL\") AS total_compras FROM \"NFE\" WHERE \"ANO\" = 2026 AND \"FI.NEGOCIO\" != 'MATRIZ' GROUP BY \"CDFILIAL\", \"NMFILIAL\", \"UF\", \"NMEMP\", \"FI.NEGOCIO\" ORDER BY total_compras DESC LIMIT 500",
+        "reportId": "05d6338c-8e0a-4ca0-b9cf-43e5cb369b85",
+        "reportTitle": "Top Compras por Filial em 2026 Excluindo Negócio Matriz",
+        "rowCount": 51,
+        "status": "ok",
+        "createdAt": "2026-06-03T14:36:53.402277+00:00"
+      },
+      {
+        "id": "8dd43e10-4f95-4dc6-8746-0fc8768779ce",
+        "role": "user",
+        "text": "SELECT \"CDFILIAL\" AS codigo_filial, \"NMFILIAL\" AS nome_filial, \"UF\", \"NMEMP\" AS empresa, \"FI.NEGOCIO\" AS negocio, SUM(\"TOTAL\") AS total_compras FROM \"NFE\" WHERE \"ANO\" = 2026 AND \"FI.NEGOCIO\" <> '_MATRIZ' GROUP BY \"CDFILIAL\", \"NMFILIAL\", \"UF\", \"NMEMP\", \"FI.NEGOCIO\" ORDER BY total_compras DESC LIMIT 500",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T14:37:50.600331+00:00"
+      },
+      {
+        "id": "ad39ec15-43fb-4259-9385-47cf2e0fe134",
+        "role": "assistant",
+        "text": "Top 500 Filiais por Compras em 2026",
+        "sql": "SELECT \"CDFILIAL\" AS codigo_filial, \"NMFILIAL\" AS nome_filial, \"UF\", \"NMEMP\" AS empresa, \"FI.NEGOCIO\" AS negocio, SUM(\"TOTAL\") AS total_compras FROM \"NFE\" WHERE \"ANO\" = 2026 AND \"FI.NEGOCIO\" <> '_MATRIZ' GROUP BY \"CDFILIAL\", \"NMFILIAL\", \"UF\", \"NMEMP\", \"FI.NEGOCIO\" ORDER BY total_compras DESC LIMIT 500",
+        "reportId": "a79ccf65-bea5-46eb-8948-8102a053c717",
+        "reportTitle": "Top 500 Filiais por Compras em 2026",
+        "rowCount": 45,
+        "status": "ok",
+        "createdAt": "2026-06-03T14:37:50.600331+00:00"
+      }
+    ],
+    "reportIds": [
+      "dc1d9af2-e407-4595-8a47-d82ad98e8301",
+      "665c63a7-076b-4f91-aa43-1e084adeb2cc",
+      "05d6338c-8e0a-4ca0-b9cf-43e5cb369b85",
+      "a79ccf65-bea5-46eb-8948-8102a053c717"
+    ],
+    "createdAt": "2026-06-03T14:34:23.018240+00:00",
+    "updatedAt": "2026-06-03T14:37:50.600331+00:00"
+  },
+  {
+    "id": "be0b711a-1b01-428f-83e0-fe9491ac65b7",
+    "title": "top fonercedores em PE",
+    "messages": [
+      {
+        "id": "6013ab6e-9706-40a8-b5ca-889c58bee6ba",
+        "role": "user",
+        "text": "top fonercedores em PE",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T16:51:17.208061+00:00"
+      },
+      {
+        "id": "0d66cda0-59fc-433b-a27e-8245f3cf01d0",
+        "role": "assistant",
+        "text": "Principais Fornecedores em Pernambuco",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend, \"CURVA_FORN\" AS curva FROM \"NFE\" WHERE \"UF\" = 'PE' GROUP BY \"FANTASIA_OFICIAL\", \"CURVA_FORN\" ORDER BY spend DESC LIMIT 10",
+        "reportId": "307f7861-74fa-41ad-b3d1-d0f9113ad646",
+        "reportTitle": "Principais Fornecedores em Pernambuco",
+        "rowCount": 10,
+        "status": "ok",
+        "createdAt": "2026-06-03T16:51:17.208061+00:00"
+      }
+    ],
+    "reportIds": [
+      "307f7861-74fa-41ad-b3d1-d0f9113ad646"
+    ],
+    "createdAt": "2026-06-03T16:51:01.337633+00:00",
+    "updatedAt": "2026-06-03T16:51:17.208061+00:00"
+  },
+  {
+    "id": "3e6c2871-31b6-4f6d-9a91-011dbf27e299",
+    "title": "top fornecedores de PE em 2026",
+    "messages": [
+      {
+        "id": "126355bb-c23e-42b8-b33e-fab7bcef9a67",
+        "role": "user",
+        "text": "top fornecedores de PE em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T17:49:11.924638+00:00"
+      },
+      {
+        "id": "d1888eec-f622-4f0c-abe9-878b90d4953c",
+        "role": "assistant",
+        "text": "Principais Fornecedores de Pernambuco em 2026",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"UF\" = 'PE' AND \"ANO\" = 2026 GROUP BY \"FANTASIA_OFICIAL\" ORDER BY spend DESC LIMIT 10",
+        "reportId": "f7c453fb-ee06-4ca5-8043-fce2cc960745",
+        "reportTitle": "Principais Fornecedores de Pernambuco em 2026",
+        "rowCount": 10,
+        "status": "ok",
+        "createdAt": "2026-06-03T17:49:11.924638+00:00"
+      }
+    ],
+    "reportIds": [
+      "f7c453fb-ee06-4ca5-8043-fce2cc960745"
+    ],
+    "createdAt": "2026-06-03T17:48:58.707390+00:00",
+    "updatedAt": "2026-06-03T17:49:11.924638+00:00"
+  },
+  {
+    "id": "98fe8634-1262-4f38-934f-9a7deb748343",
+    "title": "top fornecedores em PE em 2026",
+    "messages": [
+      {
+        "id": "65a9c33d-f355-42a1-8de8-13f10095867a",
+        "role": "user",
+        "text": "top fornecedores em PE em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T18:21:20.345879+00:00"
+      },
+      {
+        "id": "04ad2ab0-f88f-46b6-bb0d-aac4b4d0b27f",
+        "role": "assistant",
+        "text": "Principais Fornecedores em Pernambuco para 2026",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend, \"CURVA_FORN\" AS curva FROM \"NFE\" WHERE \"UF\" = 'PE' AND \"ANO\" = 2026 GROUP BY \"FANTASIA_OFICIAL\", \"CURVA_FORN\" ORDER BY spend DESC LIMIT 10",
+        "reportId": "06429517-d530-44e7-b10f-2164cbc185de",
+        "reportTitle": "Principais Fornecedores em Pernambuco para 2026",
+        "rowCount": 10,
+        "status": "ok",
+        "createdAt": "2026-06-03T18:21:20.345879+00:00"
+      }
+    ],
+    "reportIds": [
+      "06429517-d530-44e7-b10f-2164cbc185de"
+    ],
+    "createdAt": "2026-06-03T18:21:06.403272+00:00",
+    "updatedAt": "2026-06-03T18:21:20.345879+00:00"
+  },
+  {
+    "id": "135b8a1f-93c3-4fcd-9e4c-d4250b838e4a",
+    "title": "top fornecedores em PE em 2026",
+    "messages": [
+      {
+        "id": "140ea706-f12a-481c-961d-5e48c47efa1a",
+        "role": "user",
+        "text": "top fornecedores em PE em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T18:23:06.838167+00:00"
+      },
+      {
+        "id": "70d69af0-9154-45de-96fd-e8b48db17228",
+        "role": "assistant",
+        "text": "Principais Fornecedores em Pernambuco para 2026",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend, \"CURVA_FORN\" AS curva FROM \"NFE\" WHERE \"UF\" = 'PE' AND \"ANO\" = 2026 GROUP BY \"FANTASIA_OFICIAL\", \"CURVA_FORN\" ORDER BY spend DESC LIMIT 10",
+        "reportId": "6050a542-4b80-42de-b6c2-764bc7018309",
+        "reportTitle": "Principais Fornecedores em Pernambuco para 2026",
+        "rowCount": 10,
+        "status": "ok",
+        "createdAt": "2026-06-03T18:23:06.838167+00:00"
+      },
+      {
+        "id": "ead69f4e-65ff-45e9-9fdb-e2c7935c3fd7",
+        "role": "user",
+        "text": "top fornecedores por UF em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T18:24:18.505238+00:00"
+      },
+      {
+        "id": "2949b0f3-c32a-4517-abb0-900d4aa7bc90",
+        "role": "assistant",
+        "text": "Principais Fornecedores por Estado em 2026",
+        "sql": "SELECT \"UF\", \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"ANO\" = 2026 GROUP BY \"UF\", \"FANTASIA_OFICIAL\" ORDER BY spend DESC LIMIT 10",
+        "reportId": "dd6b6ee0-2cf6-4862-98c5-6f09c5c7de22",
+        "reportTitle": "Principais Fornecedores por Estado em 2026",
+        "rowCount": 10,
+        "status": "ok",
+        "createdAt": "2026-06-03T18:24:18.505238+00:00"
+      },
+      {
+        "id": "b443cdd9-f0fc-41a5-9afc-43e91c5f9474",
+        "role": "user",
+        "text": "maior fornecedor em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T18:25:20.263972+00:00"
+      },
+      {
+        "id": "f8bf8916-44fb-4099-9293-23d5efe879e4",
+        "role": "assistant",
+        "text": "Maior Fornecedor em 2026",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend FROM \"NFE\" WHERE \"ANO\" = 2026 GROUP BY \"FANTASIA_OFICIAL\" ORDER BY spend DESC LIMIT 1",
+        "reportId": "fb868a9f-5642-4ffd-a3ed-f22b702547d1",
+        "reportTitle": "Maior Fornecedor em 2026",
+        "rowCount": 1,
+        "status": "ok",
+        "createdAt": "2026-06-03T18:25:20.263972+00:00"
+      },
+      {
+        "id": "14a499ea-5bfe-4543-a58f-28bba6ee1dff",
+        "role": "user",
+        "text": "gasto total com compras pro mes desde 2024 por uf",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T18:27:05.491420+00:00"
+      },
+      {
+        "id": "fd42c1ce-f244-4ac7-948c-7243be9fb741",
+        "role": "assistant",
+        "text": "Gasto Total Mensal por UF a Partir de 2024",
+        "sql": "SELECT \"UF\", \"MESANO\", SUM(\"TOTAL\") AS gasto_total FROM \"NFE\" WHERE \"ANO\" >= 2024 GROUP BY \"UF\", \"MESANO\" ORDER BY \"MESANO\" DESC, gasto_total DESC",
+        "reportId": "490897d8-1e8d-4a6d-b55f-6dd528f5288a",
+        "reportTitle": "Gasto Total Mensal por UF a Partir de 2024",
+        "rowCount": 243,
+        "status": "ok",
+        "createdAt": "2026-06-03T18:27:05.491420+00:00"
+      },
+      {
+        "id": "8baad483-6d00-4192-8d54-a074229afa3c",
+        "role": "user",
+        "text": "gato total com compras desde 2024",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T18:32:31.447817+00:00"
+      },
+      {
+        "id": "51ee6a38-0981-4d78-8b7e-423cca52eee0",
+        "role": "assistant",
+        "text": "Análise de Gastos por UF desde 2024",
+        "sql": "SELECT \"UF\", \"MESANO\", SUM(\"TOTAL\") AS gasto_total FROM \"NFE\" WHERE \"ANO\" >= 2024 GROUP BY \"UF\", \"MESANO\" ORDER BY \"UF\", \"MESANO\" DESC",
+        "reportId": "8490b4d9-1818-47d6-abb2-c041fd57bbd6",
+        "reportTitle": "Análise de Gastos por UF desde 2024",
+        "rowCount": 243,
+        "status": "ok",
+        "createdAt": "2026-06-03T18:32:31.447817+00:00"
+      },
+      {
+        "id": "3aab5b02-4bea-427a-be61-c4a1d1cee751",
+        "role": "user",
+        "text": "gasto total com compras por mes desde 2024",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T18:34:11.690069+00:00"
+      },
+      {
+        "id": "80f3e54a-bb79-484a-93c8-8602e79665fd",
+        "role": "assistant",
+        "text": "Análise de Gastos Mensais com Compras desde 2024",
+        "sql": "SELECT \"MESANO\", SUM(\"TOTAL\") AS gasto_total FROM \"NFE\" WHERE \"ANO\" >= 2024 GROUP BY \"MESANO\" ORDER BY \"MESANO\" DESC",
+        "reportId": "8ccb5e4a-f7ea-41c1-87bb-c50ac13cfbf3",
+        "reportTitle": "Análise de Gastos Mensais com Compras desde 2024",
+        "rowCount": 30,
+        "status": "ok",
+        "createdAt": "2026-06-03T18:34:11.690069+00:00"
+      },
+      {
+        "id": "f54a1503-9985-4b79-bc0a-b8b02ebf32e3",
+        "role": "user",
+        "text": "gastos mensais por mes com pereciveis (cat2 = \"I02\"), e estocaveis (cat2=\"I01\") e hortifruti (I03) desde 2024",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T18:51:51.026190+00:00"
+      },
+      {
+        "id": "1b78dba7-1293-448f-9ac3-cb6338ea1e6d",
+        "role": "assistant",
+        "text": "gastos mensais por mes com pereciveis (cat2 = \"I02\"), e estocaveis (ca",
+        "sql": "SELECT \"MESANO\", \"CAT2\", SUM(\"TOTAL\") AS gasto_mensal FROM \"NFE\" WHERE \"ANO\" >= 2024 AND \"CAT2\" IN ('I02 - PERECIVEIS', 'I01 - ESTOCAVEIS', 'I03 - HORTIFRUTI') GROUP BY \"MESANO\", \"CAT2\" ORDER BY \"MESANO\" DESC LIMIT 500",
+        "reportId": "ebc8d9cf-ab20-42e1-846a-d1dca091de3d",
+        "reportTitle": "gastos mensais por mes com pereciveis (cat2 = \"I02\"), e estocaveis (ca",
+        "rowCount": 0,
+        "status": "ok",
+        "createdAt": "2026-06-03T18:51:51.026190+00:00"
+      },
+      {
+        "id": "daeb0a04-a1ef-45e2-b2dd-df99160aff19",
+        "role": "user",
+        "text": "SELECT \"MESANO\", \"CAT2\", SUM(\"TOTAL\") AS gasto_mensal FROM \"NFE\" WHERE \"ANO\" >= 2024 AND \"CAT2\" IN ('I02', 'I01', 'I03') GROUP BY \"MESANO\", \"CAT2\" ORDER BY \"MESANO\" DESC LIMIT 500",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T19:08:05.922015+00:00"
+      },
+      {
+        "id": "e1c7d4aa-315f-4b95-ae85-e76c09ba7c04",
+        "role": "assistant",
+        "text": "SELECT \"MESANO\", \"CAT2\", SUM(\"TOTAL\") AS gasto_mensal FROM \"NFE\" WHERE",
+        "sql": "SELECT \"MESANO\", \"CAT2\", SUM(\"TOTAL\") AS gasto_mensal FROM \"NFE\" WHERE \"ANO\" >= 2024 AND \"CAT2\" IN ('I02', 'I01', 'I03') GROUP BY \"MESANO\", \"CAT2\" ORDER BY \"MESANO\" DESC LIMIT 500",
+        "reportId": "b9feb9b8-4d72-42ed-9517-8f383877177a",
+        "reportTitle": "SELECT \"MESANO\", \"CAT2\", SUM(\"TOTAL\") AS gasto_mensal FROM \"NFE\" WHERE",
+        "rowCount": 0,
+        "status": "ok",
+        "createdAt": "2026-06-03T19:08:05.922015+00:00"
+      }
+    ],
+    "reportIds": [
+      "6050a542-4b80-42de-b6c2-764bc7018309",
+      "dd6b6ee0-2cf6-4862-98c5-6f09c5c7de22",
+      "fb868a9f-5642-4ffd-a3ed-f22b702547d1",
+      "490897d8-1e8d-4a6d-b55f-6dd528f5288a",
+      "8490b4d9-1818-47d6-abb2-c041fd57bbd6",
+      "8ccb5e4a-f7ea-41c1-87bb-c50ac13cfbf3",
+      "ebc8d9cf-ab20-42e1-846a-d1dca091de3d",
+      "b9feb9b8-4d72-42ed-9517-8f383877177a"
+    ],
+    "createdAt": "2026-06-03T18:22:47.904744+00:00",
+    "updatedAt": "2026-06-03T19:08:05.922015+00:00"
+  },
+  {
+    "id": "7b9d6bd0-093a-4b71-972e-03bdafaab12f",
+    "title": "top filiais por compras e por UF em 2026",
+    "messages": [
+      {
+        "id": "5f1c0906-6017-4a36-b76b-0c86c5067b1e",
+        "role": "user",
+        "text": "top filiais por compras e por UF em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T19:08:58.539423+00:00"
+      },
+      {
+        "id": "73eac02c-fe32-495d-8481-bd562f41d669",
+        "role": "assistant",
+        "text": "Principais Filiais por Compras em 2026",
+        "sql": "SELECT \"NMFILIAL\" AS filial, \"UF\", SUM(\"TOTAL\") AS compras FROM \"NFE\" WHERE \"ANO\" = 2026 GROUP BY \"NMFILIAL\", \"UF\" ORDER BY compras DESC LIMIT 500",
+        "reportId": "98ac2f77-e466-4df8-a861-7e346fa423ab",
+        "reportTitle": "Principais Filiais por Compras em 2026",
+        "rowCount": 62,
+        "status": "ok",
+        "createdAt": "2026-06-03T19:08:58.539423+00:00"
+      }
+    ],
+    "reportIds": [
+      "98ac2f77-e466-4df8-a861-7e346fa423ab"
+    ],
+    "createdAt": "2026-06-03T19:08:46.657505+00:00",
+    "updatedAt": "2026-06-03T19:08:58.539423+00:00"
+  },
+  {
+    "id": "489de797-bd27-4105-bcd0-a138e50e242f",
+    "title": "quero o maior forncedor por volume de compra em 2026 e em 20",
+    "messages": [
+      {
+        "id": "87d85393-9077-47e6-8fbe-e20112eaad3d",
+        "role": "user",
+        "text": "quero o maior forncedor por volume de compra em 2026 e em 2025",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T20:45:20.141024+00:00"
+      },
+      {
+        "id": "9ff67f9e-64fd-4132-aa45-e7a17452cc6f",
+        "role": "assistant",
+        "text": "Maior Fornecedor por Volume de Compra em 2025 e 2026",
+        "sql": "SELECT \"ANO\", \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS volume FROM \"NFE\" WHERE \"ANO\" IN (2025, 2026) GROUP BY \"ANO\", \"FANTASIA_OFICIAL\" ORDER BY \"ANO\", volume DESC LIMIT 2",
+        "reportId": "a3624197-3314-4660-9160-9e39bc6aa010",
+        "reportTitle": "Maior Fornecedor por Volume de Compra em 2025 e 2026",
+        "rowCount": 2,
+        "status": "ok",
+        "createdAt": "2026-06-03T20:45:20.141024+00:00"
+      },
+      {
+        "id": "324e5a81-88bd-44be-87a2-e0820538985b",
+        "role": "user",
+        "text": "quero o maior forncedor por volume de compra em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T20:47:32.890336+00:00"
+      },
+      {
+        "id": "5f9cd35c-489b-4b0b-a704-d09e03af4ced",
+        "role": "assistant",
+        "text": "Maior Fornecedor por Volume de Compra em 2026",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS volume_compra FROM \"NFE\" WHERE \"ANO\" = 2026 GROUP BY \"FANTASIA_OFICIAL\" ORDER BY volume_compra DESC LIMIT 1",
+        "reportId": "4e6f2505-5113-4a0e-b032-8d7ab72b2dde",
+        "reportTitle": "Maior Fornecedor por Volume de Compra em 2026",
+        "rowCount": 1,
+        "status": "ok",
+        "createdAt": "2026-06-03T20:47:32.890336+00:00"
+      }
+    ],
+    "reportIds": [
+      "a3624197-3314-4660-9160-9e39bc6aa010",
+      "4e6f2505-5113-4a0e-b032-8d7ab72b2dde"
+    ],
+    "createdAt": "2026-06-03T20:43:19.522328+00:00",
+    "updatedAt": "2026-06-03T20:47:32.890336+00:00"
+  },
+  {
+    "id": "f6ae20de-85a3-487e-b026-a889583878b7",
+    "title": "grafico de compra total por uf por mes desde 2025",
+    "messages": [
+      {
+        "id": "81e66322-47b2-45a4-a65c-0b1fa970f148",
+        "role": "user",
+        "text": "grafico de compra total por uf por mes desde 2025",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T22:17:39.232552+00:00"
+      },
+      {
+        "id": "d47c8d92-baa6-491b-a2da-1a4cde202811",
+        "role": "assistant",
+        "text": "Análise de Compras Totais por UF e Mês desde 2025",
+        "sql": "SELECT \"UF\", \"MESANO\", SUM(\"TOTAL\") AS compra_total FROM \"NFE\" WHERE \"ANO\" >= 2025 GROUP BY \"UF\", \"MESANO\" ORDER BY \"MESANO\" DESC, \"UF\" LIMIT 500",
+        "reportId": "e85cdb8c-60ab-4f4a-824f-a0ec7bb8d081",
+        "reportTitle": "Análise de Compras Totais por UF e Mês desde 2025",
+        "rowCount": 164,
+        "status": "ok",
+        "createdAt": "2026-06-03T22:17:39.232552+00:00"
+      }
+    ],
+    "reportIds": [
+      "e85cdb8c-60ab-4f4a-824f-a0ec7bb8d081"
+    ],
+    "createdAt": "2026-06-03T22:17:21.767906+00:00",
+    "updatedAt": "2026-06-03T22:17:39.232552+00:00"
+  },
+  {
+    "id": "343bcbdc-e1f6-4291-862c-b77e010a9fbc",
+    "title": "me de o pmp de I02 no ultimo mes",
+    "messages": [
+      {
+        "id": "f6bb0c27-8aba-4803-babd-2972adf3249e",
+        "role": "user",
+        "text": "me de o pmp de I02 no ultimo mes",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T23:47:55.028461+00:00"
+      },
+      {
+        "id": "6a0ed49f-32c0-4fb8-ab74-9337ff45cc2e",
+        "role": "assistant",
+        "text": "me de o pmp de I02 no ultimo mes",
+        "sql": "SELECT \"MESANO\", AVG(\"PMP_0\") AS pmp_medio FROM \"PMP_PROD_INF_12\" WHERE \"CAT2\" = 'I02' GROUP BY \"MESANO\" ORDER BY \"MESANO\" DESC LIMIT 1",
+        "reportId": "54dcc215-deab-40f2-97fa-a4b7182c8de0",
+        "reportTitle": "me de o pmp de I02 no ultimo mes",
+        "rowCount": 0,
+        "status": "ok",
+        "createdAt": "2026-06-03T23:47:55.028461+00:00"
+      },
+      {
+        "id": "fadb7ed1-fc95-4142-9188-75806be38164",
+        "role": "user",
+        "text": "SELECT \"MESANO\", AVG(\"PMP_0\") AS pmp_medio FROM \"PMP_PROD_INF_12\" WHERE \"CAT2\" like '%I02%' GROUP BY \"MESANO\" ORDER BY \"MESANO\" DESC LIMIT 1",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-03T23:48:32.344560+00:00"
+      },
+      {
+        "id": "c0101176-b725-4596-ab94-e06fe5c0e0fd",
+        "role": "assistant",
+        "text": "SELECT \"MESANO\", AVG(\"PMP_0\") AS pmp_medio FROM \"PMP_PROD_INF_12\" WHER",
+        "sql": "SELECT \"MESANO\", AVG(\"PMP_0\") AS pmp_medio FROM \"PMP_PROD_INF_12\" WHERE \"CAT2\" LIKE '%I02%' GROUP BY \"MESANO\" ORDER BY \"MESANO\" DESC LIMIT 1",
+        "reportId": "f09c7b0f-953c-489f-995d-e3a5f507a17d",
+        "reportTitle": "SELECT \"MESANO\", AVG(\"PMP_0\") AS pmp_medio FROM \"PMP_PROD_INF_12\" WHER",
+        "rowCount": 0,
+        "status": "ok",
+        "createdAt": "2026-06-03T23:48:32.344560+00:00"
+      }
+    ],
+    "reportIds": [
+      "54dcc215-deab-40f2-97fa-a4b7182c8de0",
+      "f09c7b0f-953c-489f-995d-e3a5f507a17d"
+    ],
+    "createdAt": "2026-06-03T23:47:43.413605+00:00",
+    "updatedAt": "2026-06-03T23:48:32.344560+00:00"
+  },
+  {
+    "id": "e55086af-863c-4809-8d86-224bd0d055c5",
+    "title": "Top fornecedores em PE com curva AAA em 2026",
+    "messages": [
+      {
+        "id": "51902bec-2c6e-4016-adf9-b8449be890ba",
+        "role": "user",
+        "text": "Top fornecedores em PE com curva AAA em 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-04T01:11:06.941411+00:00"
+      },
+      {
+        "id": "cef9d624-b095-4cf6-b237-d13ab42eb997",
+        "role": "assistant",
+        "text": "Principais Fornecedores em PE com Curva AAA em 2026",
+        "sql": "SELECT \"FANTASIA_OFICIAL\" AS fornecedor, SUM(\"TOTAL\") AS spend, \"CURVA_FORN\" AS curva FROM \"NFE\" WHERE \"UF\" = 'PE' AND \"CURVA_FORN\" = 'AAA' AND \"ANO\" = 2026 GROUP BY \"FANTASIA_OFICIAL\", \"CURVA_FORN\" ORDER BY spend DESC LIMIT 10",
+        "reportId": "b9057371-5680-4db5-a457-1823611d7bb5",
+        "reportTitle": "Principais Fornecedores em PE com Curva AAA em 2026",
+        "rowCount": 10,
+        "status": "ok",
+        "createdAt": "2026-06-04T01:11:06.941411+00:00"
+      }
+    ],
+    "reportIds": [
+      "b9057371-5680-4db5-a457-1823611d7bb5"
+    ],
+    "createdAt": "2026-06-04T01:10:52.924573+00:00",
+    "updatedAt": "2026-06-04T01:11:06.941411+00:00"
+  },
+  {
+    "id": "0d775f43-d550-4197-a13f-31a94f092094",
+    "title": "me dê a inflação media dos ultimos meses por categoria CAT2 ",
+    "messages": [
+      {
+        "id": "2e2291de-1ef7-4b5b-b48a-2dc3bced9f5c",
+        "role": "user",
+        "text": "me dê a inflação media dos ultimos meses por categoria CAT2 em Insumos",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-04T01:29:08.812083+00:00"
+      },
+      {
+        "id": "82bb302e-3219-4732-8315-1b546e2cf901",
+        "role": "assistant",
+        "text": "Inflação Média por Categoria de Insumos",
+        "sql": "SELECT \"CAT2\", AVG(\"PERC_INF_ID_PMP\") AS inflacao_media FROM \"INFLAÇÃO\" WHERE \"CAT1\" = 'I - INSUMOS' GROUP BY \"CAT2\" ORDER BY inflacao_media DESC",
+        "reportId": "a23445f5-d489-4b73-adbf-47d72e7f5ba5",
+        "reportTitle": "Inflação Média por Categoria de Insumos",
+        "rowCount": 7,
+        "status": "ok",
+        "createdAt": "2026-06-04T01:29:08.812083+00:00"
+      },
+      {
+        "id": "b033017d-b36f-4faa-a78c-65288752a31f",
+        "role": "user",
+        "text": "me dê a inflação media dos ultimos meses por categoria CAT3 em Insumos. Lembre-se de que inflação media é em percentual",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-04T01:30:12.011369+00:00"
+      },
+      {
+        "id": "5813cfe2-43f4-444f-9ab7-9260c1c90f45",
+        "role": "assistant",
+        "text": "Inflação Média por Categoria de Insumos",
+        "sql": "SELECT \"CAT3\", AVG(\"PERC_INF_ID_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT1\" = 'I - INSUMOS' GROUP BY \"CAT3\" ORDER BY inflacao_media_pct DESC LIMIT 15",
+        "reportId": "b137bd17-d5ad-4be1-a73f-593ea1e865fa",
+        "reportTitle": "Inflação Média por Categoria de Insumos",
+        "rowCount": 15,
+        "status": "ok",
+        "createdAt": "2026-06-04T01:30:12.011369+00:00"
+      },
+      {
+        "id": "a1bc357e-4e6e-4b28-9078-614d6a777ada",
+        "role": "user",
+        "text": "SELECT \"CAT3\", AVG(\"PERC_INF_ID_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT1\" = 'I - INSUMOS' GROUP BY \"CAT3\" ORDER BY \"CAT3\" LIMIT 200",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-04T01:31:49.831615+00:00"
+      },
+      {
+        "id": "92a0a724-b364-43b0-96b1-0731a6107bcc",
+        "role": "assistant",
+        "text": "Média de Inflação por Categoria de Insumos",
+        "sql": "SELECT \"CAT3\", AVG(\"PERC_INF_ID_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT1\" = 'I - INSUMOS' GROUP BY \"CAT3\" ORDER BY inflacao_media_pct DESC LIMIT 200",
+        "reportId": "1ea27268-d738-4753-a20e-b17519956e04",
+        "reportTitle": "Média de Inflação por Categoria de Insumos",
+        "rowCount": 39,
+        "status": "ok",
+        "createdAt": "2026-06-04T01:31:49.831615+00:00"
+      }
+    ],
+    "reportIds": [
+      "a23445f5-d489-4b73-adbf-47d72e7f5ba5",
+      "b137bd17-d5ad-4be1-a73f-593ea1e865fa",
+      "1ea27268-d738-4753-a20e-b17519956e04"
+    ],
+    "createdAt": "2026-06-04T01:28:52.195203+00:00",
+    "updatedAt": "2026-06-04T01:31:49.831615+00:00"
+  },
+  {
+    "id": "dd32f4f9-a03a-4c9c-a455-48f184854dca",
+    "title": "Saldo semanal de CP 2026",
+    "messages": [
+      {
+        "id": "f37b3fe4-9bd3-4c4d-a302-154009541899",
+        "role": "user",
+        "text": "Saldo semanal de CP 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-04T01:56:15.607053+00:00"
+      },
+      {
+        "id": "ec3db330-0aa9-4af0-b149-1bff7a47ff90",
+        "role": "assistant",
+        "text": "Top 20 Saldos Semanais de CP 2026",
+        "sql": "SELECT \"NMFANTFORN\", \"SEMANA_ANO\", \"INI_SEMANA\", \"SALDO_DIVIDA_SEMANA\" FROM \"CP_SALDO_2026\" WHERE \"ANO\" = 2026 ORDER BY \"SALDO_DIVIDA_SEMANA\" DESC LIMIT 20",
+        "reportId": "317f33fc-9d3f-4009-9bd3-fcd159a28878",
+        "reportTitle": "Top 20 Saldos Semanais de CP 2026",
+        "rowCount": 20,
+        "status": "ok",
+        "createdAt": "2026-06-04T01:56:15.607053+00:00"
+      },
+      {
+        "id": "4a168785-be22-4677-ad9d-8f0beddd3159",
+        "role": "user",
+        "text": "Cotacoes com baixa concorrencia (curva AAA)",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-04T02:00:36.297479+00:00"
+      },
+      {
+        "id": "b9448663-1d1c-44e5-a699-d00859c9eda7",
+        "role": "assistant",
+        "text": "Análise de Cotações com Baixa Concorrência - Curva AAA",
+        "sql": "SELECT \"ID\", \"NMPRODUTO_EST\", \"QTD_COT\", \"MIN_COT\", \"FORN_MENOR_PRECO\", \"MESANO\" FROM \"NUM_COT\" WHERE \"QTD_COT\" <= 1 AND \"CURVA_ID\" = 'AAA' ORDER BY \"MESANO\" DESC LIMIT 20",
+        "reportId": "30cd1f57-4243-4e52-9ec5-60abc170f617",
+        "reportTitle": "Análise de Cotações com Baixa Concorrência - Curva AAA",
+        "rowCount": 20,
+        "status": "ok",
+        "createdAt": "2026-06-04T02:00:36.297479+00:00"
+      }
+    ],
+    "reportIds": [
+      "317f33fc-9d3f-4009-9bd3-fcd159a28878",
+      "30cd1f57-4243-4e52-9ec5-60abc170f617"
+    ],
+    "createdAt": "2026-06-04T01:51:53.550950+00:00",
+    "updatedAt": "2026-06-04T02:00:36.297479+00:00"
+  },
+  {
+    "id": "c1d6e89c-9705-4400-9f6d-253fbe29eff9",
+    "title": "percentual de inflação por categoria CAT2 (I1 a I6) por mes ",
+    "messages": [
+      {
+        "id": "f2bfcb58-70a1-4049-a0ce-ac267afae642",
+        "role": "user",
+        "text": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimos 12 meses",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T18:00:53.929440+00:00"
+      },
+      {
+        "id": "e5958ab3-a1fc-4e9d-a040-d9cfec00242f",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"INVALID_COLUMN\",\"data\":{\"errorCode\":7407,\"errorMessage\":\"Coluna inválida \\u201cPERC_INF_PROD_PMP\\u201d usada na consulta SELECT.\\n\\n * Se isso não procede, coloque o(s) nome(s) de coluna entre aspas duplas (\\\" \\\"), caso conste algum caractere especial, como espaço em branco, -, %...\\n * Se for apenas um valor de string, coloque-o entre aspas simples (por exemplo, 'John Abraham')\\n * Se o nome de coluna usado for uma palavra-chave de qualquer dialeto SQL, coloque-o entre aspas duplas(\\\" \\\"). Exemplo: \\\"data\\\"\"}}",
+        "sql": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"NFE\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", \"MESANO\" ORDER BY \"CAT2\", \"MESANO\" ASC",
+        "reportId": "a94865a9-068f-4a3a-b594-7ea2168813fe",
+        "reportTitle": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimo",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T18:00:53.929440+00:00"
+      }
+    ],
+    "reportIds": [
+      "a94865a9-068f-4a3a-b594-7ea2168813fe"
+    ],
+    "createdAt": "2026-06-08T18:00:42.713086+00:00",
+    "updatedAt": "2026-06-08T18:00:53.929440+00:00"
+  },
+  {
+    "id": "49f7f5b4-bae2-4ccd-9c5b-686bc8c101ce",
+    "title": "percentual de inflação por categoria CAT2 (I1 a I6) por mes ",
+    "messages": [
+      {
+        "id": "95da70fb-2885-4b32-a069-e6324adb6538",
+        "role": "user",
+        "text": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimos 12 meses",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T18:20:29.598476+00:00"
+      },
+      {
+        "id": "53f73946-77ad-438f-a540-e43da3b69fd2",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"INVALID_TABLE\",\"data\":{\"errorCode\":7409,\"errorMessage\":\"A tabela \\u201cINFLACAO\\u201d não existe neste espaço de trabalho.\\n\\n * Se isso não procede, tente colocar o(s) nome(s) de tabela entre aspas duplas (\\\" \\\"), caso conste algum caractere especial, como espaço em branco, -, %...\"}}",
+        "sql": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLACAO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", \"MESANO\" ORDER BY \"CAT2\", \"MESANO\" ASC",
+        "reportId": "cbee040d-d4a1-45e4-9f8f-f6ebec8a3e22",
+        "reportTitle": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimo",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T18:20:29.598476+00:00"
+      },
+      {
+        "id": "572689b7-ee82-4d59-a681-d547d7e310d5",
+        "role": "user",
+        "text": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", \"MESANO\" ORDER BY \"CAT2\", \"MESANO\" ASC",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T18:22:17.557093+00:00"
+      },
+      {
+        "id": "5b0121e3-460e-44d3-a228-36bb03a076ce",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"INVALID_TABLE\",\"data\":{\"errorCode\":7409,\"errorMessage\":\"A tabela \\u201cINFLACAO\\u201d não existe neste espaço de trabalho.\\n\\n * Se isso não procede, tente colocar o(s) nome(s) de tabela entre aspas duplas (\\\" \\\"), caso conste algum caractere especial, como espaço em branco, -, %...\"}}",
+        "sql": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLACAO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", \"MESANO\" ORDER BY \"CAT2\", \"MESANO\" ASC",
+        "reportId": "c7c5f290-c886-4b22-8b78-c01cd05a6698",
+        "reportTitle": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pc",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T18:22:17.557093+00:00"
+      }
+    ],
+    "reportIds": [
+      "cbee040d-d4a1-45e4-9f8f-f6ebec8a3e22",
+      "c7c5f290-c886-4b22-8b78-c01cd05a6698"
+    ],
+    "createdAt": "2026-06-08T18:20:22.266638+00:00",
+    "updatedAt": "2026-06-08T18:22:17.557093+00:00"
+  },
+  {
+    "id": "308f1b5c-6c1d-4693-b686-3557dc1523ac",
+    "title": "percentual de inflação por categoria CAT2 (I1 a I6) por mes ",
+    "messages": [
+      {
+        "id": "3217c832-7491-416d-a11d-ce1dfbf6923a",
+        "role": "user",
+        "text": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimos 12 meses",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T18:25:18.229941+00:00"
+      },
+      {
+        "id": "035371f5-63d3-43ea-86dd-6479016121bb",
+        "role": "assistant",
+        "text": "Análise de Inflação por Categoria nos Últimos 12 Meses",
+        "sql": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", \"MESANO\" ORDER BY \"CAT2\", \"MESANO\" ASC",
+        "reportId": "48975736-a91d-4d26-9e41-8a1252f08c0d",
+        "reportTitle": "Análise de Inflação por Categoria nos Últimos 12 Meses",
+        "rowCount": 72,
+        "status": "ok",
+        "createdAt": "2026-06-08T18:25:18.229941+00:00"
+      },
+      {
+        "id": "f0fb9745-96b7-4b42-b2cd-ac10c43bf8e2",
+        "role": "user",
+        "text": "SELECT \"CAT2\",\n       DATEFORMAT(\"MESANO\", 'yyyy/MM') AS mesano,\n       AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct\nFROM \"INFLAÇÃO\"\nWHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS')\n  AND \"PERC_INF_PROD_PMP\" IS NOT NULL\n  AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06'\nGROUP BY \"CAT2\", DATEFORMAT(\"MESANO\", 'yyyy/MM')\nORDER BY \"CAT2\", DATEFORMAT(\"MESANO\", 'yyyy/MM') ASC",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T18:38:09.648710+00:00"
+      },
+      {
+        "id": "0d212804-851f-4a4f-8e13-458f4b2a6ddc",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"UNSUPPORTED_MYSQL_FN\",\"data\":{\"errorCode\":7412,\"errorMessage\":\"Uso de função incompatível na consulta. Envie sua consulta para support@zohoanalytics.com, caso queira postar em nosso banco de dados de bugs\"}}",
+        "sql": "SELECT \"CAT2\", DATEFORMAT(\"MESANO\", 'yyyy/MM') AS mesano, AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", DATEFORMAT(\"MESANO\", 'yyyy/MM') ORDER BY \"CAT2\", DATEFORMAT(\"MESANO\", 'yyyy/MM') ASC",
+        "reportId": "c4ee7fd6-19e3-4c7a-af0d-943ec160e3b6",
+        "reportTitle": "SELECT \"CAT2\",\n       DATEFORMAT(\"MESANO\", 'yyyy/MM') AS mesano,\n     ",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T18:38:09.648710+00:00"
+      }
+    ],
+    "reportIds": [
+      "48975736-a91d-4d26-9e41-8a1252f08c0d",
+      "c4ee7fd6-19e3-4c7a-af0d-943ec160e3b6"
+    ],
+    "createdAt": "2026-06-08T18:25:04.729313+00:00",
+    "updatedAt": "2026-06-08T18:38:09.648710+00:00"
+  },
+  {
+    "id": "55ba746a-922c-40d0-a2d4-dacda4ea5897",
+    "title": "percentual de inflação por categoria CAT2 (I1 a I6) por mes ",
+    "messages": [
+      {
+        "id": "8a63958d-6ac0-4e13-9dbd-b52d73af5e43",
+        "role": "user",
+        "text": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimos 12 meses",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T18:38:40.896314+00:00"
+      },
+      {
+        "id": "e873507e-7ac5-4b52-82e3-dc0dc6e15de4",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"UNSUPPORTED_MYSQL_FN\",\"data\":{\"errorCode\":7412,\"errorMessage\":\"Uso de função incompatível na consulta. Envie sua consulta para support@zohoanalytics.com, caso queira postar em nosso banco de dados de bugs\"}}",
+        "sql": "SELECT \"CAT2\", DATEFORMAT(\"MESANO\", 'yyyy/MM') AS mesano, AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", DATEFORMAT(\"MESANO\", 'yyyy/MM') ORDER BY \"CAT2\", DATEFORMAT(\"MESANO\", 'yyyy/MM') ASC",
+        "reportId": "bc3bfd99-1ba3-4d74-8b97-c5ce011915ce",
+        "reportTitle": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimo",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T18:38:40.896314+00:00"
+      }
+    ],
+    "reportIds": [
+      "bc3bfd99-1ba3-4d74-8b97-c5ce011915ce"
+    ],
+    "createdAt": "2026-06-08T18:38:31.809685+00:00",
+    "updatedAt": "2026-06-08T18:38:40.896314+00:00"
+  },
+  {
+    "id": "17baeac1-87ca-4a2b-8674-d9f086bb9122",
+    "title": "percentual de inflação por categoria CAT2 (I1 a I6) por mes ",
+    "messages": [
+      {
+        "id": "ec42d723-e012-47c2-9311-2c20504be6b7",
+        "role": "user",
+        "text": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimos 12 meses",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T18:46:09.564484+00:00"
+      },
+      {
+        "id": "39f5cc1e-1354-4c40-b832-3cba2cf03e77",
+        "role": "assistant",
+        "text": "Análise da Inflação por Categoria nos Últimos 12 Meses",
+        "sql": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", \"MESANO\" ORDER BY \"CAT2\", \"MESANO\" ASC",
+        "reportId": "d5f7be35-2571-478e-a010-e744b3e57cb6",
+        "reportTitle": "Análise da Inflação por Categoria nos Últimos 12 Meses",
+        "rowCount": 72,
+        "status": "ok",
+        "createdAt": "2026-06-08T18:46:09.564484+00:00"
+      }
+    ],
+    "reportIds": [
+      "d5f7be35-2571-478e-a010-e744b3e57cb6"
+    ],
+    "createdAt": "2026-06-08T18:45:53.530783+00:00",
+    "updatedAt": "2026-06-08T18:46:09.564484+00:00"
+  },
+  {
+    "id": "9080a789-953e-4f57-b845-824e558ad775",
+    "title": "percentual de inflação por categoria CAT2 (I1 a I6) por mes ",
+    "messages": [
+      {
+        "id": "161e8a46-9ee8-4c71-8239-b6cb2194b855",
+        "role": "user",
+        "text": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimos 12 meses",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T18:56:35.980510+00:00"
+      },
+      {
+        "id": "e4b1c9f0-d334-4ffa-ac1f-6e250952443d",
+        "role": "assistant",
+        "text": "Análise da Inflação por Categoria nos Últimos 12 Meses",
+        "sql": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", \"MESANO\" ORDER BY \"CAT2\", \"MESANO\" ASC",
+        "reportId": "4fbea34c-c774-44db-b138-033fddb72e02",
+        "reportTitle": "Análise da Inflação por Categoria nos Últimos 12 Meses",
+        "rowCount": 72,
+        "status": "ok",
+        "createdAt": "2026-06-08T18:56:35.980510+00:00"
+      }
+    ],
+    "reportIds": [
+      "4fbea34c-c774-44db-b138-033fddb72e02"
+    ],
+    "createdAt": "2026-06-08T18:55:50.798541+00:00",
+    "updatedAt": "2026-06-08T18:56:35.980510+00:00"
+  },
+  {
+    "id": "bbbf3b69-36da-400c-ac06-36bca9cfaf87",
+    "title": "percentual de inflação por categoria CAT2 (I1 a I6) por mes ",
+    "messages": [
+      {
+        "id": "63b6e2cb-1013-4acf-b6e6-579163567727",
+        "role": "user",
+        "text": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimos 12 meses",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:07:13.968370+00:00"
+      },
+      {
+        "id": "576a3d34-f702-443b-bb1b-dd8db2e3df5a",
+        "role": "assistant",
+        "text": "Análise da Inflação por Categoria nos Últimos 12 Meses",
+        "sql": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", \"MESANO\" ORDER BY \"CAT2\", \"MESANO\" ASC",
+        "reportId": "7e3161ad-39e7-44cf-8fc9-60b8aa7ad856",
+        "reportTitle": "Análise da Inflação por Categoria nos Últimos 12 Meses",
+        "rowCount": 72,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:07:13.968370+00:00"
+      }
+    ],
+    "reportIds": [
+      "7e3161ad-39e7-44cf-8fc9-60b8aa7ad856"
+    ],
+    "createdAt": "2026-06-08T19:07:00.218194+00:00",
+    "updatedAt": "2026-06-08T19:07:13.968370+00:00"
+  },
+  {
+    "id": "d4e9fa0a-efdc-41b4-bd6c-db73130db7f7",
+    "title": "percentual de inflação por categoria CAT2 (I1 a I6) por mes ",
+    "messages": [
+      {
+        "id": "c39ee4cb-bde9-4af5-a1bd-60632b751ee9",
+        "role": "user",
+        "text": "percentual de inflação por categoria CAT2 (I1 a I6) por mes nos ultimos 12 meses",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:11:21.192355+00:00"
+      },
+      {
+        "id": "8066736e-485c-4317-ac10-202c1937a05c",
+        "role": "assistant",
+        "text": "Análise da Inflação por Categoria nos Últimos 12 Meses",
+        "sql": "SELECT \"CAT2\", \"MESANO\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"CAT2\", \"MESANO\" ORDER BY \"CAT2\", \"MESANO\" ASC",
+        "reportId": "ae70d190-2dc8-4554-be35-2f63aa04673d",
+        "reportTitle": "Análise da Inflação por Categoria nos Últimos 12 Meses",
+        "rowCount": 72,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:11:21.192355+00:00"
+      },
+      {
+        "id": "a3f44b95-d656-4b87-a1bf-c3e17855880a",
+        "role": "user",
+        "text": "percentual de inflação por categoria nos ultimos 12 meses, mas ao inves de colcoar desse jeito, dê uma coluna para cada categoria de I1 a I6 para cada mesano dos ultimos doze meses",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:14:41.564162+00:00"
+      },
+      {
+        "id": "56514938-14bb-4048-a277-6e7c7dae40bf",
+        "role": "assistant",
+        "text": "Análise de Inflação por Categoria nos Últimos 12 Meses",
+        "sql": "SELECT \"MESANO\", AVG(CASE WHEN \"CAT2\" = 'I1 - ESTOCAVEIS' THEN \"PERC_INF_PROD_PMP\" END) AS inflacao_estocaveis, AVG(CASE WHEN \"CAT2\" = 'I2 - PERECIVEIS' THEN \"PERC_INF_PROD_PMP\" END) AS inflacao_pereciveis, AVG(CASE WHEN \"CAT2\" = 'I3 - HORTIFRUTI' THEN \"PERC_INF_PROD_PMP\" END) AS inflacao_hortifruti, AVG(CASE WHEN \"CAT2\" = 'I4 - DESCARTAVEIS' THEN \"PERC_INF_PROD_PMP\" END) AS inflacao_descartaveis, AVG(CASE WHEN \"CAT2\" = 'I5 - LIMPEZA' THEN \"PERC_INF_PROD_PMP\" END) AS inflacao_limpeza, AVG(CASE WHEN \"CAT2\" = 'I6 - GAS' THEN \"PERC_INF_PROD_PMP\" END) AS inflacao_gas FROM \"INFLAÇÃO\" WHERE \"CAT2\" IN ('I1 - ESTOCAVEIS', 'I2 - PERECIVEIS', 'I3 - HORTIFRUTI', 'I4 - DESCARTAVEIS', 'I5 - LIMPEZA', 'I6 - GAS') AND \"PERC_INF_PROD_PMP\" IS NOT NULL AND \"MESANO\" >= '2025/07' AND \"MESANO\" <= '2026/06' GROUP BY \"MESANO\" ORDER BY \"MESANO\" ASC",
+        "reportId": "c4862b76-524d-49ec-9052-6a6a0da651d7",
+        "reportTitle": "Análise de Inflação por Categoria nos Últimos 12 Meses",
+        "rowCount": 12,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:14:41.564162+00:00"
+      },
+      {
+        "id": "f20b8aea-1dfd-4402-b5ce-56e25b05ed75",
+        "role": "user",
+        "text": "inflacao_estocaveis em mesano 2026/02 está em -209,4! tem algo errado! Mostre-me os principais itens dessa inflação",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:16:07.516922+00:00"
+      },
+      {
+        "id": "f6515bb4-da07-4234-a53f-42c3b5e86188",
+        "role": "assistant",
+        "text": "Principais Itens com Deflação em Estocáveis - Fevereiro 2026",
+        "sql": "SELECT \"NMPRODUTO_EST\", \"CAT2\", \"PERC_INF_PROD_PMP\" AS inflacao_pct, \"SOMA_INF_PROD_PMP\" AS inflacao_rs, \"MESANO\" FROM \"INFLAÇÃO\" WHERE \"CAT2\" = 'I1 - ESTOCAVEIS' AND \"MESANO\" = '2026/02' AND \"PERC_INF_PROD_PMP\" IS NOT NULL ORDER BY \"SOMA_INF_PROD_PMP\" ASC LIMIT 10",
+        "reportId": "bb2bb827-a8fc-48a2-8b8f-f46ad53b15e0",
+        "reportTitle": "Principais Itens com Deflação em Estocáveis - Fevereiro 2026",
+        "rowCount": 10,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:16:07.516922+00:00"
+      }
+    ],
+    "reportIds": [
+      "ae70d190-2dc8-4554-be35-2f63aa04673d",
+      "c4862b76-524d-49ec-9052-6a6a0da651d7",
+      "bb2bb827-a8fc-48a2-8b8f-f46ad53b15e0"
+    ],
+    "createdAt": "2026-06-08T19:11:05.329031+00:00",
+    "updatedAt": "2026-06-08T19:16:07.516922+00:00"
+  },
+  {
+    "id": "bb5d070f-3fd2-4955-8a38-52806757855a",
+    "title": "me de o preço medio dos top principais produtos por UF no me",
+    "messages": [
+      {
+        "id": "f9a7c008-3028-4fcf-bc16-039f6a170747",
+        "role": "user",
+        "text": "me de o preço medio dos top principais produtos por UF no mes de maio",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:20:27.204132+00:00"
+      },
+      {
+        "id": "da5d7757-fe86-40a3-859a-d047198a7537",
+        "role": "assistant",
+        "text": "Preço Médio dos Principais Produtos por UF em Maio",
+        "sql": "SELECT \"UF\", \"NMPRODUTO_OFICIAL\", AVG(\"VLRUNITPOND\") AS preco_medio FROM \"NFE\" WHERE \"MESANO\" = '2026/05' GROUP BY \"UF\", \"NMPRODUTO_OFICIAL\" ORDER BY preco_medio DESC LIMIT 500",
+        "reportId": "81f9bbde-43b6-4a94-abca-a7b2bfdd6f2a",
+        "reportTitle": "Preço Médio dos Principais Produtos por UF em Maio",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:20:27.204132+00:00"
+      },
+      {
+        "id": "0025d955-1fb3-436a-a7a5-03ef52763ac3",
+        "role": "user",
+        "text": "me de o preço medio dos top principais produtos por UF no mes de maio, somnete de Insumo!",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:24:51.161544+00:00"
+      },
+      {
+        "id": "9009460f-6b97-40dd-8fd8-c84790ed899d",
+        "role": "assistant",
+        "text": "Preço Médio dos Principais Insumos por UF em Maio",
+        "sql": "SELECT \"UF\", \"NMPRODUTO_OFICIAL\", AVG(\"VLRUNITPOND\") AS preco_medio FROM \"NFE\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' GROUP BY \"UF\", \"NMPRODUTO_OFICIAL\" ORDER BY preco_medio DESC LIMIT 500",
+        "reportId": "fad77441-34d7-40a3-a51a-2dfd3331ee4e",
+        "reportTitle": "Preço Médio dos Principais Insumos por UF em Maio",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:24:51.161544+00:00"
+      },
+      {
+        "id": "b8c3931f-196a-41ee-9378-07d9603e403a",
+        "role": "user",
+        "text": "me de o preço medio dos top principais produtos por UF no mes de maio, por ordem de curva ABC ID",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:25:19.946548+00:00"
+      },
+      {
+        "id": "e97687e0-2ad1-4ad0-8b44-b49f0b15b41f",
+        "role": "assistant",
+        "text": "Job falhou: jobCode=1003",
+        "sql": "SELECT \"UF\", \"NMPRODUTO_OFICIAL\", AVG(\"VLRUNITPOND\") AS preco_medio FROM \"NFE\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' GROUP BY \"UF\", \"NMPRODUTO_OFICIAL\" ORDER BY \"CURVA_ID\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "4457ab6c-1026-4d7e-971d-ea70f55ef56e",
+        "reportTitle": "me de o preço medio dos top principais produtos por UF no mes de maio,",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T19:25:19.946548+00:00"
+      }
+    ],
+    "reportIds": [
+      "81f9bbde-43b6-4a94-abca-a7b2bfdd6f2a",
+      "fad77441-34d7-40a3-a51a-2dfd3331ee4e",
+      "4457ab6c-1026-4d7e-971d-ea70f55ef56e"
+    ],
+    "createdAt": "2026-06-08T19:20:12.374463+00:00",
+    "updatedAt": "2026-06-08T19:25:19.946548+00:00"
+  },
+  {
+    "id": "40f06b8c-40c8-4687-826f-e905a20b5126",
+    "title": "me de o preço medio dos top principais produtos por UF no me",
+    "messages": [
+      {
+        "id": "23625c6c-08d3-4899-8047-89c4fd7eb68c",
+        "role": "user",
+        "text": "me de o preço medio dos top principais produtos por UF no mes de maio, por ordem de curva ABC ID",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:25:46.379771+00:00"
+      },
+      {
+        "id": "f8ddb8da-efa1-484e-9823-13f33960fa4e",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"INVALID_COLUMN\",\"data\":{\"errorCode\":7407,\"errorMessage\":\"Coluna inválida \\u201cNMPRODUTO_OFICIAL\\u201d usada na consulta SELECT.\\n\\n * Se isso não procede, coloque o(s) nome(s) de coluna entre aspas duplas (\\\" \\\"), caso conste algum caractere especial, como espaço em branco, -, %...\\n * Se for apenas um valor de string, coloque-o entre aspas simples (por exemplo, 'John Abraham')\\n * Se o nome de coluna usado for uma palavra-chave de qualquer dialeto SQL, coloque-o entre aspas duplas(\\\" \\\"). Exemplo: \\\"data\\\"\"}}",
+        "sql": "SELECT \"UF\", \"NMPRODUTO_OFICIAL\", AVG(\"PMP_ID\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CURVA_ID\" IN ('AAA', 'AA', 'A') GROUP BY \"UF\", \"NMPRODUTO_OFICIAL\" ORDER BY \"CURVA_ID\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "552ed7ce-15b0-4c09-962b-e32eea08c599",
+        "reportTitle": "me de o preço medio dos top principais produtos por UF no mes de maio,",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T19:25:46.379771+00:00"
+      }
+    ],
+    "reportIds": [
+      "552ed7ce-15b0-4c09-962b-e32eea08c599"
+    ],
+    "createdAt": "2026-06-08T19:25:42.513395+00:00",
+    "updatedAt": "2026-06-08T19:25:46.379771+00:00"
+  },
+  {
+    "id": "30568cc4-2729-4d68-893f-f55ddfce4f29",
+    "title": "me de o preço medio dos top principais produtos por UF no me",
+    "messages": [
+      {
+        "id": "edccf228-8b5c-4c89-b2f4-e05c41d3e5c6",
+        "role": "user",
+        "text": "me de o preço medio dos top principais produtos por UF no mes de maio, por ordem de curva ABC ID",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:30:52.870955+00:00"
+      },
+      {
+        "id": "074a4278-a3bc-46ca-9875-584a7c46cebf",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"INVALID_COLUMN\",\"data\":{\"errorCode\":7407,\"errorMessage\":\"Coluna inválida \\u201cNMPRODUTO_OFICIAL\\u201d usada na consulta SELECT.\\n\\n * Se isso não procede, coloque o(s) nome(s) de coluna entre aspas duplas (\\\" \\\"), caso conste algum caractere especial, como espaço em branco, -, %...\\n * Se for apenas um valor de string, coloque-o entre aspas simples (por exemplo, 'John Abraham')\\n * Se o nome de coluna usado for uma palavra-chave de qualquer dialeto SQL, coloque-o entre aspas duplas(\\\" \\\"). Exemplo: \\\"data\\\"\"}}",
+        "sql": "SELECT \"UF\", \"NMPRODUTO_OFICIAL\", AVG(\"PMP_ID\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CURVA_ID\" IN ('AAA', 'AA', 'A') GROUP BY \"UF\", \"NMPRODUTO_OFICIAL\" ORDER BY \"CURVA_ID\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "ad7c90d8-c406-4558-a968-8dc306baaa8c",
+        "reportTitle": "me de o preço medio dos top principais produtos por UF no mes de maio,",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T19:30:52.870955+00:00"
+      }
+    ],
+    "reportIds": [
+      "ad7c90d8-c406-4558-a968-8dc306baaa8c"
+    ],
+    "createdAt": "2026-06-08T19:30:46.135938+00:00",
+    "updatedAt": "2026-06-08T19:30:52.870955+00:00"
+  },
+  {
+    "id": "ba79d61c-fc8d-472f-9d6e-5ffd727945c2",
+    "title": "me de o preço medio dos top principais produtos por UF no me",
+    "messages": [
+      {
+        "id": "f271de3a-14f8-424f-9bcf-cdc399ced300",
+        "role": "user",
+        "text": "me de o preço medio dos top principais produtos por UF no mes de maio, por ordem de curva ABC ID",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:33:24.389732+00:00"
+      },
+      {
+        "id": "03b9b37f-5910-4265-87ae-1b3e66b44960",
+        "role": "assistant",
+        "text": "Preço Médio dos Principais Produtos por UF em Maio",
+        "sql": "SELECT \"UF\", \"NMPRODUTO_EST\", \"CURVA_ID\", AVG(\"PMP_ID\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CURVA_ID\" IN ('AAA', 'AA', 'A') GROUP BY \"UF\", \"NMPRODUTO_EST\", \"CURVA_ID\" ORDER BY \"CURVA_ID\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "f9ca7961-ad33-44d4-baf9-0e516873927d",
+        "reportTitle": "Preço Médio dos Principais Produtos por UF em Maio",
+        "rowCount": 249,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:33:24.389732+00:00"
+      },
+      {
+        "id": "b7dfd7fd-b779-47de-b46f-de08f40e057e",
+        "role": "user",
+        "text": "me de o preço medio dos top principais produtos por UF no mes de maio, por ordem de posição de curva ABC ID",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:34:09.346872+00:00"
+      },
+      {
+        "id": "469f84b5-5506-4403-ba7d-07e816751f7d",
+        "role": "assistant",
+        "text": "Preço Médio dos Principais Produtos por UF em Maio",
+        "sql": "SELECT \"UF\", \"NMPRODUTO_EST\", \"CURVA_ID\", AVG(\"PMP_ID\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CURVA_ID\" IN ('AAA', 'AA', 'A') GROUP BY \"UF\", \"NMPRODUTO_EST\", \"CURVA_ID\" ORDER BY \"CURVA_ID\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "a6b4733d-d6fb-4eca-af32-73dbf2b0a43b",
+        "reportTitle": "Preço Médio dos Principais Produtos por UF em Maio",
+        "rowCount": 249,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:34:09.346872+00:00"
+      },
+      {
+        "id": "2d064980-5279-4195-b4f7-e338513182a8",
+        "role": "user",
+        "text": "me de o preço medio dos top principais produtos por UF no mes de maio, por ordem de posição de curva ABC ID (POS_ID)",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:35:08.006551+00:00"
+      },
+      {
+        "id": "e1291973-8884-47cd-ab6d-793940c2ee6c",
+        "role": "assistant",
+        "text": "Preço Médio dos Principais Produtos por UF em Maio",
+        "sql": "SELECT \"UF\", \"NMPRODUTO_EST\", \"POS_ID\", AVG(\"PMP_ID\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CURVA_ID\" IN ('AAA', 'AA', 'A') GROUP BY \"UF\", \"NMPRODUTO_EST\", \"POS_ID\" ORDER BY \"POS_ID\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "021ae974-54ca-49d9-863f-d634e09214c6",
+        "reportTitle": "Preço Médio dos Principais Produtos por UF em Maio",
+        "rowCount": 250,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:35:08.006551+00:00"
+      },
+      {
+        "id": "5b547db3-c93e-4328-a159-98392fd9da5c",
+        "role": "user",
+        "text": "agora me de o preco medio de Prod (PMP PROD) em maio de 2026, da seguinte forma: colunas: UFs. linhas: Produtos (Cd e NM), ordednados por pos_prod (curva prod)",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:43:24.317114+00:00"
+      },
+      {
+        "id": "04a44525-2ce5-4069-b470-22d20ba981b6",
+        "role": "assistant",
+        "text": "Job falhou: jobCode=1003",
+        "sql": "SELECT \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_EST\", \"UF\", AVG(\"PMP_PROD\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' GROUP BY \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_EST\", \"UF\" ORDER BY \"POS_PROD\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "3a1bd705-9362-40d7-bb8c-749e5939e71c",
+        "reportTitle": "agora me de o preco medio de Prod (PMP PROD) em maio de 2026, da segui",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T19:43:24.317114+00:00"
+      }
+    ],
+    "reportIds": [
+      "f9ca7961-ad33-44d4-baf9-0e516873927d",
+      "a6b4733d-d6fb-4eca-af32-73dbf2b0a43b",
+      "021ae974-54ca-49d9-863f-d634e09214c6",
+      "3a1bd705-9362-40d7-bb8c-749e5939e71c"
+    ],
+    "createdAt": "2026-06-08T19:33:08.972578+00:00",
+    "updatedAt": "2026-06-08T19:43:24.317114+00:00"
+  },
+  {
+    "id": "9f88e814-9b66-4976-9759-3009678dcd80",
+    "title": "agora me de o preco medio de Prod (PMP PROD) em maio de 2026",
+    "messages": [
+      {
+        "id": "11ffaf54-3a54-462f-8f51-225d4e9f2f2c",
+        "role": "user",
+        "text": "agora me de o preco medio de Prod (PMP PROD) em maio de 2026, da seguinte forma: colunas: UFs. linhas: Produtos (Cd e NM), ordednados por pos_prod (curva prod)",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:43:40.151330+00:00"
+      },
+      {
+        "id": "797e5219-6e70-4adf-95d0-b50fa98c7d24",
+        "role": "assistant",
+        "text": "Job falhou: jobCode=1003",
+        "sql": "SELECT \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_EST\", \"UF\", AVG(\"PMP_PROD\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' GROUP BY \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_EST\", \"UF\" ORDER BY \"POS_PROD\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "6b06e576-3a10-4df9-bea2-9f961dd43af6",
+        "reportTitle": "agora me de o preco medio de Prod (PMP PROD) em maio de 2026, da segui",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T19:43:40.151330+00:00"
+      },
+      {
+        "id": "e8189bd5-be19-4185-b81a-de386add5718",
+        "role": "user",
+        "text": "select * from INFLAÇÃO",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:45:09.916112+00:00"
+      },
+      {
+        "id": "f634dff9-dafa-419a-9127-1bb3348d3633",
+        "role": "assistant",
+        "text": "Job falhou: jobCode=1003",
+        "sql": "SELECT \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_EST\", \"UF\", AVG(\"PMP_PROD\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' GROUP BY \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_EST\", \"UF\" ORDER BY \"POS_PROD\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "e311ad87-33f4-48f3-a4bc-386a69863a2d",
+        "reportTitle": "select * from INFLAÇÃO",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T19:45:09.916112+00:00"
+      }
+    ],
+    "reportIds": [
+      "6b06e576-3a10-4df9-bea2-9f961dd43af6",
+      "e311ad87-33f4-48f3-a4bc-386a69863a2d"
+    ],
+    "createdAt": "2026-06-08T19:43:36.501867+00:00",
+    "updatedAt": "2026-06-08T19:45:09.916112+00:00"
+  },
+  {
+    "id": "fb1cf1ee-5a6f-4e45-a860-d3895602451d",
+    "title": "me de o PMP por produto em maio de 2026 ordenado por pos_pro",
+    "messages": [
+      {
+        "id": "20fe552f-a6f0-459b-99a2-0c09a6014678",
+        "role": "user",
+        "text": "me de o PMP por produto em maio de 2026 ordenado por pos_prod",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T19:47:35.174823+00:00"
+      },
+      {
+        "id": "4770fa66-e1f8-486e-82cd-7d2371417b20",
+        "role": "assistant",
+        "text": "Preço Médio dos Produtos em Maio de 2026",
+        "sql": "SELECT \"NMPRODUTO_EST\", \"CURVA_PROD\", \"POS_PROD\", AVG(\"PMP_PROD\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' GROUP BY \"NMPRODUTO_EST\", \"CURVA_PROD\", \"POS_PROD\" ORDER BY \"POS_PROD\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "a0f865bc-acce-444c-b254-0e85c1c5e8d4",
+        "reportTitle": "Preço Médio dos Produtos em Maio de 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-08T19:47:35.174823+00:00"
+      },
+      {
+        "id": "e01aa160-d717-439a-b7d2-5f3c6e1feaaa",
+        "role": "user",
+        "text": "eu quero somente os insumos (I)",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:10:48.612640+00:00"
+      },
+      {
+        "id": "9e87c13f-52b4-4250-a469-70c621f7f91a",
+        "role": "assistant",
+        "text": "Análise de Preços Médios de Insumos por UF em Maio de 2026",
+        "sql": "SELECT \"UF\", \"NMPRODUTO_EST\", \"CURVA_PROD\", \"POS_PROD\", AVG(\"PMP_ID\") AS preco_medio FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' GROUP BY \"UF\", \"NMPRODUTO_EST\", \"CURVA_PROD\", \"POS_PROD\" ORDER BY \"POS_PROD\" ASC, preco_medio DESC LIMIT 500",
+        "reportId": "e3dd204b-2411-45dc-95a4-2a6d327975a0",
+        "reportTitle": "Análise de Preços Médios de Insumos por UF em Maio de 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-08T20:10:48.612640+00:00"
+      },
+      {
+        "id": "42d3b160-a55d-4e84-b93b-7644abf006cc",
+        "role": "user",
+        "text": "muito bem! Agora quero que cada UF seja uma coluna ao inves de gerar linhas.\n\nÉ necessário saber quais sao as UFs nas quais temos contratos",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:15:07.199764+00:00"
+      },
+      {
+        "id": "2cb3eecb-fbff-4cc6-bd66-5d6d4e11283f",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"SQL_INVALID_GROUP_FUNC_USE\",\"data\":{\"errorCode\":7414,\"errorMessage\":\"Erro de consulta: Uso inadequado da função grupo.\\n\\n Favor verificar o seguinte na consulta.\\n\\n 1. Verifique se todas as colunas não agregadas usadas na cláusula selecionada são usadas na cláusula Group by.\\n 2. As funções de agrupamento ou de agregação (min(), max(), sum(), count() etc.) não podem ser utilizadas nas cláusulas Group by/Order by/Where/ON.\"}}",
+        "sql": "SELECT \"NMPRODUTO_EST\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' GROUP BY \"NMPRODUTO_EST\" ORDER BY MIN(\"POS_PROD\") ASC, MAX(\"PMP_ID\") DESC LIMIT 500",
+        "reportId": "e0f39f0c-b21e-45f4-aa07-e5f9f09ee025",
+        "reportTitle": "muito bem! Agora quero que cada UF seja uma coluna ao inves de gerar l",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T20:15:07.199764+00:00"
+      },
+      {
+        "id": "350377fd-8084-4be0-99a9-09a6c5a306f9",
+        "role": "user",
+        "text": "faça um select group das UFs em INFLAÇÃO",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:16:03.535780+00:00"
+      },
+      {
+        "id": "4d1cd774-2bf4-4753-bec5-bac32d4853d2",
+        "role": "assistant",
+        "text": "Média de Preços por UF em Maio de 2026",
+        "sql": "SELECT \"NMPRODUTO_EST\", AVG(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" END) AS \"SP\", AVG(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" END) AS \"PE\", AVG(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" END) AS \"MA\", AVG(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" END) AS \"RJ\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' GROUP BY \"NMPRODUTO_EST\" ORDER BY \"NMPRODUTO_EST\" ASC LIMIT 500",
+        "reportId": "3c29ea33-94e7-48db-a8b7-2d0566d34238",
+        "reportTitle": "Média de Preços por UF em Maio de 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-08T20:16:03.535780+00:00"
+      },
+      {
+        "id": "8ffca8a3-b797-45d1-a797-57ae95afb3d2",
+        "role": "user",
+        "text": "antes , faça algo mais simples: faça um select group das UFs em INFLAÇÃO",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:18:23.202850+00:00"
+      },
+      {
+        "id": "f5da77a9-f952-42b8-bff9-8c0ba7c33cc2",
+        "role": "assistant",
+        "text": "Distribuição de Registros de Inflação por UF",
+        "sql": "SELECT \"UF\", COUNT(*) AS total_registros FROM \"INFLAÇÃO\" GROUP BY \"UF\" ORDER BY \"UF\" ASC",
+        "reportId": "11352a61-9766-4b41-8a0b-db9aa769f9b6",
+        "reportTitle": "Distribuição de Registros de Inflação por UF",
+        "rowCount": 11,
+        "status": "ok",
+        "createdAt": "2026-06-08T20:18:23.202850+00:00"
+      },
+      {
+        "id": "77e1d6cd-a2b7-42fa-b81d-10577da1ba7c",
+        "role": "user",
+        "text": "coloque em ordem de contagem. nao precisa colcoar a contagem, basta as ufs",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:19:08.969942+00:00"
+      },
+      {
+        "id": "485d6905-fa4d-469a-834a-fa4bac8c3138",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"SQL_INVALID_GROUP_FUNC_USE\",\"data\":{\"errorCode\":7414,\"errorMessage\":\"Erro de consulta: Uso inadequado da função grupo.\\n\\n Favor verificar o seguinte na consulta.\\n\\n 1. Verifique se todas as colunas não agregadas usadas na cláusula selecionada são usadas na cláusula Group by.\\n 2. As funções de agrupamento ou de agregação (min(), max(), sum(), count() etc.) não podem ser utilizadas nas cláusulas Group by/Order by/Where/ON.\"}}",
+        "sql": "SELECT \"UF\" FROM \"INFLAÇÃO\" GROUP BY \"UF\" ORDER BY COUNT(\"UF\") DESC",
+        "reportId": "ad100c15-9dd7-4e9e-8c4c-eafadfe6fb8c",
+        "reportTitle": "coloque em ordem de contagem. nao precisa colcoar a contagem, basta as",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T20:19:08.969942+00:00"
+      },
+      {
+        "id": "cc43c963-53ac-43b0-84ec-9cb85cf24f36",
+        "role": "user",
+        "text": "deu erro: Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"SQL_INVALID_GROUP_FUNC_USE\",\"data\":{\"errorCode\":7414,\"errorMessage\":\"Erro de consulta: Uso inadequado da função grupo.\\n\\n Favor verificar o seguinte na consulta.\\n\\n 1. Verifique se todas as colunas não agregadas usadas na cláusula selecionada são usadas na cláusula Group by.\\n 2. As funções de agrupamento ou de agregação (min(), max(), sum(), count() etc.) não podem ser utilizadas nas cláusulas Group by/Order by/Where/ON.\"}}",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:19:24.719535+00:00"
+      },
+      {
+        "id": "4f2c9a71-7920-4dac-9440-ccd8e637eed3",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"SQL_INVALID_GROUP_FUNC_USE\",\"data\":{\"errorCode\":7414,\"errorMessage\":\"Erro de consulta: Uso inadequado da função grupo.\\n\\n Favor verificar o seguinte na consulta.\\n\\n 1. Verifique se todas as colunas não agregadas usadas na cláusula selecionada são usadas na cláusula Group by.\\n 2. As funções de agrupamento ou de agregação (min(), max(), sum(), count() etc.) não podem ser utilizadas nas cláusulas Group by/Order by/Where/ON.\"}}",
+        "sql": "SELECT \"UF\" FROM \"INFLAÇÃO\" GROUP BY \"UF\" ORDER BY COUNT(*) DESC",
+        "reportId": "9ab613f6-000e-489f-8175-e7ee4045b176",
+        "reportTitle": "deu erro: Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T20:19:24.719535+00:00"
+      },
+      {
+        "id": "a31c33cb-c140-4e77-a92e-837480b06e42",
+        "role": "user",
+        "text": "SELECT \"UF\", COUNT(*) AS total_registros FROM \"INFLAÇÃO\" GROUP BY \"UF\" ORDER BY total_registros DESC",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:20:23.738833+00:00"
+      },
+      {
+        "id": "c10e2af0-05d5-4599-9027-c4aeb58b0e0a",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"SQL_INVALID_GROUP_FUNC_USE\",\"data\":{\"errorCode\":7414,\"errorMessage\":\"Erro de consulta: Uso inadequado da função grupo.\\n\\n Favor verificar o seguinte na consulta.\\n\\n 1. Verifique se todas as colunas não agregadas usadas na cláusula selecionada são usadas na cláusula Group by.\\n 2. As funções de agrupamento ou de agregação (min(), max(), sum(), count() etc.) não podem ser utilizadas nas cláusulas Group by/Order by/Where/ON.\"}}",
+        "sql": "SELECT \"UF\" FROM \"INFLAÇÃO\" GROUP BY \"UF\" ORDER BY COUNT(*) DESC",
+        "reportId": "6d0ef100-52c6-4055-9ae9-657cde4bf98e",
+        "reportTitle": "SELECT \"UF\", COUNT(*) AS total_registros FROM \"INFLAÇÃO\" GROUP BY \"UF\"",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T20:20:23.738833+00:00"
+      },
+      {
+        "id": "c9f51be7-3b5e-4580-91ab-d74db13682fb",
+        "role": "user",
+        "text": "faça extamanete isso: SELECT \"UF\", COUNT(*) AS total_registros FROM \"INFLAÇÃO\" GROUP BY \"UF\" ORDER BY total_registros DESC",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:20:41.334917+00:00"
+      },
+      {
+        "id": "4b711df7-93ca-43aa-a744-a4281b157bdd",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"SQL_INVALID_GROUP_FUNC_USE\",\"data\":{\"errorCode\":7414,\"errorMessage\":\"Erro de consulta: Uso inadequado da função grupo.\\n\\n Favor verificar o seguinte na consulta.\\n\\n 1. Verifique se todas as colunas não agregadas usadas na cláusula selecionada são usadas na cláusula Group by.\\n 2. As funções de agrupamento ou de agregação (min(), max(), sum(), count() etc.) não podem ser utilizadas nas cláusulas Group by/Order by/Where/ON.\"}}",
+        "sql": "SELECT \"UF\" FROM \"INFLAÇÃO\" GROUP BY \"UF\" ORDER BY COUNT(*) DESC",
+        "reportId": "4ceb580f-97da-439e-9f3e-78173b660454",
+        "reportTitle": "faça extamanete isso: SELECT \"UF\", COUNT(*) AS total_registros FROM \"I",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T20:20:41.334917+00:00"
+      },
+      {
+        "id": "b395abdd-4d76-483c-8b28-634f3fa9175a",
+        "role": "user",
+        "text": "ok, somente ordene pelo numero de regsitros DESC",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:21:37.924551+00:00"
+      },
+      {
+        "id": "2aa382ee-7d11-4776-9630-7e9351fb19c7",
+        "role": "assistant",
+        "text": "Distribuição de Registros por Unidade Federativa",
+        "sql": "SELECT \"UF\", COUNT(*) AS total_registros FROM \"INFLAÇÃO\" GROUP BY \"UF\" ORDER BY total_registros DESC",
+        "reportId": "05e390a5-edc1-4286-a1d6-6e3d0e223648",
+        "reportTitle": "Distribuição de Registros por Unidade Federativa",
+        "rowCount": 11,
+        "status": "ok",
+        "createdAt": "2026-06-08T20:21:37.924551+00:00"
+      },
+      {
+        "id": "be7c3e1c-087c-4068-92f5-62db415753a5",
+        "role": "user",
+        "text": "muito bem! Agora quero que cada UF seja uma coluna ao inves de gerar linhas. É necessário saber quais sao as UFs nas quais temos contratos, na seguinte ordem: PE, MA, RN, PB, PI, SE, PA, DF, SP, RJ, ES",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:23:37.056885+00:00"
+      },
+      {
+        "id": "181f86a3-f541-4ec9-a912-5c347b76613d",
+        "role": "assistant",
+        "text": "Distribuição de Contratos por UF",
+        "sql": "SELECT SUM(CASE WHEN \"UF\" = 'PE' THEN 1 ELSE 0 END) AS PE, SUM(CASE WHEN \"UF\" = 'MA' THEN 1 ELSE 0 END) AS MA, SUM(CASE WHEN \"UF\" = 'RN' THEN 1 ELSE 0 END) AS RN, SUM(CASE WHEN \"UF\" = 'PB' THEN 1 ELSE 0 END) AS PB, SUM(CASE WHEN \"UF\" = 'PI' THEN 1 ELSE 0 END) AS PI, SUM(CASE WHEN \"UF\" = 'SE' THEN 1 ELSE 0 END) AS SE, SUM(CASE WHEN \"UF\" = 'PA' THEN 1 ELSE 0 END) AS PA, SUM(CASE WHEN \"UF\" = 'DF' THEN 1 ELSE 0 END) AS DF, SUM(CASE WHEN \"UF\" = 'SP' THEN 1 ELSE 0 END) AS SP, SUM(CASE WHEN \"UF\" = 'RJ' THEN 1 ELSE 0 END) AS RJ, SUM(CASE WHEN \"UF\" = 'ES' THEN 1 ELSE 0 END) AS ES FROM \"INFLAÇÃO\"",
+        "reportId": "aa22356c-a339-4565-ae89-ba59494419be",
+        "reportTitle": "Distribuição de Contratos por UF",
+        "rowCount": 1,
+        "status": "ok",
+        "createdAt": "2026-06-08T20:23:37.056885+00:00"
+      },
+      {
+        "id": "53213287-4a28-47d5-94aa-51876de1799d",
+        "role": "user",
+        "text": "me de o PMP por produto em maio de 2026 ordenado por pos_prod. quero que cada UF seja uma coluna ao inves de gerar linhas. É necessário saber quais sao as UFs nas quais temos contratos, na seguinte ordem: PE, MA, RN, PB, PI, SE, PA, DF, SP, RJ, ES",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:24:25.458299+00:00"
+      },
+      {
+        "id": "94bda817-8396-441e-863a-153bf878b9a9",
+        "role": "assistant",
+        "text": "PMP por Produto em Maio de 2026 por Unidade Federativa",
+        "sql": "WITH pmp_por_produto AS ( SELECT \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_EST\", \"UF\", \"PMP_ID\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' ), pmp_uf AS ( SELECT \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_EST\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\" FROM pmp_por_produto GROUP BY \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_EST\" ) SELECT p.\"NMPRODUTO_EST\", p.\"PE\", p.\"MA\", p.\"RN\", p.\"PB\", p.\"PI\", p.\"SE\", p.\"PA\", p.\"DF\", p.\"SP\", p.\"RJ\", p.\"ES\" FROM pmp_uf p JOIN \"INFLAÇÃO\" i ON p.\"CDPRODUTO_OFICIAL\" = i.\"CDPRODUTO_OFICIAL\" WHERE i.\"MESANO\" = '2026/05' ORDER BY i.\"POS_PROD\" ASC LIMIT 500",
+        "reportId": "ebe18447-ca0f-47f0-8caf-e9e4400d1281",
+        "reportTitle": "PMP por Produto em Maio de 2026 por Unidade Federativa",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-08T20:24:25.458299+00:00"
+      },
+      {
+        "id": "f2e542bd-5099-41e3-97d6-32bb5f7aa0b5",
+        "role": "user",
+        "text": "me de o PMP por produto em maio de 2026 ordenado por pos_prod. quero que cada UF seja uma coluna ao inves de gerar linhas. É necessário saber quais sao as UFs nas quais temos contratos, na seguinte ordem: PE, MA, RN, PB, PI, SE, PA, DF, SP, RJ, ES\nATENÇÃO! Quero somente Insumos (I) !",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:25:03.011331+00:00"
+      },
+      {
+        "id": "6d36f436-7aac-43ed-9132-6f3c90c3381b",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 400: {\"status\":\"failure\",\"summary\":\"SQL_INVALID_GROUP_FUNC_USE\",\"data\":{\"errorCode\":7414,\"errorMessage\":\"Erro de consulta: Uso inadequado da função grupo.\\n\\n Favor verificar o seguinte na consulta.\\n\\n 1. Verifique se todas as colunas não agregadas usadas na cláusula selecionada são usadas na cláusula Group by.\\n 2. As funções de agrupamento ou de agregação (min(), max(), sum(), count() etc.) não podem ser utilizadas nas cláusulas Group by/Order by/Where/ON.\"}}",
+        "sql": "SELECT \"NMPRODUTO_EST\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' GROUP BY \"NMPRODUTO_EST\" ORDER BY MIN(\"POS_PROD\") ASC LIMIT 500",
+        "reportId": "6e9a3028-e19a-403a-a98f-c03b2717582a",
+        "reportTitle": "me de o PMP por produto em maio de 2026 ordenado por pos_prod. quero q",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-08T20:25:03.011331+00:00"
+      },
+      {
+        "id": "d7f86eba-fcf0-4137-9654-451abd5db8d8",
+        "role": "user",
+        "text": "me de o PMP por produto em maio de 2026 ordenado por pos_prod. quero que cada UF seja uma coluna ao inves de gerar linhas. É necessário saber quais sao as UFs nas quais temos contratos, na seguinte ordem: PE, MA, RN, PB, PI, SE, PA, DF, SP, RJ, ES ATENÇÃO! Quero somente Insumos (I) !",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:27:29.034218+00:00"
+      },
+      {
+        "id": "21a3bc55-a2b7-4e56-98eb-706302fdd373",
+        "role": "assistant",
+        "text": "PMP por Produto em Insumos para Maio de 2026",
+        "sql": "SELECT \"NMPRODUTO_EST\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' GROUP BY \"NMPRODUTO_EST\", \"POS_PROD\" ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "reportId": "66d25925-5819-4443-a49a-704621090640",
+        "reportTitle": "PMP por Produto em Insumos para Maio de 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-08T20:27:29.034218+00:00"
+      },
+      {
+        "id": "8bfcf79e-9799-4abb-93b2-5c7e23e991b1",
+        "role": "user",
+        "text": "usar NMPRODUTO_OFICIAL e colocar tambem colunas POS_PROD e CURVA_PROD",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:28:10.811001+00:00"
+      },
+      {
+        "id": "5319814e-4909-4111-837d-90b0970426aa",
+        "role": "assistant",
+        "text": "Análise de Produtos por Estado e Curva de Demanda",
+        "sql": "SELECT \"NMPRODUTO_EST\", \"POS_PROD\", \"CURVA_PROD\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' GROUP BY \"NMPRODUTO_EST\", \"POS_PROD\", \"CURVA_PROD\" ORDER BY \"POS_PROD\" ASC, \"NMPRODUTO_EST\" ASC LIMIT 500",
+        "reportId": "e4a4828f-b885-4db6-9342-d2efba1fd8e0",
+        "reportTitle": "Análise de Produtos por Estado e Curva de Demanda",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-08T20:28:10.811001+00:00"
+      },
+      {
+        "id": "bad2a7f5-3445-4e76-b2e3-78a5df568669",
+        "role": "user",
+        "text": "me de o PMP por produto em maio de 2026 ordenado por pos_prod. quero que cada UF seja uma coluna ao inves de gerar linhas. É necessário saber quais sao as UFs nas quais temos contratos, na seguinte ordem: PE, MA, RN, PB, PI, SE, PA, DF, SP, RJ, ES.\n\nATENÇÃO 1! Quero somente Insumos (I) !\nATENÇÃO 2: usar NMPRODUTO_OFICIAL e colocar tambem colunas POS_PROD e CURVA_PROD",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-08T20:36:35.418354+00:00"
+      },
+      {
+        "id": "e2d43b96-b933-4fb8-8225-b0183510aa06",
+        "role": "assistant",
+        "text": "PMP por Produto em Insumos para Maio de 2026",
+        "sql": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' ), pmp_pivot AS ( SELECT \"NMPRODUTO_OFICIAL\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\", MAX(\"POS_PROD\") AS \"POS_PROD\", MAX(\"CURVA_PROD\") AS \"CURVA_PROD\" FROM pmp_data GROUP BY \"NMPRODUTO_OFICIAL\" ) SELECT \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\", \"PE\", \"MA\", \"RN\", \"PB\", \"PI\", \"SE\", \"PA\", \"DF\", \"SP\", \"RJ\", \"ES\" FROM pmp_pivot ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "reportId": "365b0699-ad84-4a34-812d-38f5176be425",
+        "reportTitle": "PMP por Produto em Insumos para Maio de 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-08T20:36:35.418354+00:00"
+      }
+    ],
+    "reportIds": [
+      "a0f865bc-acce-444c-b254-0e85c1c5e8d4",
+      "e3dd204b-2411-45dc-95a4-2a6d327975a0",
+      "e0f39f0c-b21e-45f4-aa07-e5f9f09ee025",
+      "3c29ea33-94e7-48db-a8b7-2d0566d34238",
+      "11352a61-9766-4b41-8a0b-db9aa769f9b6",
+      "ad100c15-9dd7-4e9e-8c4c-eafadfe6fb8c",
+      "9ab613f6-000e-489f-8175-e7ee4045b176",
+      "6d0ef100-52c6-4055-9ae9-657cde4bf98e",
+      "4ceb580f-97da-439e-9f3e-78173b660454",
+      "05e390a5-edc1-4286-a1d6-6e3d0e223648",
+      "aa22356c-a339-4565-ae89-ba59494419be",
+      "ebe18447-ca0f-47f0-8caf-e9e4400d1281",
+      "6e9a3028-e19a-403a-a98f-c03b2717582a",
+      "66d25925-5819-4443-a49a-704621090640",
+      "e4a4828f-b885-4db6-9342-d2efba1fd8e0",
+      "365b0699-ad84-4a34-812d-38f5176be425"
+    ],
+    "createdAt": "2026-06-08T19:47:17.320940+00:00",
+    "updatedAt": "2026-06-08T20:36:35.418354+00:00"
+  },
+  {
+    "id": "7036824c-5b81-48dc-9d27-631b4b3175e9",
+    "title": "me de o PMP por produto em maio de 2026 ordenado por pos_pro",
+    "messages": [
+      {
+        "id": "57530122-8b02-4f8b-9996-2e8d42710aaf",
+        "role": "user",
+        "text": "me de o PMP por produto em maio de 2026 ordenado por pos_prod. quero que cada UF seja uma coluna ao inves de gerar linhas. É necessário saber quais sao as UFs nas quais temos contratos, na seguinte ordem: PE, MA, RN, PB, PI, SE, PA, DF, SP, RJ, ES. ATENÇÃO 1! Quero somente Insumos (I) ! ATENÇÃO 2: usar NMPRODUTO_OFICIAL e colocar tambem colunas POS_PROD e CURVA_PROD",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:02:28.344968+00:00"
+      },
+      {
+        "id": "19c1d205-ea42-4062-a663-51447dd83ef6",
+        "role": "assistant",
+        "text": "Não foi possível criar job SQL. HTTP 500: {\"status\":\"failure\",\"summary\":\"COMMON_INTERNAL_SERVER_ERROR\",\"data\":{\"errorCode\":7005,\"errorMessage\":\"Desculpe, ocorreu um erro inesperado ao executar esta operação. Entre em contato com o suporte para obter informações adicionais.\"}}",
+        "sql": "WITH pmp_por_uf AS ( SELECT \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' ), pmp_pivot AS ( SELECT \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\" FROM pmp_por_uf GROUP BY \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\" ) SELECT \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\", \"PE\", \"MA\", \"RN\", \"PB\", \"PI\", \"SE\", \"PA\", \"DF\", \"SP\", \"RJ\", \"ES\" FROM pmp_pivot ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "reportId": "71192f5f-af2d-4d8c-9e8b-78b5e1279641",
+        "reportTitle": "me de o PMP por produto em maio de 2026 ordenado por pos_prod. quero q",
+        "rowCount": 0,
+        "status": "error",
+        "createdAt": "2026-06-09T00:02:28.344968+00:00"
+      },
+      {
+        "id": "1cbfbba7-de49-43f1-b8c4-7d67c10118ed",
+        "role": "user",
+        "text": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' ), pmp_pivot AS ( SELECT \"NMPRODUTO_OFICIAL\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\", MAX(\"POS_PROD\") AS \"POS_PROD\", MAX(\"CURVA_PROD\") AS \"CURVA_PROD\" FROM pmp_data GROUP BY \"NMPRODUTO_OFICIAL\" ) SELECT \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\", \"PE\", \"MA\", \"RN\", \"PB\", \"PI\", \"SE\", \"PA\", \"DF\", \"SP\", \"RJ\", \"ES\" FROM pmp_pivot ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:03:09.861018+00:00"
+      },
+      {
+        "id": "dbed599d-2514-4cb8-811f-bfc45d8e6c3a",
+        "role": "assistant",
+        "text": "Análise de Preços de Insumos por Estado em Maio de 2026",
+        "sql": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' ), pmp_pivot AS ( SELECT \"NMPRODUTO_OFICIAL\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\", MAX(\"POS_PROD\") AS \"POS_PROD\", MAX(\"CURVA_PROD\") AS \"CURVA_PROD\" FROM pmp_data GROUP BY \"NMPRODUTO_OFICIAL\" ) SELECT \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\", \"PE\", \"MA\", \"RN\", \"PB\", \"PI\", \"SE\", \"PA\", \"DF\", \"SP\", \"RJ\", \"ES\" FROM pmp_pivot ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "reportId": "16b6fb4c-65e3-45a8-a401-f42239da730f",
+        "reportTitle": "Análise de Preços de Insumos por Estado em Maio de 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-09T00:03:09.861018+00:00"
+      },
+      {
+        "id": "a2719811-0214-4076-aebe-b46efeeabcbb",
+        "role": "user",
+        "text": "quero só de estocaveis",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:16:04.753573+00:00"
+      },
+      {
+        "id": "72a1a043-3709-4502-b0b6-a1d9c1964095",
+        "role": "assistant",
+        "text": "Análise de Preços de Produtos Estocáveis em Maio de 2026",
+        "sql": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID\", \"POS_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT2\" = 'I1 - ESTOCAVEIS' ), pmp_pivot AS ( SELECT \"NMPRODUTO_OFICIAL\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\" FROM pmp_data GROUP BY \"NMPRODUTO_OFICIAL\" ) SELECT \"NMPRODUTO_OFICIAL\", \"PE\", \"MA\", \"RN\", \"PB\", \"PI\", \"SE\", \"PA\", \"DF\", \"SP\", \"RJ\", \"ES\" FROM pmp_pivot ORDER BY \"NMPRODUTO_OFICIAL\" ASC LIMIT 500",
+        "reportId": "30a045f4-7ba3-4a0d-b42f-419a74322153",
+        "reportTitle": "Análise de Preços de Produtos Estocáveis em Maio de 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-09T00:16:04.753573+00:00"
+      }
+    ],
+    "reportIds": [
+      "71192f5f-af2d-4d8c-9e8b-78b5e1279641",
+      "16b6fb4c-65e3-45a8-a401-f42239da730f",
+      "30a045f4-7ba3-4a0d-b42f-419a74322153"
+    ],
+    "createdAt": "2026-06-09T00:02:19.461848+00:00",
+    "updatedAt": "2026-06-09T00:16:04.753573+00:00"
+  },
+  {
+    "id": "4c7794a9-7207-478b-bbe8-d80f699b4388",
+    "title": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID",
+    "messages": [
+      {
+        "id": "928aa841-de06-4fb5-b13c-11bcf7fb9601",
+        "role": "user",
+        "text": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' ), pmp_pivot AS ( SELECT \"NMPRODUTO_OFICIAL\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\", MAX(\"POS_PROD\") AS \"POS_PROD\", MAX(\"CURVA_PROD\") AS \"CURVA_PROD\" FROM pmp_data GROUP BY \"NMPRODUTO_OFICIAL\" ) SELECT \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\", \"PE\", \"MA\", \"RN\", \"PB\", \"PI\", \"SE\", \"PA\", \"DF\", \"SP\", \"RJ\", \"ES\" FROM pmp_pivot ORDER BY \"POS_PROD\" ASC LIMIT 500\n\n\nMas quero somente para estocaveis",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:18:31.193853+00:00"
+      },
+      {
+        "id": "827ff5c8-8d68-4a60-939d-887f7e1d7cf7",
+        "role": "assistant",
+        "text": "Análise de Preços de Produtos Estocáveis em Maio de 2026",
+        "sql": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT2\" = 'I1 - ESTOCAVEIS' ), pmp_pivot AS ( SELECT \"NMPRODUTO_OFICIAL\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\", MAX(\"POS_PROD\") AS \"POS_PROD\", MAX(\"CURVA_PROD\") AS \"CURVA_PROD\" FROM pmp_data GROUP BY \"NMPRODUTO_OFICIAL\" ) SELECT \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\", \"PE\", \"MA\", \"RN\", \"PB\", \"PI\", \"SE\", \"PA\", \"DF\", \"SP\", \"RJ\", \"ES\" FROM pmp_pivot ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "reportId": "1fce55d5-b294-415e-83de-30a238b45e42",
+        "reportTitle": "Análise de Preços de Produtos Estocáveis em Maio de 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-09T00:18:31.193853+00:00"
+      },
+      {
+        "id": "c1db6ff1-a0cd-458a-b79e-e50f33b03320",
+        "role": "user",
+        "text": "+ Novo\nWITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' ), pmp_pivot AS ( SELECT \"NMPRODUTO_OFICIAL\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\", MAX(\"POS_PROD\") AS \"POS_PROD\", MAX(\"CURVA_PROD\") AS \"CURVA_PROD\" FROM pmp_data GROUP BY \"NMPRODUTO_OFICIAL\" ) SELECT \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\", \"PE\", \"MA\", \"RN\", \"PB\", \"PI\", \"SE\", \"PA\", \"DF\", \"SP\", \"RJ\", \"ES\" FROM pmp_pivot ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:21:06.134310+00:00"
+      },
+      {
+        "id": "961e8751-5538-40d4-877c-a60ea7c300b9",
+        "role": "assistant",
+        "text": "Análise de Preços de Insumos por Estado em Maio de 2026",
+        "sql": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"UF\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" = '2026/05' AND \"CAT1\" = 'I - INSUMOS' ), pmp_pivot AS ( SELECT \"NMPRODUTO_OFICIAL\", MAX(CASE WHEN \"UF\" = 'PE' THEN \"PMP_ID\" ELSE NULL END) AS \"PE\", MAX(CASE WHEN \"UF\" = 'MA' THEN \"PMP_ID\" ELSE NULL END) AS \"MA\", MAX(CASE WHEN \"UF\" = 'RN' THEN \"PMP_ID\" ELSE NULL END) AS \"RN\", MAX(CASE WHEN \"UF\" = 'PB' THEN \"PMP_ID\" ELSE NULL END) AS \"PB\", MAX(CASE WHEN \"UF\" = 'PI' THEN \"PMP_ID\" ELSE NULL END) AS \"PI\", MAX(CASE WHEN \"UF\" = 'SE' THEN \"PMP_ID\" ELSE NULL END) AS \"SE\", MAX(CASE WHEN \"UF\" = 'PA' THEN \"PMP_ID\" ELSE NULL END) AS \"PA\", MAX(CASE WHEN \"UF\" = 'DF' THEN \"PMP_ID\" ELSE NULL END) AS \"DF\", MAX(CASE WHEN \"UF\" = 'SP' THEN \"PMP_ID\" ELSE NULL END) AS \"SP\", MAX(CASE WHEN \"UF\" = 'RJ' THEN \"PMP_ID\" ELSE NULL END) AS \"RJ\", MAX(CASE WHEN \"UF\" = 'ES' THEN \"PMP_ID\" ELSE NULL END) AS \"ES\", MAX(\"POS_PROD\") AS \"POS_PROD\", MAX(\"CURVA_PROD\") AS \"CURVA_PROD\" FROM pmp_data GROUP BY \"NMPRODUTO_OFICIAL\" ) SELECT \"NMPRODUTO_OFICIAL\", \"POS_PROD\", \"CURVA_PROD\", \"PE\", \"MA\", \"RN\", \"PB\", \"PI\", \"SE\", \"PA\", \"DF\", \"SP\", \"RJ\", \"ES\" FROM pmp_pivot ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "reportId": "727a0a8d-3999-4a9c-b950-ac97a054d016",
+        "reportTitle": "Análise de Preços de Insumos por Estado em Maio de 2026",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-09T00:21:06.134310+00:00"
+      },
+      {
+        "id": "608bd85a-3597-4e49-a065-aaeeb460ec53",
+        "role": "user",
+        "text": "quero os preços dos principais produtos dos ultimos 6 meses ordenado por pos_prod (somente isumo)",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:27:38.845328+00:00"
+      },
+      {
+        "id": "eb3acbb7-4bc7-4778-a3aa-b8a1d5b4cacd",
+        "role": "assistant",
+        "text": "Preços de Insumos dos Últimos 6 Meses",
+        "sql": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"MESANO\", \"PMP_ID\", \"POS_PROD\" FROM \"INFLAÇÃO\" WHERE \"MESANO\" >= '2026/01' AND \"MESANO\" <= '2026/06' AND \"CAT1\" = 'I - INSUMOS' ), pmp_pivot AS ( SELECT \"NMPRODUTO_OFICIAL\", MAX(CASE WHEN \"MESANO\" = '2026/01' THEN \"PMP_ID\" ELSE NULL END) AS \"Jan_2026\", MAX(CASE WHEN \"MESANO\" = '2026/02' THEN \"PMP_ID\" ELSE NULL END) AS \"Feb_2026\", MAX(CASE WHEN \"MESANO\" = '2026/03' THEN \"PMP_ID\" ELSE NULL END) AS \"Mar_2026\", MAX(CASE WHEN \"MESANO\" = '2026/04' THEN \"PMP_ID\" ELSE NULL END) AS \"Apr_2026\", MAX(CASE WHEN \"MESANO\" = '2026/05' THEN \"PMP_ID\" ELSE NULL END) AS \"May_2026\", MAX(CASE WHEN \"MESANO\" = '2026/06' THEN \"PMP_ID\" ELSE NULL END) AS \"Jun_2026\", MAX(\"POS_PROD\") AS \"POS_PROD\" FROM pmp_data GROUP BY \"NMPRODUTO_OFICIAL\" ) SELECT \"NMPRODUTO_OFICIAL\", \"Jan_2026\", \"Feb_2026\", \"Mar_2026\", \"Apr_2026\", \"May_2026\", \"Jun_2026\" FROM pmp_pivot ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "reportId": "f6df298f-09fb-4e82-afb0-4a677c4dcceb",
+        "reportTitle": "Preços de Insumos dos Últimos 6 Meses",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-09T00:27:38.845328+00:00"
+      },
+      {
+        "id": "89b8ee0c-179b-402e-82c1-bcf835b15ec5",
+        "role": "user",
+        "text": "quero os preços dos principais produtos dos ultimos 6 meses ordenado por pos_prod (somente insumo). coloque tambem o cat1, o pos_prod e curva_prod",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:29:53.346821+00:00"
+      },
+      {
+        "id": "e20d3c45-feac-4233-8592-5971a92ccb15",
+        "role": "assistant",
+        "text": "Preços de Insumos dos Últimos 6 Meses por Posição",
+        "sql": "WITH pmp_data AS ( SELECT \"NMPRODUTO_OFICIAL\", \"CAT1\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\", \"MESANO\" FROM \"INFLAÇÃO\" WHERE \"CAT1\" = 'I - INSUMOS' AND \"MESANO\" >= '2026/01' AND \"MESANO\" <= '2026/06' ) SELECT \"NMPRODUTO_OFICIAL\", \"CAT1\", \"PMP_ID\", \"POS_PROD\", \"CURVA_PROD\", \"MESANO\" FROM pmp_data ORDER BY \"POS_PROD\" ASC, \"MESANO\" DESC LIMIT 500",
+        "reportId": "c69c8478-7d81-46c4-9803-3ea97452592d",
+        "reportTitle": "Preços de Insumos dos Últimos 6 Meses por Posição",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-09T00:29:53.346821+00:00"
+      },
+      {
+        "id": "eb34606d-bcfe-4463-a0a9-bcbad8c3ebb6",
+        "role": "user",
+        "text": "quero os preços dos principais produtos dos ultimos 6 meses ordenado por pos_prod (somente insumo). coloque tambem o cat1, o pos_prod e curva_prod e os seis meses , cada mes por coluna",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:30:58.364321+00:00"
+      },
+      {
+        "id": "6cc3a427-7ee5-440a-9c27-2c905fbdd165",
+        "role": "assistant",
+        "text": "Preços de Insumos dos Últimos 6 Meses por Posição",
+        "sql": "WITH pmp_data AS ( SELECT \"CDPRODUTO_OFICIAL\", \"NMPRODUTO_OFICIAL\", \"CAT1\", \"POS_PROD\", \"CURVA_PROD\", \"MESANO\", \"PMP_1\", \"PMP_2\", \"PMP_3\", \"PMP_4\", \"PMP_5\", \"PMP_6\" FROM \"PMP_PROD_INF_12\" WHERE \"CAT1\" = 'I - INSUMOS' AND \"MESANO\" >= '2026/01' AND \"MESANO\" <= '2026/06' ) SELECT \"NMPRODUTO_OFICIAL\", \"CAT1\", \"POS_PROD\", \"CURVA_PROD\", \"PMP_1\", \"PMP_2\", \"PMP_3\", \"PMP_4\", \"PMP_5\", \"PMP_6\" FROM pmp_data ORDER BY \"POS_PROD\" ASC LIMIT 500",
+        "reportId": "1ff69bc2-46d0-4fa5-bea8-c8bf768c8ec4",
+        "reportTitle": "Preços de Insumos dos Últimos 6 Meses por Posição",
+        "rowCount": 500,
+        "status": "ok",
+        "createdAt": "2026-06-09T00:30:58.364321+00:00"
+      }
+    ],
+    "reportIds": [
+      "1fce55d5-b294-415e-83de-30a238b45e42",
+      "727a0a8d-3999-4a9c-b950-ac97a054d016",
+      "f6df298f-09fb-4e82-afb0-4a677c4dcceb",
+      "c69c8478-7d81-46c4-9803-3ea97452592d",
+      "1ff69bc2-46d0-4fa5-bea8-c8bf768c8ec4"
+    ],
+    "createdAt": "2026-06-09T00:18:11.959338+00:00",
+    "updatedAt": "2026-06-09T00:30:58.379498+00:00"
+  },
+  {
+    "id": "8a370baa-e549-4e1b-a645-9a3648283c26",
+    "title": "me dê a inflação média de insumos em maio de 2026",
+    "messages": [
+      {
+        "id": "cb89f750-a4eb-4f37-a239-77e1fb046196",
+        "role": "user",
+        "text": "me dê a inflação média de insumos em maio de 2026",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:36:11.782628+00:00"
+      },
+      {
+        "id": "de463f12-ca2b-41c7-8986-4e373be116b9",
+        "role": "assistant",
+        "text": "Inflação Média de Insumos em Maio de 2026",
+        "sql": "SELECT AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_insumos FROM \"INFLAÇÃO\" WHERE \"CAT1\" = 'I - INSUMOS' AND \"MESANO\" = '2026/05' AND \"PERC_INF_PROD_PMP\" IS NOT NULL",
+        "reportId": "d432194a-ec23-4aad-8ae2-177db16d7a2d",
+        "reportTitle": "Inflação Média de Insumos em Maio de 2026",
+        "rowCount": 1,
+        "status": "ok",
+        "createdAt": "2026-06-09T00:36:11.782628+00:00"
+      },
+      {
+        "id": "d2f0943e-1656-4cb6-86d2-f03a9a4cec99",
+        "role": "user",
+        "text": "me de a inflação pro cat2 de insumos",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T00:38:00.821222+00:00"
+      },
+      {
+        "id": "d51fcd69-7f13-4a54-9994-476c56ac4d62",
+        "role": "assistant",
+        "text": "Inflação Média por Categoria de Insumos em Maio de 2026",
+        "sql": "SELECT \"CAT2\", AVG(\"PERC_INF_PROD_PMP\") AS inflacao_media_pct FROM \"INFLAÇÃO\" WHERE \"CAT1\" = 'I - INSUMOS' AND \"MESANO\" = '2026/05' AND \"PERC_INF_PROD_PMP\" IS NOT NULL GROUP BY \"CAT2\" ORDER BY \"CAT2\" ASC",
+        "reportId": "94ad78f8-74a9-48d7-9252-08c692696d5c",
+        "reportTitle": "Inflação Média por Categoria de Insumos em Maio de 2026",
+        "rowCount": 7,
+        "status": "ok",
+        "createdAt": "2026-06-09T00:38:00.821222+00:00"
+      }
+    ],
+    "reportIds": [
+      "d432194a-ec23-4aad-8ae2-177db16d7a2d",
+      "94ad78f8-74a9-48d7-9252-08c692696d5c"
+    ],
+    "createdAt": "2026-06-09T00:35:59.152435+00:00",
+    "updatedAt": "2026-06-09T00:38:00.821222+00:00"
+  },
+  {
+    "id": "9c0cc252-9ffc-46b2-9b6e-5a7762c79421",
+    "title": "me dê a ultima data de NFE",
+    "messages": [
+      {
+        "id": "868f5531-d215-4816-8670-f1c0d4540b41",
+        "role": "user",
+        "text": "me dê a ultima data de NFE",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T14:13:19.048396+00:00"
+      },
+      {
+        "id": "8fa496ba-6c2c-4334-a9ce-b74cd10aa9d3",
+        "role": "assistant",
+        "text": "Última Data de Nota Fiscal Eletrônica",
+        "sql": "SELECT MAX(\"MESANO\") AS ultima_data FROM \"NFE\"",
+        "reportId": "87f46304-003c-427b-bb1b-f35355c3045b",
+        "reportTitle": "Última Data de Nota Fiscal Eletrônica",
+        "rowCount": 1,
+        "status": "ok",
+        "createdAt": "2026-06-09T14:13:19.048396+00:00"
+      },
+      {
+        "id": "24bae64c-7495-4a7e-bc3d-ab7b20ff2a52",
+        "role": "user",
+        "text": "quantas linhas tem NFE",
+        "sql": null,
+        "reportId": null,
+        "createdAt": "2026-06-09T14:17:37.188398+00:00"
+      },
+      {
+        "id": "2d084ca0-83ec-4a15-920b-b82c6d7e4198",
+        "role": "assistant",
+        "text": "Total de Linhas na Tabela NFE",
+        "sql": "SELECT COUNT(*) AS total_linhas FROM \"NFE\"",
+        "reportId": "5183117c-5f7f-40c0-86fb-e4baa8617992",
+        "reportTitle": "Total de Linhas na Tabela NFE",
+        "rowCount": 1,
+        "status": "ok",
+        "createdAt": "2026-06-09T14:17:37.188398+00:00"
+      }
+    ],
+    "reportIds": [
+      "87f46304-003c-427b-bb1b-f35355c3045b",
+      "5183117c-5f7f-40c0-86fb-e4baa8617992"
+    ],
+    "createdAt": "2026-06-09T14:13:00.782791+00:00",
+    "updatedAt": "2026-06-09T14:17:37.188398+00:00"
+  }
+]

@@ -1,13 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find *)",
-      "Bash(ls *)",
-      "Bash(ls)",
-      "Bash(head *)",
-      "Bash(wc *)",
-      "Bash(python -m pytest *)",
-      "Bash(python zoho/catalog.py*)",
+      "Bash(python pipeline/build.py*)",
+      "Bash(python pipeline/transform.py*)",
+      "Bash(python pipeline/generate_indexes.py*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status)",
+      "Bash(git log *)",
+      "Bash(cp *)",
       "Bash(python -c *)"
     ]
   }

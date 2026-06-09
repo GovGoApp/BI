@@ -1,0 +1,74 @@
+{
+  "overrides": {
+    "nlel_0fd057bd": {
+      "col": 1,
+      "col_span": 10,
+      "row": 99,
+      "row_span": 6,
+      "visivel": false
+    },
+    "01_resumo_k02_fornecedores": {
+      "row": 99,
+      "visivel": false,
+      "col": 3,
+      "col_span": 2,
+      "row_span": 2
+    },
+    "01_resumo_k01_total_comprado": {
+      "col": 1,
+      "col_span": 2,
+      "row": 1,
+      "row_span": 2,
+      "visivel": true
+    },
+    "01_resumo_k03_produtos": {
+      "col": 3,
+      "col_span": 2,
+      "row": 1,
+      "row_span": 2,
+      "visivel": true
+    },
+    "01_resumo_k04_impacto": {
+      "col": 5,
+      "col_span": 2,
+      "row": 1,
+      "row_span": 2,
+      "visivel": true
+    },
+    "01_resumo_k05_oportunidade": {
+      "col": 7,
+      "col_span": 2,
+      "row": 1,
+      "row_span": 2,
+      "visivel": true
+    },
+    "01_resumo_k06_cotacao": {
+      "col": 9,
+      "col_span": 2,
+      "row": 1,
+      "row_span": 2,
+      "visivel": true
+    },
+    "01_resumo_k07_ad": {
+      "col": 11,
+      "col_span": 2,
+      "row": 1,
+      "row_span": 2,
+      "visivel": true
+    },
+    "01_resumo_k08_cp": {
+      "col": 13,
+      "col_span": 2,
+      "row": 1,
+      "row_span": 2,
+      "visivel": true
+    },
+    "nlel_ec21846a": {
+      "col": 15,
+      "row": 1,
+      "col_span": 2,
+      "row_span": 2,
+      "visivel": true
+    }
+  }
+}
