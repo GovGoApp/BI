@@ -1628,3 +1628,20 @@ Tabela editável com formato por coluna, preview ao vivo. `config.colunas` salvo
 ### Commits
 - `063d615` fallback d2
 - `6904ac7` inferência A + B completa
+
+---
+
+## [2026-06-08] _renderMX: suporte a dados pré-pivotados
+
+### Problema
+Pivot table com colunas PE/MA/RN (dados já pivotados) gerava Matriz vazia porque `_renderMX` esperava `col_key="UF"` que não existe nos dados pivotados. Renderizava só os labels de linha.
+
+### Fix
+Dois modos em `_renderMX`:
+- **Modo A** (original): dados não-pivotados com `row_key/col_key/val_key`
+- **Modo B** (novo): dados já-pivotados — auto-detecta: 1ª coluna não-numérica = linhas; colunas numéricas = PE/MA/RN = dimensão de colunas
+
+Também corrigido: valores exibidos com `_fmt(v,'','d2')` em vez de `/1e6`.
+
+### Commits
+- `f2d32e2` _renderMX detecta dados pré-pivotados
