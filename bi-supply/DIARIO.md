@@ -1645,3 +1645,23 @@ Também corrigido: valores exibidos com `_fmt(v,'','d2')` em vez de `/1e6`.
 
 ### Commits
 - `f2d32e2` _renderMX detecta dados pré-pivotados
+
+---
+
+## [2026-06-08] _renderGB: reescrito do zero
+
+### Bugs críticos
+- `maxV = Math.max(...vals)`: com dados negativos (-10% a -83%) e só +0,47% positivo, `maxV≈0,47`. Todos `bH = v/maxV*iH` ficavam negativos → SVG renderizava só 1 barra gigante
+- Labels X com `.slice(-7)` → "IONAIS" em vez de "I0 - NUTRICIONAIS"
+- Sem valores nas barras, sem gridlines Y, fonte 8px ilegível, altura 110px
+
+### Correções
+- Range: `min(0,...vals)` a `max(0,...vals)` com linha de zero em `yP(0)`
+- Barras negativas em vermelho, abaixo da linha zero
+- Valor de cada barra posicionado acima/abaixo dela (10px bold)
+- Gridlines Y com labels formatados via `_fmt(v, yk)`
+- Labels X rotacionados −35° para caber sem sobreposição
+- Altura 220px, eixos desenhados explicitamente
+
+### Commits
+- `32b8258` _renderGB reescrito
