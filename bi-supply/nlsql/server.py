@@ -588,6 +588,33 @@ def classify_element():
         return jsonify({"ok": False, "error": str(e)})
 
 
+# ── Normalização de campos de snapshot ────────────────────────────────────────
+
+# Mapeia nomes de campo do Zoho SQL → nomes usados pelo _pred do dashboard
+_FIELD_NORM: dict[str, str] = {
+    "UF": "uf", "EMPRESA": "empresa", "NEGOCIO": "negocio",
+    "FORNECEDOR": "fornecedor", "NMFANTASIA": "fornecedor",
+    "CAT1": "cat1", "CAT2": "cat2", "CAT3": "cat3", "CAT4": "cat4", "CAT5": "cat5",
+    "MESANO": "mesano", "ANO": "ano", "MES": "mes",
+    "STATUSPAG": "statuspag", "STATUS_CONCILIACAO": "status_conciliacao",
+    "CURVA": "curva", "CURVA_ID": "curva_id", "CURVA_PROD": "curva_prod",
+    "PRODUTO": "produto", "NMPRODUTO": "produto", "CDPRODUTO": "cdproduto",
+    "ID": "id", "NMFILIAL": "filial", "CDFILIAL": "filial", "NOME": "nome",
+    "SPEND": "spend", "TOTAL": "spend", "IMP_COT": "imp_cot",
+}
+
+def _normalize_rows(rows: list) -> list:
+    """Normaliza nomes de campo para lowercase + aliases usados pelo _pred."""
+    result = []
+    for row in rows:
+        new_row: dict = {}
+        for k, v in row.items():
+            mapped = _FIELD_NORM.get(k.upper(), k.lower())
+            new_row[mapped] = v
+        result.append(new_row)
+    return result
+
+
 # ── Endpoints: /elements ─────────────────────────────────────────────────────
 
 def _load_elements() -> list:
@@ -595,6 +622,18 @@ def _load_elements() -> list:
 
 def _save_elements_file(els: list) -> None:
     _wj(ELEMENTS_FILE, els)
+
+def _migrate_elements_normalization() -> None:
+    """Normaliza campos dos snapshots já gravados (migração única, idempotente)."""
+    els = _load_elements()
+    changed = False
+    for el in els:
+        snap = el.get("rows_snapshot") or []
+        if snap and snap[0] and any(k != k.lower() for k in snap[0]):
+            el["rows_snapshot"] = _normalize_rows(snap)
+            changed = True
+    if changed:
+        _save_elements_file(els)
 
 
 @app.route("/elements", methods=["GET"])
@@ -636,7 +675,7 @@ def save_element():
         "config":          body.get("config", {}),
         "sql":             str(body.get("sql", "")),
         "columns":         body.get("columns", []),
-        "rows_snapshot":   (body.get("rows_snapshot") or [])[:200],
+        "rows_snapshot":   _normalize_rows((body.get("rows_snapshot") or [])[:200]),
         "variavel_js":     str(body.get("variavel_js", "NLEL_" + _uid()[:8].upper())),
         "question":        str(body.get("question", "")),
         "created_at":      _now(),
@@ -652,6 +691,28 @@ def delete_element(eid):
     els = [e for e in _load_elements() if e.get("id") != eid]
     _save_elements_file(els)
     return jsonify({"ok": True})
+
+
+@app.route("/elements/refresh", methods=["POST"])
+def refresh_elements():
+    """Re-executa o SQL de cada elemento e atualiza rows_snapshot."""
+    els = _load_elements()
+    refreshed, skipped, errors = 0, 0, []
+    for el in els:
+        sql = el.get("sql", "").strip()
+        if not sql:
+            skipped += 1
+            continue
+        result = run_query(sql)
+        if result.get("ok"):
+            el["rows_snapshot"] = _normalize_rows(result["rows"][:200])
+            el["updated_at"]    = _now()
+            refreshed += 1
+        else:
+            errors.append({"title": el.get("title", el.get("id", "?")),
+                           "error": result.get("error", "erro desconhecido")})
+    _save_elements_file(els)
+    return jsonify({"ok": True, "refreshed": refreshed, "skipped": skipped, "errors": errors})
 
 
 # ── Layout persistence ────────────────────────────────────────────────────────
@@ -691,6 +752,7 @@ def health():
 # ── Main ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    _migrate_elements_normalization()
     port = int(os.environ.get("NLSQL_PORT", 5001))
     print(f"BI NL-SQL Server → http://localhost:{port}")
     print(f"  Modelo: {MODEL}")

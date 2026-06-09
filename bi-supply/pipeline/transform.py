@@ -499,7 +499,7 @@ def aba_filial(nfe, lk):
     for r in nfe:
         fn[(str(r.get("CDFILIAL","")),r.get("FI.NEGOCIO",""))]+=flt(r["TOTAL"])
     sc(F,"04_filial_r02_filial_negocio.csv",
-       [{"cdfilial":k[0],"negocio":k[1],"spend":r2(v)} for k,v in fn.items() if k[0].strip() and k[1].strip()])
+       [{"cdfilial":k[0],"filial":bf[k[0]]["nm"],"negocio":k[1],"spend":r2(v)} for k,v in fn.items() if k[0].strip() and k[1].strip()])
 
     top3=[x[0] for x in sorted(bf.items(),key=lambda x:-x[1]["spend"])[:3]]
     fm = defaultdict(float)
@@ -507,7 +507,7 @@ def aba_filial(nfe, lk):
         cd=str(r.get("CDFILIAL","")).strip()
         if cd in top3: fm[(cd,r.get("MESANO",""))]+=flt(r["TOTAL"])
     sc(F,"04_filial_r03_top3_por_mes.csv", sorted(
-       [{"cdfilial":k[0],"mesano":k[1],"spend":r2(v),"nome":bf[k[0]]["nm"]}
+       [{"cdfilial":k[0],"filial":bf[k[0]]["nm"],"mesano":k[1],"spend":r2(v),"nome":bf[k[0]]["nm"]}
         for k,v in fm.items() if k[1].strip()],key=lambda x:(x["cdfilial"],x["mesano"])))
 
     fc2 = defaultdict(float)
@@ -515,7 +515,7 @@ def aba_filial(nfe, lk):
         cd=str(r.get("CDFILIAL","")).strip()
         if cd: fc2[(cd,r.get("CAT2",""))]+=flt(r["TOTAL"])
     sc(F,"04_filial_r04_por_categoria.csv", sorted(
-       [{"cdfilial":k[0],"cat2":k[1],"spend":r2(v)} for k,v in fc2.items() if k[0].strip() and k[1].strip()],
+       [{"cdfilial":k[0],"filial":bf[k[0]]["nm"],"cat2":k[1],"spend":r2(v)} for k,v in fc2.items() if k[0].strip() and k[1].strip()],
        key=lambda x:(x["cdfilial"],-x["spend"])))
 
     sj(F,"04_filial_00_index.json",{
@@ -1006,7 +1006,7 @@ def aba_adiantamento(ad, lk):
         cat=r.get("CAT2","") or r.get("CAT1",""); v=flt(r.get("VALOR_FINAL",""))
         if r.get("STATUS_CONCILIACAO","")=="CONCILIADO": bcat[cat]["conc"]+=v
         else: bcat[cat]["pend"]+=v
-    sc(F,"13_adiantamento_r05_por_categoria.csv",sorted([{"categoria":k,"pendente":r2(d["pend"]),"conciliado":r2(d["conc"])} for k,d in bcat.items() if k.strip()],key=lambda x:-(x["pendente"]+x["conciliado"])))
+    sc(F,"13_adiantamento_r05_por_categoria.csv",sorted([{"cat2":k,"pendente":r2(d["pend"]),"conciliado":r2(d["conc"])} for k,d in bcat.items() if k.strip()],key=lambda x:-(x["pendente"]+x["conciliado"])))
     bf=defaultdict(lambda:{"pend":0.0,"conc":0.0,"nm":"","regs":0})
     for r in ad:
         cd=r.get("CDFORNECED",""); v=flt(r.get("VALOR_FINAL",""))
@@ -1052,9 +1052,11 @@ def aba_servico(nfe, lk):
     bm=defaultdict(float)
     for r in d5: bm[r.get("MESANO","")]+=flt(r["TOTAL"])
     sc(F,"14_servico_r02_por_mes.csv",sorted([{"mesano":k,"spend":r2(v)} for k,v in bm.items() if k.strip()],key=lambda x:x["mesano"]))
-    bc=defaultdict(float)
-    for r in d5: bc[r.get("CAT3","") or r.get("CAT2","")]+=flt(r["TOTAL"])
-    sc(F,"14_servico_r03_por_categoria.csv",sorted([{"categoria":k,"spend":r2(v),"pct":pct(v,tot)} for k,v in bc.items() if k.strip()],key=lambda x:-x["spend"])[:20])
+    bc=defaultdict(lambda:{"spend":0.0,"cat2":""})
+    for r in d5:
+        cat3=r.get("CAT3","") or r.get("CAT2",""); cat2=r.get("CAT2","")
+        bc[cat3]["spend"]+=flt(r["TOTAL"]); bc[cat3]["cat2"]=bc[cat3]["cat2"] or cat2
+    sc(F,"14_servico_r03_por_categoria.csv",sorted([{"cat2":d["cat2"],"categoria":k,"spend":r2(d["spend"]),"pct":pct(d["spend"],tot)} for k,d in bc.items() if k.strip()],key=lambda x:-x["spend"])[:20])
     bf=defaultdict(lambda:{"spend":0.0,"nm":"","cat":""})
     for r in d5:
         cd=r.get("CDFORNECED_OFICIAL") or r.get("CDFORNECED","")
@@ -1311,7 +1313,7 @@ def _filial_extras(nfe, lk):
         nm  = r.get("FANTASIA_OFICIAL","") or r.get("NMFANTFORN","")
         if fil: fil_forn[(fil,cd)] += flt(r["TOTAL"]); fil_forn_nm[(fil,cd)] = nm
     sc(F, "04_filial_r05_por_fornecedor.csv", sorted(
-        [{"cdfilial":k[0],"cdforneced":k[1],"fornecedor":fil_forn_nm[k],"spend":r2(v)}
+        [{"cdfilial":k[0],"filial":bf[k[0]]["nm"],"cdforneced":k[1],"fornecedor":fil_forn_nm[k],"spend":r2(v)}
          for k,v in fil_forn.items()],
         key=lambda x:(x["cdfilial"],-x["spend"])))
 

@@ -338,6 +338,32 @@ def build_js_injection(indexes):
     lines.append("")
     print(f"  Dimensões: {len(dim_cats)} cat · {len(dim_prods)} prod · {len(dim_filia)} filiais · {len(dim_forns)} forn · {len(dim_ids)} IDs")
 
+    # 3. Elementos NL-SQL — embutir snapshots e definições diretamente no HTML
+    nlsql_file = ROOT / "nlsql" / "elements.json"
+    nl_elements: list = []
+    if nlsql_file.exists():
+        try:
+            nl_elements = json.loads(nlsql_file.read_text(encoding="utf-8"))
+        except Exception:
+            nl_elements = []
+
+    for el in nl_elements:
+        vjs      = el.get("variavel_js", "")
+        snapshot = el.get("rows_snapshot", [])
+        if not vjs or snapshot is None:
+            continue
+        data_js = json.dumps(snapshot, ensure_ascii=False, separators=(",", ":"))
+        lines.append(f"window._BI_DATA['{vjs}'] = {data_js};")
+
+    # Definições NL-SQL (sem snapshot — dados já injetados acima)
+    nl_defs = [
+        {k: v for k, v in el.items() if k != "rows_snapshot"}
+        for el in nl_elements
+    ]
+    lines.append(f"window._NL_EMBEDDED = {json.dumps(nl_defs, ensure_ascii=False, separators=(',', ':'))};")
+    lines.append("")
+    print(f"  NL-SQL elements embutidos: {len(nl_elements)}")
+
     return "\n".join(lines)
 
 # ── CSS do grid ───────────────────────────────────────────────────────────────
@@ -1498,46 +1524,61 @@ function _pred(r){
 }
 
 // ── Recálculo de KPIs ─────────────────────────────────────────────────────────
+// Chaves DEVEM bater exatamente com variavel_js dos elementos em generate_indexes.py
 const _KC={
+  // ── Resumo
   RESUMO_K01_TOTAL_COMPRADO: ()=>({total_comprado_operacional:_sum(_BDF('RESUMO_R01_POR_MES'),'spend'),crescimento_yoy_pct:0}),
   RESUMO_K02_FORNECEDORES:   ()=>{const s=_BDF('RESUMO_R04_TOP_FORNECEDOR');return{fornecedores_ativos:s.length,ids_unicos:s.length};},
   RESUMO_K04_IMPACTO:        ()=>({imp_cot_total:_sum(_BDF('RESUMO_R03_TOP_CATEGORIA'),'imp_cot')}),
   RESUMO_K05_OPORTUNIDADE:   ()=>({imp_cot_total:_sum(_BDF('RESUMO_R03_TOP_CATEGORIA'),'imp_cot')}),
-  RESUMO_K07_FISCAL:         ()=>({fornecedores_ativos:_BDF('RESUMO_R04_TOP_FORNECEDOR').length}),
+  RESUMO_K07_AD:             ()=>({ad_pendente:_sum(_BDF('FORNECEDOR_R01_TABELA'),'ad_pendente')}),
   RESUMO_K08_CP:             ()=>({cp_aberto:_sum(_BDF('RESUMO_R04_TOP_FORNECEDOR'),'cp_aberto'),cp_titulos:_BDF('RESUMO_R04_TOP_FORNECEDOR').filter(r=>parseFloat(r.cp_aberto||0)>0).length}),
+  // ── Oportunidades
   OPORTUNIDADE_K01_TOTAL:    ()=>({imp_cot_total:_sum(_BDF('OPORTUNIDADE_R01_TABELA'),'imp_cot')}),
   OPORTUNIDADE_K03_ACIMA:    ()=>({ids_comprados_acima_minimo:_BDF('OPORTUNIDADE_R01_TABELA').filter(r=>parseFloat(r.imp_cot||0)>0).length}),
   OPORTUNIDADE_K04_PCT:      ()=>{const s=_BDF('OPORTUNIDADE_R01_TABELA');const t=s.length||1;return{pct_linhas_acima_minimo:(s.filter(r=>parseFloat(r.imp_cot||0)>0).length/t*100).toFixed(1)};},
+  // ── Filiais
   FILIAL_K01_TOTAL:          ()=>({total_comprado:_sum(_BDF('FILIAL_R01_RANKING'),'spend')}),
   FILIAL_K02_MEDIA:          ()=>{const s=_BDF('FILIAL_R01_RANKING');return{compra_media_por_filial:s.length?_sum(s,'spend')/s.length:0};},
   FILIAL_K03_MAIOR:          ()=>({maior_filial:(_BDF('FILIAL_R01_RANKING').slice().sort((a,b)=>(parseFloat(b.spend)||0)-(parseFloat(a.spend)||0))[0]||{}).nome||'—'}),
   FILIAL_K04_MAIOR_UF:       ()=>{const m={};_BDF('FILIAL_R01_RANKING').forEach(r=>{m[r.uf]=(m[r.uf]||0)+(parseFloat(r.spend)||0);});const t=Object.entries(m).sort((a,b)=>b[1]-a[1])[0]||[];return{maior_uf:t[0]||'—'};},
   FILIAL_K05_NEGOCIO:        ()=>{const m={};_BDF('FILIAL_R01_RANKING').forEach(r=>{m[r.negocio]=(m[r.negocio]||0)+(parseFloat(r.spend)||0);});const t=Object.entries(m).sort((a,b)=>b[1]-a[1])[0]||[];return{maior_negocio:t[0]||'—'};},
+  // ── Fornecedor 360 (chaves corrigidas para bater com variavel_js de generate_indexes.py)
   FORNECEDOR_K01_ATIVOS:     ()=>({fornecedores_ativos:_BDF('FORNECEDOR_R01_TABELA').length}),
-  FORNECEDOR_K02_SPEND:      ()=>({spend_curva_aaa_aa_a:_sum(_BDF('FORNECEDOR_R01_TABELA').filter(r=>['AAA','AA','A'].includes(r.curva)),'spend_total')}),
-  FORNECEDOR_K03_PCT:        ()=>{const s=_BDF('FORNECEDOR_R01_TABELA');const t=_sum(s,'spend_total')||1;return{pct_spend_top:(_sum(s.filter(r=>['AAA','AA','A'].includes(r.curva)),'spend_total')/t*100).toFixed(1)};},
-  FORNECEDOR_K04_CP:         ()=>({forn_com_cp_aberto:_BDF('FORNECEDOR_R01_TABELA').filter(r=>parseFloat(r.cp_aberto||0)>0).length}),
-  FORNECEDOR_K05_AD:         ()=>({forn_com_ad_pendente:_BDF('FORNECEDOR_R01_TABELA').filter(r=>parseFloat(r.ad_pendente||0)>0).length}),
+  FORNECEDOR_K02_CURVA:      ()=>({forn_curva_aaa_aa:_BDF('FORNECEDOR_R01_TABELA').filter(r=>['AAA','AA'].includes(r.curva)).length}),
+  FORNECEDOR_K03_SPEND:      ()=>({spend_curva_aaa_aa_a:_sum(_BDF('FORNECEDOR_R01_TABELA').filter(r=>['AAA','AA','A'].includes(r.curva)),'spend_total')}),
+  FORNECEDOR_K04_PCT:        ()=>{const s=_BDF('FORNECEDOR_R01_TABELA');const t=_sum(s,'spend_total')||1;return{pct_spend_top:(_sum(s.filter(r=>['AAA','AA','A'].includes(r.curva)),'spend_total')/t*100).toFixed(1)};},
+  FORNECEDOR_K05_CP_N:       ()=>({forn_com_cp_aberto:_BDF('FORNECEDOR_R01_TABELA').filter(r=>parseFloat(r.cp_aberto||0)>0).length}),
+  FORNECEDOR_K06_CP_R:       ()=>({cp_aberto_total:_sum(_BDF('FORNECEDOR_R01_TABELA'),'cp_aberto')}),
+  FORNECEDOR_K07_AD_N:       ()=>({forn_com_ad_pendente:_BDF('FORNECEDOR_R01_TABELA').filter(r=>parseFloat(r.ad_pendente||0)>0).length}),
+  FORNECEDOR_K08_AD_R:       ()=>({ad_pendente_total:_sum(_BDF('FORNECEDOR_R01_TABELA'),'ad_pendente')}),
+  // ── Produtos
   PRODUTO_K01_TOTAL:         ()=>({total_ids:_BDF('PRODUTO_R01_TABELA').length}),
   PRODUTO_K02_PMP:           ()=>{const s=_BDF('PRODUTO_R01_TABELA');return{pmp_medio_cesta:s.length?_sum(s,'pmp_atual')/s.length:0};},
   PRODUTO_K03_VAR:           ()=>({ids_variacao_pmp_gt10pct:_BDF('PRODUTO_R01_TABELA').filter(r=>Math.abs(parseFloat(r.var_pmp_pct||0))>10).length}),
   PRODUTO_K05_INF:           ()=>{const s=_BDF('PRODUTO_R01_TABELA');return{inflacao_media_cesta:s.length?(_sum(s,'var_pmp_pct')/s.length).toFixed(1):0};},
+  // ── Impacto
   IMPACTO_K01_TOTAL:         ()=>({imp_cot_total:_sum(_BDF('IMPACTO_R03_TOP_ID'),'imp_cot')}),
   IMPACTO_K02_IDS:           ()=>({ids_com_impacto:_BDF('IMPACTO_R03_TOP_ID').filter(r=>parseFloat(r.imp_cot||0)>0).length}),
   IMPACTO_K03_PCT:           ()=>{const s=_BDF('IMPACTO_R03_TOP_ID');const t=s.length||1;return{pct_linhas_acima_minimo:(s.filter(r=>parseFloat(r.imp_cot||0)>0).length/t*100).toFixed(1)};},
   IMPACTO_K04_UF:            ()=>({uf_lider:(_BDF('IMPACTO_R02_UF').slice().sort((a,b)=>(parseFloat(b.imp_cot)||0)-(parseFloat(a.imp_cot)||0))[0]||{}).uf||'—'}),
   IMPACTO_K05_PROD:          ()=>({top_produto_nome:(_BDF('IMPACTO_R03_TOP_ID').slice().sort((a,b)=>(parseFloat(b.imp_cot)||0)-(parseFloat(a.imp_cot)||0))[0]||{}).produto||'—'}),
+  // ── Inflação
   INFLACAO_K01_MEDIA:        ()=>{const s=_BDF('INFLACAO_R04_POR_CAT');return{inflacao_media_pct:s.length?(_sum(s,'inflacao_media_pct')/s.length).toFixed(1):0};},
   INFLACAO_K02_EXP:          ()=>({exposicao_monetaria_12m:_sum(_BDF('INFLACAO_R02_MES_RS'),'exposicao_rs')}),
+  INFLACAO_K03_GT10:         ()=>({ids_com_inflacao_gt10pct:_BDF('PRODUTO_R01_TABELA').filter(r=>Math.abs(parseFloat(r.var_pmp_pct||0))>10).length}),
   INFLACAO_K04_CAT:          ()=>({cat2_mais_inflada:(_BDF('INFLACAO_R04_POR_CAT').slice().sort((a,b)=>(parseFloat(b.inflacao_media_pct)||0)-(parseFloat(a.inflacao_media_pct)||0))[0]||{}).cat2||'—'}),
+  // ── Financeiro
   FINANCEIRO_K01_ABERTO:     ()=>({cp_aberto_total:_sum(_BDF('FINANCEIRO_R02_FORN'),'cp_aberto')}),
   FINANCEIRO_K02_TIT:        ()=>({cp_titulos:_sum(_BDF('FINANCEIRO_R02_FORN'),'titulos')}),
   FINANCEIRO_K03_VENC:       ()=>({cp_vencido:_sum(_BDF('FINANCEIRO_R02_FORN'),'cp_vencido')}),
+  // ── Adiantamentos
   ADIANTAMENTO_K01_TOTAL:    ()=>{const s=_BDF('ADIANTAMENTO_R02_EMP');return{ad_total_12m:_sum(s,'pendente')+_sum(s,'conciliado')};},
   ADIANTAMENTO_K02_CONC:     ()=>({conciliado:_sum(_BDF('ADIANTAMENTO_R02_EMP'),'conciliado')}),
   ADIANTAMENTO_K03_PEND:     ()=>({pendente:_sum(_BDF('ADIANTAMENTO_R02_EMP'),'pendente')}),
   ADIANTAMENTO_K04_PCT:      ()=>{const s=_BDF('ADIANTAMENTO_R02_EMP');const t=(_sum(s,'pendente')+_sum(s,'conciliado'))||1;return{pct_conciliado:(_sum(s,'conciliado')/t*100).toFixed(1)};},
   ADIANTAMENTO_K05_N:        ()=>({n_pendente:_BDF('ADIANTAMENTO_R06_FORN').filter(r=>parseFloat(r.pendente||0)>0).length}),
+  // ── Serviços
   SERVICO_K01_TOTAL:         ()=>({total_servicos:_sum(_BDF('SERVICO_R01_UF'),'spend')}),
   SERVICO_K02_FORN:          ()=>({fornecedores_servicos:_BDF('SERVICO_R04_FORN').length}),
   SERVICO_K03_UFS:           ()=>({ufs_atendidas:_BDF('SERVICO_R01_UF').length}),
@@ -3307,17 +3348,23 @@ function _nlEls(){try{return JSON.parse(localStorage.getItem(_NL_KEY)||'[]');}ca
 
 function _injectNlData(){
   window._BI_DATA=window._BI_DATA||{};
-  _nlEls().forEach(el=>{
-    // 1. Injetar dados em _BI_DATA
-    if(el.variavel_js) window._BI_DATA[el.variavel_js]=el.rows_snapshot||[];
-    // 2. Re-injetar no ABAS_INDEX (perdido após F5)
+  // Embedded (build-time) como base; localStorage como override (mais recente)
+  const embedded=window._NL_EMBEDDED||[];
+  const stored=_nlEls();
+  const storedIds=new Set(stored.map(e=>e.id));
+  // Merge: embedded sem sobrescrever o que já está no localStorage
+  const merged=[...embedded.filter(e=>!storedIds.has(e.id)),...stored];
+
+  merged.forEach(el=>{
+    // dados: localStorage tem rows_snapshot próprio; embedded usam _BI_DATA já injetado
+    if(el.rows_snapshot) window._BI_DATA[el.variavel_js]=el.rows_snapshot;
+    // definição na aba
     const pg=el.destination_tab;
     if(!pg||typeof ABAS_INDEX==='undefined'||!ABAS_INDEX[pg]) return;
     const tabData=ABAS_INDEX[pg];
     if(!tabData.elementos) tabData.elementos=[];
     const eid='nlel_'+el.id.slice(0,8);
-    if(tabData.elementos.find(e=>e.id===eid)) return; // ja existe
-    // Recuperar posição salva (localStorage via _BI_EDITOR)
+    if(tabData.elementos.find(e=>e.id===eid)) return;
     const ov=(window._BI_EDITOR?.getOv(pg,eid))||{};
     const row=ov.row||99;
     tabData.elementos.push({

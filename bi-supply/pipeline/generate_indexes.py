@@ -309,7 +309,7 @@ IDX_13 = {
         # Tipo B
         ep("13_adiantamento_r03_mes", "ADIANTAMENTO_R03_MES",  "GL","AD por Mês",          "13_adiantamento_r03_por_mes.csv",{"x":"mesano","stacks":["pendente","conciliado"]},col_span=8,row_span=5),
         ep("13_adiantamento_r04_uf",  "ADIANTAMENTO_R04_UF",   "HL","AD por UF",            "13_adiantamento_r04_por_uf.csv",{"label":"uf","value":"valor_total"},col=1,col_span=8,row=14,row_span=5),
-        ep("13_adiantamento_r05_cat", "ADIANTAMENTO_R05_CAT",  "T","AD por Categoria",      "13_adiantamento_r05_por_categoria.csv",{"colunas":[{"key":"categoria","cls":"nm"},{"key":"pendente","cls":"num","fmt":"brl"},{"key":"conciliado","cls":"num","fmt":"brl"}]},col_span=8,row_span=5),
+        ep("13_adiantamento_r05_cat", "ADIANTAMENTO_R05_CAT",  "T","AD por Categoria",      "13_adiantamento_r05_por_categoria.csv",{"colunas":[{"key":"cat2","cls":"nm"},{"key":"pendente","cls":"num","fmt":"brl"},{"key":"conciliado","cls":"num","fmt":"brl"}]},col_span=8,row_span=5),
     ]
 }
 
