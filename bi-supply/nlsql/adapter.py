@@ -100,7 +100,8 @@ def run_query(sql: str) -> dict[str, Any]:
             return {"ok": True, "columns": [], "rows": [], "row_count": 0,
                     "truncated": False, "sql_used": safe_sql, "elapsed_ms": elapsed, "error": None}
 
-        columns = [{"name": col, "type": _infer_type(col, rows)} for col in rows[0].keys()]
+        columns = [{"name": col, "type": _infer_type(col, rows), "fmt": _infer_fmt(col, rows)}
+                   for col in rows[0].keys()]
         truncated = len(rows) >= 500
 
         return {
@@ -138,3 +139,61 @@ def _infer_type(col_name: str, rows: list[dict]) -> str:
     if float_hits == len(values):
         return "numeric"
     return "text"
+
+
+def _infer_fmt(col_name: str, rows: list[dict]) -> str:
+    """Infere código de formato (d2/n0/p4/text/code/…) para uma coluna.
+    Usa nome da coluna como primeira heurística, depois analisa valores."""
+    cn = col_name.lower()
+
+    # 1. Código/ID — sem formatação
+    if (cn.startswith("cd") or cn.endswith("_id") or cn == "id"
+            or any(x in cn for x in ["cnpj", "cpf", "chave", "nrnota", "te.id"])):
+        return "code"
+
+    # 2. Texto por padrão de nome
+    _text_hints = ["mesano", "dtent", "dtemis", "dt", "data", "semana",
+                   "curva", "status", "ativa", "nmemp", "sgmes",
+                   "fantasia", "descri", "cat", "regiao", "sigla",
+                   "uf", "nmproduto", "nmfilial", "nmfant", "nmraz",
+                   "negocio", "empresa", "local", "marca"]
+    if any(x in cn for x in _text_hints):
+        return "text"
+
+    # 3. Percentuais
+    if any(x in cn for x in ["pct", "perc", "infla", "_pct", "var_pmp", "acum"]):
+        return "p4"
+
+    # 4. Posições / contagens inteiras
+    if (cn.startswith("pos") or "pos_" in cn
+            or any(x in cn for x in ["qtd", "count", "contag", "n_", "num_",
+                                      "titulos", "vezes", "ids_unicos"])):
+        return "n0"
+
+    # 5. Analisar valores para distinguir integer / decimal / texto
+    sample_raw = [r.get(col_name, "") for r in rows[:20]]
+    sample = [s for s in sample_raw if isinstance(s, str) and s.strip()]
+    if not sample:
+        return "text"
+
+    numerics: list[float] = []
+    for v in sample:
+        try:
+            numerics.append(float(v))
+        except (ValueError, TypeError):
+            return "text"   # contém não-numérico → texto
+
+    if not numerics:
+        return "text"
+
+    # Todos inteiros?
+    if all(n == int(n) for n in numerics):
+        return "n0"
+
+    # Valores grandes (totais monetários)?
+    avg_abs = sum(abs(n) for n in numerics) / len(numerics)
+    if avg_abs > 10_000:
+        return "d0"
+
+    # Decimal padrão
+    return "d2"

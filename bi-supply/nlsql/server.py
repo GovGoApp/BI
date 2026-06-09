@@ -252,9 +252,11 @@ def run():
 
     # 3. Montar relatório
     rid = _uid()
-    columns = [c["name"] if isinstance(c, dict) else c for c in result.get("columns", [])]
-    rows    = result.get("rows", [])
-    ok      = result.get("ok", False)
+    raw_cols = result.get("columns", [])
+    columns  = [c["name"] if isinstance(c, dict) else c for c in raw_cols]
+    col_fmts = {c["name"]: c["fmt"] for c in raw_cols if isinstance(c, dict) and c.get("fmt")}
+    rows     = result.get("rows", [])
+    ok       = result.get("ok", False)
 
     # 4. Gerar título (apenas se ok)
     if ok and rows:
@@ -270,7 +272,8 @@ def run():
         "question":   question,
         "sql":        sql,
         "columns":    columns,
-        "rows":       rows[:200],    # preview no histórico
+        "col_fmts":   col_fmts,          # {colName: fmtCode} inferido pelo adapter
+        "rows":       rows[:200],
         "rowCount":   result.get("row_count", len(rows)),
         "elapsedMs":  elapsed,
         "status":     "ok" if ok else "error",

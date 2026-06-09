@@ -2407,6 +2407,7 @@ function _openAddModal(tid){
   const activeType=cls?.activeType||'table';
   const tipo=activeType==='table'?'T':activeType;
   const sg=cls?.suggestions?.find(s=>s.tipo===tipo);
+  // Formatos inferidos pelo adapter (col_fmts) como ponto de partida
   _S.modal={
     tid, tipo,
     config: sg?{...sg.config}:{},
@@ -2414,6 +2415,7 @@ function _openAddModal(tid){
     destTab: '',
     columns: r.columns||[],
     rows: r.rows||[],
+    col_fmts: {...(r.col_fmts||{})},   // editável pelo usuário no modal
   };
   _renderModal();
 }
@@ -2445,6 +2447,32 @@ function _renderModal(){
           ${abasHtml}
         </select>
       </div>
+      ${(m.tipo==='T'||m.tipo==='TE')&&m.columns?.length?`
+      <div class="rel-field">
+        <label class="rel-field-lbl">Formato das colunas <span style="font-weight:400;color:var(--muted)">(auto-inferido · editável)</span></label>
+        <div style="max-height:160px;overflow-y:auto;border:1px solid var(--line);border-radius:6px">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:var(--head)">
+              <th style="padding:5px 8px;text-align:left;font-weight:600">Coluna</th>
+              <th style="padding:5px 8px;text-align:left;font-weight:600">Formato</th>
+              <th style="padding:5px 8px;text-align:left;font-weight:600">Exemplo</th>
+            </tr></thead>
+            <tbody>${m.columns.map(c=>{
+              const fmtOpts=['(auto)','d2','d0','d4','r0','r2','rmi','n0','n2','p1','p2','p4','text','code'];
+              const cur=m.col_fmts?.[c]||'';
+              const sampleVal=m.rows?.length?String(m.rows[0][c]??'—'):'—';
+              const preview=window._fmt?window._fmt(sampleVal,c,cur||undefined):sampleVal;
+              return `<tr style="border-top:1px solid var(--line)">
+                <td style="padding:4px 8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(c)}">${_esc(c)}</td>
+                <td style="padding:4px 6px"><select style="font-size:11px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;background:#fff" onchange="window._RL.setColFmt('${_esc(c)}',this.value)">
+                  ${fmtOpts.map(o=>`<option value="${o==='(auto)'?'':o}"${cur===(o==='(auto)'?'':o)?' selected':''}>${o}</option>`).join('')}
+                </select></td>
+                <td style="padding:4px 8px;color:var(--muted);font-size:11px" id="cfp_${_esc(c).replace(/[^a-z0-9]/gi,'_')}">${_esc(String(preview).slice(0,20))}</td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>
+        </div>
+      </div>`:''}
     </div>
     <div class="rel-modal-ft">
       <span id="rl-m-err" style="flex:1;font-size:12px;color:#dc2626;align-self:center"></span>
@@ -2553,14 +2581,15 @@ function _renderTableSection(r, tid){
   const pg=_S.pages[tid]||0;
   const pgs=Math.ceil(rows.length/PAGE_SZ);
   const vis=rows.slice(pg*PAGE_SZ,(pg+1)*PAGE_SZ);
-  const _numCode=c=>{const ff=window._FF&&window._FF[c];return ff?/^[dnr]/.test(ff):false;};
+  const cf=r.col_fmts||{};   // {colName: fmtCode} inferido pelo adapter
+  const _numCode=c=>{const ff=cf[c]||(window._FF&&window._FF[c]);return ff?/^[dnr]/.test(ff):false;};
   const ths=cols.map(c=>{
     const isNum=_numCode(c)||_isN(rows.length?rows[0][c]??'':'');
     return `<th${isNum?' style="text-align:right"':''}>${_esc(c)}</th>`;
   }).join('');
   const trs=vis.map(row=>'<tr>'+cols.map(c=>{
     const v=row[c]??'';
-    const fmt=window._fmt?window._fmt(v,c):(_isN(v)?_fv(v):String(v));
+    const fmt=window._fmt?window._fmt(v,c,cf[c]):(_isN(v)?_fv(v):String(v));
     const isHtml=/^</.test(fmt);
     const d=isHtml?fmt:_esc(fmt);
     const isNum=_numCode(c)||(!isHtml&&_isN(v));
@@ -2861,6 +2890,17 @@ window._RL = {
 
   setModalTitle: v => { if(_S.modal) _S.modal.title=v; },
   setModalDest:  v => { if(_S.modal) _S.modal.destTab=v; },
+  setColFmt: (col, fmt) => {
+    if(!_S.modal) return;
+    _S.modal.col_fmts=_S.modal.col_fmts||{};
+    if(fmt) _S.modal.col_fmts[col]=fmt; else delete _S.modal.col_fmts[col];
+    // Atualizar preview da coluna
+    const r=_S.reports[_S.modal.tid];
+    const sampleVal=r?.rows?.length?String(r.rows[0][col]??'—'):'—';
+    const preview=window._fmt?window._fmt(sampleVal,col,fmt||undefined):sampleVal;
+    const pid='cfp_'+col.replace(/[^a-z0-9]/gi,'_');
+    const el=document.getElementById(pid); if(el) el.textContent=String(preview).slice(0,20);
+  },
   setCfg: (key, val) => {
     if(!_S.modal) return;
     _S.modal.config[key]=val;
@@ -2879,13 +2919,26 @@ window._RL = {
     const btn=$('rl-m-save');
     if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
     const r=_S.reports[m.tid];
+    // Construir config.colunas com fmt explícito (do modal) para T/TE
+    let finalConfig=m.config;
+    if((m.tipo==='T'||m.tipo==='TE')&&m.columns?.length&&!finalConfig.colunas?.length){
+      finalConfig={...finalConfig, colunas:m.columns.map(c=>({
+        key:c, label:c,
+        ...(m.col_fmts?.[c]?{fmt:m.col_fmts[c]}:{})
+      }))};
+    } else if((m.tipo==='T'||m.tipo==='TE')&&finalConfig.colunas?.length&&m.col_fmts){
+      finalConfig={...finalConfig, colunas:finalConfig.colunas.map(c=>({
+        ...c, ...(m.col_fmts?.[c.key]?{fmt:m.col_fmts[c.key]}:{})
+      }))};
+    }
     const res=await _api('POST','/elements',{
       tipo:           m.tipo,
       title:          m.title.trim(),
       destination_tab:m.destTab,
-      config:         m.config,
+      config:         finalConfig,
       sql:            r?.sql||'',
       columns:        m.columns,
+      col_fmts:       m.col_fmts||{},
       rows_snapshot:  (m.rows||[]).slice(0,200),
       variavel_js:    'NLEL_'+Date.now().toString(36).toUpperCase(),
       question:       r?.question||'',
