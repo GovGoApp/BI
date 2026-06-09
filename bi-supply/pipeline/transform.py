@@ -1305,6 +1305,12 @@ def _categoria_extras(nfe, ps):
 def _filial_extras(nfe, lk):
     F = "04_filial"; tg = lk["tg"]
 
+    # Mapa cdfilial → nome (reconstruído localmente)
+    filial_nm: dict[str, str] = {}
+    for r in nfe:
+        cd = str(r.get("CDFILIAL","")).strip()
+        if cd: filial_nm[cd] = r.get("NMFILIAL","") or filial_nm.get(cd,"")
+
     # r05 filial × fornecedor (top 5 por filial)
     fil_forn: dict[tuple, float] = defaultdict(float)
     fil_forn_nm: dict[tuple, str] = {}
@@ -1313,7 +1319,7 @@ def _filial_extras(nfe, lk):
         nm  = r.get("FANTASIA_OFICIAL","") or r.get("NMFANTFORN","")
         if fil: fil_forn[(fil,cd)] += flt(r["TOTAL"]); fil_forn_nm[(fil,cd)] = nm
     sc(F, "04_filial_r05_por_fornecedor.csv", sorted(
-        [{"cdfilial":k[0],"filial":bf[k[0]]["nm"],"cdforneced":k[1],"fornecedor":fil_forn_nm[k],"spend":r2(v)}
+        [{"cdfilial":k[0],"filial":filial_nm.get(k[0],""),"cdforneced":k[1],"fornecedor":fil_forn_nm[k],"spend":r2(v)}
          for k,v in fil_forn.items()],
         key=lambda x:(x["cdfilial"],-x["spend"])))
 
