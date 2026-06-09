@@ -2484,7 +2484,7 @@ function _renderModal(){
               <th style="padding:5px 8px;text-align:left;font-weight:600">Exemplo</th>
             </tr></thead>
             <tbody>${m.columns.map(c=>{
-              const _FL={'':'Automático','d2':'Número 2c — 1.234,56','d0':'Número inteiro — 1.234','d4':'Número 4c — 1.234,5678','r2':'R$ 2c — R$ 1.234,56','r0':'R$ inteiro — R$ 1.234','rmi':'R$ milhões — R$ 12,4 mi','n0':'Contagem/posição — 42','p1':'% variação +/− — +3,5%','p2':'% participação — 62,84%','p4':'% precisão — 3,5678%','text':'Texto','code':'Código/ID'};
+              const _FL={'':'Automático','d2':'Número decimal (1.234,56)','d0':'Número inteiro (1.234)','d4':'Número preciso (1.234,5678)','r2':'Dinheiro (1.234,56)','r0':'Dinheiro inteiro (1.234)','rmi':'Dinheiro em milhões (12,4 mi)','n0':'Contagem (42)','p1':'Percentual com sinal (+3,5%)','p2':'Percentual (62,84%)','p4':'Percentual preciso (3,5678%)','text':'Texto','code':'Código'};
               const fmtOpts=Object.keys(_FL);
               const cur=m.col_fmts?.[c]||'';
               const sampleVal=m.rows?.length?String(m.rows[0][c]??'—'):'—';
