@@ -297,7 +297,8 @@ def build_js_injection(indexes):
     lines.append("if (!window._BI_DATA) window._BI_DATA = {};\n")
 
     # 1. Dados por elemento → _BI_DATA[variavel_js]
-    # Prioridade: elements.json (SQL verificado) → fallback CSV (pipeline)
+    # Fonte única: elements.json (SQL verificado via Zoho)
+    # Fallback CSV removido na Fase 4 do cutover (2026-06-09)
     _nlsql_file = ROOT / "nlsql" / "elements.json"
     _el_by_vjs: dict = {}
     if _nlsql_file.exists():
@@ -308,27 +309,26 @@ def build_js_injection(indexes):
         except Exception:
             pass
 
-    n_from_sql = n_from_csv = 0
+    n_ok = n_missing = 0
     for folder, idx in indexes.items():
         for elem in idx.get("elementos", []):
-            vjs   = elem.get("variavel_js", "")
-            dados = elem.get("dados", "")
+            vjs = elem.get("variavel_js", "")
             if not vjs: continue
 
             if vjs in _el_by_vjs:
                 data = _el_by_vjs[vjs]["rows_snapshot"]
-                n_from_sql += 1
-            elif dados:
-                data = load_elem_data(folder, dados, elem.get("tipo","T"))
-                n_from_csv += 1
+                n_ok += 1
             else:
+                n_missing += 1
                 continue
 
-            if data is None: continue
             data_js = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
             lines.append(f"window._BI_DATA['{vjs}'] = {data_js};")
 
-    print(f"  Dados: {n_from_sql} de elements.json · {n_from_csv} de CSV (fallback)")
+    if n_missing:
+        print(f"  Dados: {n_ok} de elements.json · {n_missing} SEM SNAPSHOT (verificar!)")
+    else:
+        print(f"  Dados: {n_ok} de elements.json (100% SQL)")
 
     lines.append("")
 
