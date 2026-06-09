@@ -405,9 +405,15 @@ function _fmt(v, key, override) {
   if (v===null||v===undefined||v==='') return '—';
   const raw=String(v);
   const code=_FA[override]||override||(window._FF&&window._FF[key])||null;
-  if (!code||code==='text'||code==='code') return raw;
+  if (code==='text'||code==='code') return raw;
   if (code==='date') { return raw.length>=10?raw.slice(0,10):raw; }
   const n=parseFloat(v);
+  // Sem código no registry: aplicar d2 para numéricos (aliases SQL dinâmicos como PE, MA, RN)
+  if (!code) {
+    if(!isFinite(n)) return raw;
+    const _si0=s=>{const ng=s[0]==='-',ab=ng?s.slice(1):s;return(ng?'-':'')+ab.replace(/\B(?=(\d{3})+(?!\d))/g,'.');};
+    const f=n.toFixed(2),d=f.indexOf('.');return _si0(f.slice(0,d))+','+f.slice(d+1);
+  }
   if (!isFinite(n)) return raw;
   const _si=s=>{const neg=s[0]==='-',ab=neg?s.slice(1):s;return(neg?'-':'')+ab.replace(/\B(?=(\d{3})+(?!\d))/g,'.');};
   const _d=(n,p)=>{const f=n.toFixed(p),d=f.indexOf('.');return _si(d>=0?f.slice(0,d):f)+(p>0?','+f.slice(d+1):'');};
