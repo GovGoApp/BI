@@ -1781,3 +1781,48 @@ Para análise geográfica de séries, usar elementos MX/HL por UF nas mesmas aba
 ### Commits
 - `dd3aa28` feat: filtragem universal — caminho NL-SQL como base única
 
+---
+
+## [2026-06-09] Migração pipeline → NL-SQL: B3 sync + B1/B2 seed
+
+### refresh_elements.py (nlsql/)
+Script standalone que re-executa SQL de cada elemento de elements.json.
+Não requer servidor Flask — pode ser chamado pelo BAT diretamente.
+Normaliza campos na atualização (mesmo mapa de server.py).
+
+### scripts/ — diretório de scripts operacionais
+- `atualizar.bat`: BAT de atualização movido para scripts/ (agora rastreado no git)
+- Atalho `.lnk` na área de trabalho aponta para scripts/atualizar.bat
+- `seed_pipeline_elements.py`: popula elements.json com 14 elementos pipeline (execução única)
+
+### BAT (scripts/atualizar.bat)
+Atualizado com passo 4/5: `python nlsql/refresh_elements.py`
+Verifica Python e pasta antes de qualquer execução (corrige fechar automático).
+
+### B3 — build.py sync_pipeline_snapshots()
+Após cada build, atualiza rows_snapshot em elements.json para entradas existentes.
+Garante dados frescos sem re-executar SQL — pipeline CSV como fallback automático.
+14 entradas atualizadas no build de hoje.
+
+### B1/B2 — seed_pipeline_elements.py (14 entradas)
+Criadas entradas com variavel_js do pipeline + SQL para refresh via Zoho:
+- RESUMO_R01_POR_MES, R06_GEO_NNE, R07_GEO_SSE
+- IMPACTO_R01_MES, R02_UF
+- INFLACAO_R02_MES_RS, R03_POR_UF, R04_POR_CAT
+- FINANCEIRO_R01_AGING, R02_FORN
+- ADIANTAMENTO_R02_EMP, R06_FORN
+- SERVICO_R01_UF, R04_FORN
+
+Elementos complexos (com joins Python: FORNECEDOR_R01_TABELA,
+RESUMO_R04_TOP_FORNECEDOR, etc.) permanecem no pipeline.
+
+### Estado do elements.json
+24 elementos totais: 10 user-created (NLEL_*) + 14 pipeline (origem="pipeline")
+Todos os 24 embutidos no HTML a cada build.
+Snapshot: pipeline CSV (imediato) ou SQL Zoho (após BAT com refresh).
+
+### Commits
+- `279ec43` feat: refresh_elements.py + integração no pipeline
+- `17ab811` chore: mover atualizar.bat para scripts/
+- `b343045` feat: B3 sync pipeline + B1/B2 seed elementos SQL
+
