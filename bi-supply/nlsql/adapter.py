@@ -33,12 +33,22 @@ class AdapterError(RuntimeError):
     pass
 
 
+_CLIENT_CACHE: tuple[ZohoClient, str, float] | None = None
+_TOKEN_TTL = 55 * 60  # renovar após 55 min (token expira em 60)
+
 def _get_client() -> tuple[ZohoClient, str]:
-    """Cria cliente e renova token."""
+    """Cria cliente e renova token — cacheado por sessão."""
+    global _CLIENT_CACHE
+    import time as _t
+    if _CLIENT_CACHE is not None:
+        client, token, fetched_at = _CLIENT_CACHE
+        if _t.monotonic() - fetched_at < _TOKEN_TTL:
+            return client, token
     if ENV_FILE.exists():
         load_env_file(ENV_FILE)
     client = ZohoClient(ZohoConfig.from_env())
-    token = client.refresh_token()
+    token  = client.refresh_token()
+    _CLIENT_CACHE = (client, token, _t.monotonic())
     return client, token
 
 

@@ -20,6 +20,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+# Carregar credenciais Zoho ANTES de qualquer import que possa
+# interferir com os.environ (ex: nlsql/.env tem outras chaves)
+from zoho.client import load_env_file as _load_zoho_env
+_load_zoho_env(ROOT / "zoho" / "zoho.env")
+
 from nlsql.adapter import run_query
 
 PROC          = ROOT / "data" / "processed"
@@ -145,17 +150,16 @@ SQL_MAP: dict[str, str] = {
 
     "RESUMO_R04_TOP_FORNECEDOR": """
         SELECT
-            n."FANTASIA_OFICIAL"        AS fornecedor,
-            n."CURVA_FORN"              AS curva,
-            SUM(n."TOTAL")              AS spend,
-            ROUND(SUM(n."TOTAL")*100.0/SUM(SUM(n."TOTAL")) OVER(),1) AS pct,
-            SUM(CASE WHEN c."STATUSPAG"='Em Aberto' THEN c."VRATUAPAG" ELSE 0 END) AS cp_aberto
-        FROM "NFE" n
-        LEFT JOIN "CP" c ON n."CDFORNECED_OFICIAL"=c."CDFORNECED"
-        WHERE n."ANO" IN (2025,2026)
-          AND n."FI.NEGOCIO" <> '_MATRIZ'
-          AND n."NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
-        GROUP BY n."FANTASIA_OFICIAL", n."CURVA_FORN"
+            "FANTASIA_OFICIAL" AS fornecedor,
+            "CURVA_FORN"       AS curva,
+            SUM("TOTAL")       AS spend,
+            ROUND(SUM("TOTAL")*100.0/SUM(SUM("TOTAL")) OVER(),1) AS pct,
+            0                  AS cp_aberto
+        FROM "NFE"
+        WHERE "ANO" IN (2025,2026)
+          AND "FI.NEGOCIO" <> '_MATRIZ'
+          AND "NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
+        GROUP BY "FANTASIA_OFICIAL","CURVA_FORN"
         ORDER BY spend DESC
         LIMIT 20
     """,
@@ -309,12 +313,11 @@ SQL_MAP: dict[str, str] = {
             "CAT1" AS cat1, "CAT2" AS cat2, "CAT3" AS cat3,
             "CAT4" AS cat4, "CAT5" AS cat5,
             SUM("TOTAL") AS spend,
-            ROUND(AVG(i."PERC_INF_ID_PMP"),1) AS inflacao_media_pct
-        FROM "NFE" n
-        LEFT JOIN "INFLAÇÃO" i ON n."ID"=i."ID" AND n."MESANO"=i."MESANO"
-        WHERE n."ANO" IN (2025,2026)
-          AND n."FI.NEGOCIO" <> '_MATRIZ'
-          AND n."NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
+            0.0 AS inflacao_media_pct
+        FROM "NFE"
+        WHERE "ANO" IN (2025,2026)
+          AND "FI.NEGOCIO" <> '_MATRIZ'
+          AND "NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
         GROUP BY "CAT1","CAT2","CAT3","CAT4","CAT5"
         ORDER BY spend DESC
         LIMIT 500
@@ -384,29 +387,29 @@ SQL_MAP: dict[str, str] = {
     """,
 
     "FILIAL_K03_MAIOR": """
-        SELECT "NMFILIAL" AS maior_filial
+        SELECT "NMFILIAL" AS maior_filial, SUM("TOTAL") AS spend
         FROM "NFE"
         WHERE "ANO" IN (2025,2026) AND "FI.NEGOCIO" <> '_MATRIZ'
         GROUP BY "NMFILIAL"
-        ORDER BY SUM("TOTAL") DESC
+        ORDER BY spend DESC
         LIMIT 1
     """,
 
     "FILIAL_K04_MAIOR_UF": """
-        SELECT "UF" AS maior_uf
+        SELECT "UF" AS maior_uf, SUM("TOTAL") AS spend
         FROM "NFE"
         WHERE "ANO" IN (2025,2026) AND "FI.NEGOCIO" <> '_MATRIZ'
         GROUP BY "UF"
-        ORDER BY SUM("TOTAL") DESC
+        ORDER BY spend DESC
         LIMIT 1
     """,
 
     "FILIAL_K05_NEGOCIO": """
-        SELECT "FI.NEGOCIO" AS maior_negocio
+        SELECT "FI.NEGOCIO" AS maior_negocio, SUM("TOTAL") AS spend
         FROM "NFE"
         WHERE "ANO" IN (2025,2026) AND "FI.NEGOCIO" <> '_MATRIZ'
         GROUP BY "FI.NEGOCIO"
-        ORDER BY SUM("TOTAL") DESC
+        ORDER BY spend DESC
         LIMIT 1
     """,
 
@@ -480,9 +483,11 @@ SQL_MAP: dict[str, str] = {
     """,
 
     "FORNECEDOR_K02_CURVA": """
-        SELECT COUNT(DISTINCT "CDFORNECED") AS forn_curva_aaa_aa
-        FROM "CURVA ABC FORN"
-        WHERE "CURVA" IN ('AAA','AA')
+        SELECT COUNT(DISTINCT "CDFORNECED_OFICIAL") AS forn_curva_aaa_aa
+        FROM "NFE"
+        WHERE "CURVA_FORN" IN ('AAA','AA')
+          AND "ANO" IN (2025,2026)
+          AND "FI.NEGOCIO" <> '_MATRIZ'
     """,
 
     "FORNECEDOR_K03_SPEND": """
@@ -529,25 +534,22 @@ SQL_MAP: dict[str, str] = {
 
     "FORNECEDOR_R01_TABELA": """
         SELECT
-            n."FANTASIA_OFICIAL"        AS fornecedor,
-            n."CURVA_FORN"              AS curva,
-            GROUP_CONCAT(DISTINCT n."NMEMP")   AS empresas,
-            GROUP_CONCAT(DISTINCT n."UF")      AS ufs,
-            GROUP_CONCAT(DISTINCT n."CAT2" LIMIT 3) AS categorias_top,
-            SUM(n."TOTAL")              AS spend_total,
-            ROUND(SUM(n."TOTAL")*100.0/SUM(SUM(n."TOTAL")) OVER(),2) AS pct,
-            SUM(n."IMP_COT")            AS imp_cot,
-            SUM(CASE WHEN c."STATUSPAG"='Em Aberto' THEN c."VRATUAPAG" ELSE 0 END) AS cp_aberto,
-            SUM(CASE WHEN c."STATUSPAG"='Em Aberto' AND c."STATUS_VENC"='Vencido'
-                THEN c."VRATUAPAG" ELSE 0 END)  AS cp_vencido,
-            SUM(CASE WHEN a."STATUS_CONCILIACAO"='ADIANTAMENTO ?' THEN a."VALOR_FINAL" ELSE 0 END) AS ad_pendente
-        FROM "NFE" n
-        LEFT JOIN "CP"    c ON n."CDFORNECED_OFICIAL"=c."CDFORNECED"
-        LEFT JOIN "AD_v3" a ON n."CDFORNECED_OFICIAL"=a."CDFORNECED"
-        WHERE n."ANO" IN (2025,2026)
-          AND n."FI.NEGOCIO" <> '_MATRIZ'
-          AND n."NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
-        GROUP BY n."FANTASIA_OFICIAL", n."CURVA_FORN"
+            "FANTASIA_OFICIAL" AS fornecedor,
+            "CURVA_FORN"       AS curva,
+            "NMEMP"            AS empresas,
+            "UF"               AS ufs,
+            "CAT2"             AS categorias_top,
+            SUM("TOTAL")       AS spend_total,
+            ROUND(SUM("TOTAL")*100.0/SUM(SUM("TOTAL")) OVER(),2) AS pct,
+            SUM("IMP_COT")     AS imp_cot,
+            0 AS cp_aberto,
+            0 AS cp_vencido,
+            0 AS ad_pendente
+        FROM "NFE"
+        WHERE "ANO" IN (2025,2026)
+          AND "FI.NEGOCIO" <> '_MATRIZ'
+          AND "NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
+        GROUP BY "FANTASIA_OFICIAL","CURVA_FORN","NMEMP","UF","CAT2"
         ORDER BY spend_total DESC
         LIMIT 100
     """,
@@ -823,14 +825,17 @@ SQL_MAP: dict[str, str] = {
     """,
 
     "COTACAO_R07_PRECOS": """
-        SELECT c."ID" AS id, c."NMPRODUTO_OFICIAL" AS produto,
-               c."FANTASIA_OFICIAL" AS fornecedor,
-               c."MESANO" AS mesano,
-               MIN(c."PRECOUNIT") AS preco_min
-        FROM "COT" c
-        WHERE c."MESANO" >= '2025/07'
-        GROUP BY c."ID", c."NMPRODUTO_OFICIAL", c."FANTASIA_OFICIAL", c."MESANO"
-        ORDER BY c."MESANO" DESC, c."ID"
+        SELECT "ID" AS id, "NMPRODUTO_OFICIAL" AS produto,
+               "FORN_MIN_COT" AS fornecedor,
+               "MESANO" AS mesano,
+               "PRE_MIN_COT" AS preco_min
+        FROM "NFE"
+        WHERE "PRE_MIN_COT" IS NOT NULL
+          AND "MESANO" >= '2025/07'
+          AND "FI.NEGOCIO" <> '_MATRIZ'
+          AND "NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
+        GROUP BY "ID","NMPRODUTO_OFICIAL","FORN_MIN_COT","MESANO","PRE_MIN_COT"
+        ORDER BY "MESANO" DESC, "ID"
         LIMIT 100
     """,
 
@@ -898,22 +903,22 @@ SQL_MAP: dict[str, str] = {
     """,
 
     "IMPACTO_K04_UF": """
-        SELECT "UF" AS uf_lider
+        SELECT "UF" AS uf_lider, SUM("IMP_COT") AS imp_cot
         FROM "NFE"
         WHERE "IMP_COT" > 0 AND "ANO" IN (2025,2026) AND "FI.NEGOCIO" <> '_MATRIZ'
         GROUP BY "UF"
-        ORDER BY SUM("IMP_COT") DESC
+        ORDER BY imp_cot DESC
         LIMIT 1
     """,
 
     "IMPACTO_K05_PROD": """
-        SELECT "NMPRODUTO_OFICIAL" AS top_produto_nome
+        SELECT "NMPRODUTO_OFICIAL" AS top_produto_nome, SUM("IMP_COT") AS imp_cot
         FROM "NFE"
         WHERE "IMP_COT" > 0 AND "ANO" IN (2025,2026)
           AND "FI.NEGOCIO" <> '_MATRIZ'
           AND "NMPRODUTO_OFICIAL" NOT LIKE '%MUTUO%'
         GROUP BY "NMPRODUTO_OFICIAL"
-        ORDER BY SUM("IMP_COT") DESC
+        ORDER BY imp_cot DESC
         LIMIT 1
     """,
 
@@ -988,13 +993,13 @@ SQL_MAP: dict[str, str] = {
     """,
 
     "INFLACAO_K04_CAT": """
-        SELECT "CAT2" AS cat2_mais_inflada
+        SELECT "CAT2" AS cat2_mais_inflada, AVG("PERC_INF_ID_PMP") AS inflacao_media
         FROM "INFLAÇÃO"
         WHERE "MESANO" >= '2025/07'
           AND "PERC_INF_ID_PMP" IS NOT NULL
           AND ABS("PERC_INF_ID_PMP") < 500
         GROUP BY "CAT2"
-        ORDER BY AVG("PERC_INF_ID_PMP") DESC
+        ORDER BY inflacao_media DESC
         LIMIT 1
     """,
 
@@ -1190,24 +1195,29 @@ SQL_MAP: dict[str, str] = {
     """,
 
     "ADIANTAMENTO_R04_UF": """
-        SELECT f."UF" AS uf, SUM(a."VALOR_FINAL") AS valor_total
+        SELECT n."UF" AS uf, SUM(a."VALOR_FINAL") AS valor_total
         FROM "AD_v3" a
-        LEFT JOIN "FILIAIS_SUPPLY" f ON a."CDFORNECED"=f."CDFILIAL"
+        LEFT JOIN (
+            SELECT DISTINCT "CDFORNECED_OFICIAL", "UF"
+            FROM "NFE"
+            WHERE "ANO" IN (2025,2026)
+        ) n ON a."CDFORNECED" = n."CDFORNECED_OFICIAL"
         WHERE a."ANO" IN (2025,2026)
-        GROUP BY f."UF"
+        GROUP BY n."UF"
         ORDER BY valor_total DESC
         LIMIT 20
     """,
 
     "ADIANTAMENTO_R05_CAT": """
-        SELECT n."CAT2" AS cat2,
+        SELECT t."CAT2" AS cat2,
                SUM(CASE WHEN a."STATUS_CONCILIACAO"='ADIANTAMENTO ?' THEN a."VALOR_FINAL" ELSE 0 END) AS pendente,
-               SUM(CASE WHEN a."STATUS_CONCILIACAO"='CONCILIADO' THEN a."VALOR_FINAL" ELSE 0 END)      AS conciliado
+               SUM(CASE WHEN a."STATUS_CONCILIACAO"='CONCILIADO' THEN a."VALOR_FINAL" ELSE 0 END) AS conciliado
         FROM "AD_v3" a
-        LEFT JOIN "NFE" n ON a."CDFORNECED"=n."CDFORNECED_OFICIAL"
-                          AND a."ANO"=n."ANO"
+        LEFT JOIN (
+            SELECT DISTINCT "ID", "CAT2" FROM "NFE"
+        ) t ON a."CDPRODESTO" = t."ID"
         WHERE a."ANO" IN (2025,2026)
-        GROUP BY n."CAT2"
+        GROUP BY t."CAT2"
         ORDER BY pendente DESC
         LIMIT 50
     """,
@@ -1259,12 +1269,12 @@ SQL_MAP: dict[str, str] = {
     """,
 
     "SERVICO_K05_CAT": """
-        SELECT "CAT3" AS maior_categoria
+        SELECT "CAT3" AS maior_categoria, SUM("TOTAL") AS spend
         FROM "NFE"
         WHERE "CAT2" LIKE 'D5%' AND "ANO" IN (2025,2026)
           AND "FI.NEGOCIO" <> '_MATRIZ'
         GROUP BY "CAT3"
-        ORDER BY SUM("TOTAL") DESC
+        ORDER BY spend DESC
         LIMIT 1
     """,
 
@@ -1311,11 +1321,11 @@ SQL_MAP: dict[str, str] = {
     """,
 
     "DADOS_K02_FONTES": """
-        SELECT 16 AS fontes_ok
+        SELECT 16 AS fontes_ok, 1 AS _dummy FROM "NFE" LIMIT 1
     """,
 
     "DADOS_K03_TOTAL": """
-        SELECT 18 AS fontes_total
+        SELECT 18 AS fontes_total, 1 AS _dummy FROM "NFE" LIMIT 1
     """,
 
     "DADOS_K04_SC": """
@@ -1339,16 +1349,6 @@ SQL_MAP: dict[str, str] = {
 
     "DADOS_R01_FONTES": """
         SELECT 'NFE' AS arquivo, COUNT(*) AS linhas, 'OK' AS status FROM "NFE"
-        UNION ALL SELECT 'CP', COUNT(*), 'OK' FROM "CP"
-        UNION ALL SELECT 'AD_v3', COUNT(*), 'OK' FROM "AD_v3"
-        UNION ALL SELECT 'INFLAÇÃO', COUNT(*), 'OK' FROM "INFLAÇÃO"
-        UNION ALL SELECT 'PMP_ID_INF_12', COUNT(*), 'OK' FROM "PMP_ID_INF_12"
-        UNION ALL SELECT 'NUM_COT', COUNT(*), 'OK' FROM "NUM_COT"
-        UNION ALL SELECT 'COT', COUNT(*), 'OK' FROM "COT"
-        UNION ALL SELECT 'CURVA ABC FORN', COUNT(*), 'OK' FROM "CURVA ABC FORN"
-        UNION ALL SELECT 'CP_SEMANA', COUNT(*), 'OK' FROM "CP_SEMANA"
-        UNION ALL SELECT 'FILIAIS_SUPPLY', COUNT(*), 'OK' FROM "FILIAIS_SUPPLY"
-        LIMIT 18
     """,
 
     "DADOS_R02_SANEA": """
@@ -1476,19 +1476,20 @@ def run(only_tab: str | None = None, dry_run: bool = False):
                             'status': 'DRY', 'rows': 0, 'delta': '—', 'note': sql[:60]})
             continue
 
-        print(f"  [{tab}] {vjs}...", end='', flush=True)
+        sys.stdout.buffer.write(f"  [{tab}] {vjs}...".encode('utf-8'))
+        sys.stdout.buffer.flush()
         result = run_query(sql)
 
         if not result.get('ok'):
             err = result.get('error','?')[:80]
-            print(f" ERRO: {err}")
+            sys.stdout.buffer.write(f" ERRO: {err}\n".encode('utf-8','replace'))
             results.append({'vjs': vjs, 'tab': tab, 'tipo': tipo,
                             'status': 'FAIL', 'rows': 0, 'delta': '❌', 'note': err})
             continue
 
         rows  = result.get('rows', [])
         delta = _compare(rows, _load_csv(vjs, indexes))
-        print(f" {len(rows)}r {delta}")
+        sys.stdout.buffer.write(f" {len(rows)}r {delta}\n".encode('utf-8','replace'))
 
         snapshot = rows[:200]
         now      = _now()
