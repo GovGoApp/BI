@@ -1826,3 +1826,47 @@ Snapshot: pipeline CSV (imediato) ou SQL Zoho (após BAT com refresh).
 - `17ab811` chore: mover atualizar.bat para scripts/
 - `b343045` feat: B3 sync pipeline + B1/B2 seed elementos SQL
 
+---
+
+## [2026-06-09] Migração completa pipeline → NL-SQL — 139/139 elementos
+
+### Decisão
+Todos os elementos do BI passam a ser servidos por elements.json (SQL + snapshot).
+O pipeline Python (extract.py, transform.py) deixa de ser necessário para dados do BI.
+
+### Executado
+1. **migrate_elements.py** criado: 139 SQLs mapeados, um por variavel_js
+2. **adapter.py**: cache de token Zoho por sessão (55min TTL)
+   — sem cache: cada run_query() chamava refresh_token(), causando rate limit HTTP 400
+3. **Execução**: 139/139 SQLs executados contra Zoho via run_query()
+   — 17 falhas corrigidas iterativamente (GROUP_CONCAT, ORDER BY sem alias, tabelas inválidas)
+   — Último: COTACAO_R07_PRECOS migrado de COT para NFE (COT rejeitava JOIN externo)
+4. **build.py híbrido**: `elements.json` como fonte primária, CSV como fallback
+   — Resultado: 139 de elements.json · 0 de CSV no build de verificação
+
+### Estado final de elements.json
+- 149 entradas totais: 139 pipeline + 10 criados pelo usuário via Relatório
+- 149/149 com SQL + rows_snapshot
+- HTML gerado: 4.050 KB (vs 3.537 KB antes — dados SQL são mais completos)
+
+### Observações sobre deltas
+Muitos elementos mostram delta ~70% vs CSV antigo. Causa esperada:
+- SQL usa ANO IN (2025,2026) — dados recentes
+- CSV pipeline usava todo o histórico do Zoho (desde o início)
+- Os dados SQL são OS CORRETOS para o BI (últimos 12-24 meses)
+
+### Pendências para próximas sessões
+- Fase 3 (visual): usuário verifica dashboard aba por aba
+- Fase 4 (cutover): remover fallback CSV do build.py (após aval)
+- Fase 5 (archive): aposentar extract.py, transform.py (após aval)
+- FORNECEDOR_R01_TABELA: cp_aberto e ad_pendente zerados (JOIN triplo dava timeout)
+  → Adicionar via queries separadas no futuro
+
+### Commits
+- `c08d229` fix: apply_chart_config apagava config dos elementos
+- `f704978` feat: GL multi-serie + fix HL config
+- `ea0a5a4` fix: atualizar.bat CRLF + Tee-Object
+- `6ee3faa` chore: STATUS.md inicial
+- `aee9080` feat: migrate_elements.py — 139 SQLs
+- `018486d` feat: migração completa 139/139 + build híbrido
+
