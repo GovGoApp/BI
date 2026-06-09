@@ -243,8 +243,12 @@ def apply_chart_config(indexes):
             tipo = elem.get("tipo", "")
             if tipo not in defaults:
                 continue
-            # Merge: template do tipo → override do elemento
-            merged = {**defaults[tipo]}
+            # Merge: config original → template do tipo → override do elemento
+            # Ordem de prioridade (maior sobrescreve menor):
+            #   1. config original de generate_indexes.py (base)
+            #   2. defaults do tipo em chart_types.json
+            #   3. override específico do elemento em charts.json
+            merged = {**elem.get("config", {}), **defaults[tipo]}
             if eid in overrides:
                 ov = dict(overrides[eid])
                 ov.pop("tipo", None)
