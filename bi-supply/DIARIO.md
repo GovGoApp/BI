@@ -1691,3 +1691,43 @@ Configurações de gráficos espalhadas em 3 lugares: `generate_indexes.py`, `/c
 
 ### Commits
 - `65f3247` dashboard/charts.json + renderers atualizados
+
+---
+
+## [2026-06-09] Separação chart_types.json / charts.json
+
+### Correção de design
+O arquivo `charts.json` estava misturando templates por tipo (GB/GL/...) com configurações dos elementos. Separado em dois arquivos com responsabilidades distintas:
+
+- `dashboard/chart_types.json` — 7 templates (muda raramente, documenta parâmetros disponíveis)
+- `dashboard/charts.json` — 100 elementos (o que você edita para tunar visualizações)
+
+### Commits
+- `06e7f10` dashboard: separar chart_types.json de charts.json
+
+---
+
+## [2026-06-09] _renderGB reescrito + _renderMX modo B + labels humanos
+
+### _renderGB (gráfico de barras)
+Reescrito do zero:
+- Suporte a valores negativos (min/max range com linha de zero)
+- Barras negativas em vermelho `neg_color`, positivas em `color`
+- Valores em cada barra, gridlines Y com labels, labels X rotacionados −35°
+- Todos os parâmetros do `chart_types.json` respeitados
+
+### _renderMX (matriz/heatmap)
+Adicionado Modo B: dados já-pivotados (PE/MA/RN como colunas).
+Auto-detecta a estrutura e renderiza sem precisar de `row_key/col_key/val_key`.
+Cores configuráveis via `colors` no `chart_types.json`.
+
+### Labels humanos nos dropdowns de formato
+Substituiu códigos técnicos (`d2`, `n0`) por labels descritivos com exemplos:
+`Número decimal (1.234,56)`, `Contagem (42)`, `Percentual com sinal (+3,5%)` etc.
+
+### Commits
+- `32b8258` _renderGB reescrito
+- `f2d32e2` _renderMX detecta dados pré-pivotados
+- `f1d030c` labels humanos dropdowns
+- `8ecfd71` labels mais simples sem travessão
+
