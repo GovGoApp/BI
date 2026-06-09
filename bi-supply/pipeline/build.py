@@ -612,6 +612,9 @@ window._T_EXPAND=function(vjs){
 function _renderGL(elem, data) {
   if (!data || !data.length) return '';
   const cfg = elem.config || {};
+  if (cfg.serie_key) return _renderGL_multi(elem, data, cfg);
+
+  // ── Modo single-série ─────────────────────────────────────────────────────
   const xk = cfg.x, yk = cfg.y;
   const color     = cfg.color       || '#2563eb';
   const W=560;
@@ -668,6 +671,105 @@ function _renderGL(elem, data) {
     <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="${lineW}" stroke-linejoin="round"/>
     ${ptDots}
     ${xlabels}
+  </svg>`;
+}
+
+// ── GL Multi-série ────────────────────────────────────────────────────────────
+function _renderGL_multi(elem, data, cfg) {
+  const xk = cfg.x, yk = cfg.y, sk = cfg.serie_key;
+  const W = 560;
+  const H  = cfg.height      || 150;
+  const pL = cfg.pad_left    || 42;
+  const pR = cfg.pad_right   || 100; // espaço para legenda
+  const pT = cfg.pad_top     || 12;
+  const pB = cfg.pad_bottom  || 22;
+  const lineW   = cfg.line_width  || 1.5;
+  const lblSize = cfg.label_size  || 9;
+  const maxS    = cfg.max_series  || 5;
+  const iW = W - pL - pR, iH = H - pT - pB;
+
+  // Séries: top N por soma absoluta dos valores
+  const serieSum = {};
+  data.forEach(r => {
+    const s = String(r[sk] || '');
+    serieSum[s] = (serieSum[s] || 0) + Math.abs(parseFloat(r[yk]) || 0);
+  });
+  const series = Object.entries(serieSum)
+    .sort((a, b) => b[1] - a[1]).slice(0, maxS).map(e => e[0]);
+
+  // Eixo X: valores únicos e ordenados
+  const xVals = [...new Set(data.map(r => r[xk]))].sort();
+  const xP = i => pL + (xVals.length > 1 ? (i / (xVals.length - 1)) * iW : iW / 2);
+
+  // Pivot: xVal → serie → yVal
+  const pivot = {};
+  data.forEach(r => {
+    const s = String(r[sk] || '');
+    if (!series.includes(s)) return;
+    if (!pivot[r[xk]]) pivot[r[xk]] = {};
+    pivot[r[xk]][s] = parseFloat(r[yk]) || 0;
+  });
+
+  // Range global (inclui zero)
+  const allVals = data
+    .filter(r => series.includes(String(r[sk] || '')))
+    .map(r => parseFloat(r[yk]) || 0);
+  let minV = Math.min(0, ...allVals), maxV = Math.max(0, ...allVals);
+  if (minV === maxV) { minV -= 1; maxV += 1; }
+  const range = maxV - minV;
+  const yP = v => pT + iH - ((v - minV) / range) * iH;
+
+  // Gridlines + labels Y
+  const gridLines = [0, 1, 2, 3].map(i => {
+    const v = minV + (i / 3) * range;
+    const y = yP(v).toFixed(1);
+    const lbl = v.toFixed(1).replace('.', ',') + (cfg.y_fmt === 'pct' || yk.includes('pct') || yk.includes('inf') ? '%' : '');
+    return `<line x1="${pL}" x2="${W-pR}" y1="${y}" y2="${y}" stroke="#eef2f7"/>
+            <text x="${pL-3}" y="${(+y+3).toFixed(1)}" text-anchor="end" font-size="8" fill="#94a3b8">${lbl}</text>`;
+  }).join('');
+
+  // Linha de zero (se range inclui positivo e negativo)
+  const zeroLine = (minV < 0 && maxV > 0)
+    ? `<line x1="${pL}" x2="${W-pR}" y1="${yP(0).toFixed(1)}" y2="${yP(0).toFixed(1)}" stroke="#cbd5e1" stroke-dasharray="3,2"/>`
+    : '';
+
+  // Labels X
+  const step = Math.max(1, Math.floor(xVals.length / 6));
+  const xLabels = xVals.map((x, i) => {
+    if (i % step !== 0 && i !== xVals.length - 1) return '';
+    return `<text x="${xP(i).toFixed(1)}" y="${H-3}" text-anchor="middle" font-size="${lblSize}" fill="#64748b">${String(x || '').slice(-7)}</text>`;
+  }).join('');
+
+  // Paleta fixa de 5 cores distintas
+  const PAL = ['#2563eb', '#ef4444', '#16a34a', '#d97706', '#7c3aed'];
+
+  // Linhas das séries
+  const seriesLines = series.map((s, si) => {
+    const color = PAL[si % PAL.length];
+    const pts = xVals
+      .map((x, i) => {
+        const v = (pivot[x] || {})[s];
+        return v !== undefined ? `${xP(i).toFixed(1)},${yP(v).toFixed(1)}` : null;
+      })
+      .filter(Boolean);
+    if (!pts.length) return '';
+    return `<polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="${lineW}" stroke-linejoin="round" opacity="0.9"/>`;
+  }).join('');
+
+  // Legenda lateral direita
+  const legend = series.map((s, si) => {
+    const color = PAL[si % PAL.length];
+    const y = pT + si * 16;
+    const lbl = String(s).length > 14 ? String(s).slice(0, 13) + '…' : s;
+    return `<rect x="${W-pR+6}" y="${y+1}" width="8" height="8" fill="${color}" rx="1"/>
+            <text x="${W-pR+18}" y="${y+9}" font-size="8" fill="#475569">${lbl}</text>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
+    ${gridLines}${zeroLine}
+    ${seriesLines}
+    ${xLabels}
+    ${legend}
   </svg>`;
 }
 
