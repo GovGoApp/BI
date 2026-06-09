@@ -1731,3 +1731,53 @@ Substituiu códigos técnicos (`d2`, `n0`) por labels descritivos com exemplos:
 - `f1d030c` labels humanos dropdowns
 - `8ecfd71` labels mais simples sem travessão
 
+---
+
+## [2026-06-09] Filtragem universal — caminho NL-SQL como base única
+
+### Decisão arquitetural
+Após análise elemento por elemento, identificados 3 problemas raiz de filtragem:
+1. `_KC` com chaves erradas (não batem com `variavel_js` de generate_indexes.py)
+2. CSVs com nomes de campo que o `_pred` não reconhece (`cdfilial`, `categoria`)
+3. Elementos NL-SQL com campos uppercase vindos do Zoho SQL (`UF`, `FORNECEDOR`)
+
+Decisão: Modo Relatório (NL-SQL) passa a ser o caminho canônico para novos elementos.
+Os elementos do pipeline coexistem mas passam a seguir as mesmas regras de campo.
+
+### A1 — server.py: normalização de campos
+- `_normalize_rows()`: mapeia campos Zoho para lowercase padrão do _pred
+  - UF→uf, NMFILIAL→filial, CDFILIAL→filial, CAT2→cat2, MESANO→mesano, etc.
+- Chamado em `save_element()` (novos elementos) e `_migrate_elements_normalization()` (retroativo no startup)
+- Resultado: todos os snapshots NL-SQL agora participam corretamente do `_pred`
+
+### A2 — server.py: POST /elements/refresh
+- Re-executa o SQL de cada elemento e atualiza `rows_snapshot` + `updated_at`
+- Normaliza campos na atualização
+- Integrar ao BAT de atualização (`Atualizar BI Suprimentos.bat`)
+
+### A3 — build.py: snapshots NL-SQL embutidos no HTML
+- `build_js_injection()` lê `nlsql/elements.json` e injeta snapshots em `_BI_DATA`
+- `window._NL_EMBEDDED` exportado com definições de elementos (sem snapshot)
+- `_injectNlData()` faz merge embedded + localStorage (localStorage = override)
+- HTML agora é auto-contido: elementos NL-SQL funcionam sem servidor rodando
+
+### A4 — _KC corrigido e expandido
+Antes: FORNECEDOR K02-K05 apontavam para chaves fantasmas (não existiam em _BI_DATA)
+Depois: alinhados com variavel_js de generate_indexes.py — K02_CURVA, K03_SPEND, K04_PCT, K05_CP_N
+Novos: K06_CP_R, K07_AD_N, K08_AD_R (cp_aberto_total, forn_com_ad_pendente, ad_pendente_total)
+RESUMO_K07: corrigido de FISCAL→AD com cálculo correto (ad_pendente via FORNECEDOR_R01_TABELA)
+INFLACAO_K03_GT10: adicionado (conta produtos com |var_pmp_pct|>10%)
+
+### transform.py: campos filtráveis
+- r02/r03/r04/r05 de Filiais: campo `filial` (= NMFILIAL) adicionado ao lado de `cdfilial`
+- servico_r03: campo `cat2` (pai CAT2) adicionado junto com `categoria` (CAT3)
+- adiantamento_r05: `categoria` → `cat2` (correto, fonte é CAT2 do Zoho)
+
+### Limitação documentada
+Séries "por mês" (GL/GB mensais) respondem apenas a filtros temporais (período/ano).
+Não têm campos geográficos — isso é correto analiticamente (séries mensais são globais).
+Para análise geográfica de séries, usar elementos MX/HL por UF nas mesmas abas.
+
+### Commits
+- `dd3aa28` feat: filtragem universal — caminho NL-SQL como base única
+
