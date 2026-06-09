@@ -17,6 +17,11 @@ python pipeline/generate_indexes.py
 if errorlevel 1 goto erro
 
 echo.
+echo [2c/3] Atualizando elementos NL-SQL...
+python nlsql/refresh_elements.py
+if errorlevel 1 echo   AVISO: erro ao atualizar elementos NL-SQL (continua...)
+
+echo.
 echo [3/3] Gerando dashboard...
 python pipeline/build.py
 if errorlevel 1 goto erro
