@@ -1665,3 +1665,29 @@ Também corrigido: valores exibidos com `_fmt(v,'','d2')` em vez de `/1e6`.
 
 ### Commits
 - `32b8258` _renderGB reescrito
+
+---
+
+## [2026-06-09] Config centralizada: dashboard/charts.json
+
+### Problema
+Configurações de gráficos espalhadas em 3 lugares: `generate_indexes.py`, `/classify` (memória), `elements.json`. Impossível alterar parâmetros sem editar código Python.
+
+### Solução
+`dashboard/charts.json` — fonte única de configuração para todos os elementos de visualização.
+
+**Estrutura:**
+- `_defaults`: todos os parâmetros com defaults por tipo (GB/GL/GE/HL/MX/KPI/FU)
+- `elements`: 100 elementos com seus overrides específicos
+
+**Para alterar:** editar `charts.json` + rodar `build.py` (ou BAT).
+
+**Parâmetros disponíveis por tipo:**
+- GB: color, neg_color, height, pads, bar_width_ratio, bar_radius, bar_opacity, label_size, axis_size, show_values, show_grid, grid_lines, y_fmt
+- GL: color, height, pads, show_area, show_points, line_width, label_size
+- HL: color, fmt, max_items, show_bar
+- MX: cell_size, row_label_width, colors (gradiente 5 cores)
+- KPI: chave, fmt, state, delta_chave, delta_ctx, delta_dir
+
+### Commits
+- `65f3247` dashboard/charts.json + renderers atualizados
