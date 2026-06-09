@@ -595,23 +595,67 @@ function _renderGL(elem, data) {
 function _renderGB(elem, data) {
   if (!data || !data.length) return '';
   const cfg = elem.config || {};
-  const xk = cfg.x, yk = cfg.y, color = cfg.color || '#2563eb';
-  const W=560, H=110, pL=8, pR=8, pT=8, pB=22;
-  const iW=W-pL-pR, iH=H-pT-pB;
-  const vals = data.map(r => parseFloat(r[yk]) || 0);
-  const maxV = Math.max(...vals) || 1;
-  const bW = Math.floor(iW / data.length * 0.68);
+  const xk = cfg.x, yk = cfg.y;
+  const color = cfg.color || '#2563eb';
+  const negColor = cfg.neg_color || '#ef4444';
 
-  const bars = data.map((r, i) => {
-    const x = pL + i * (iW / data.length) + (iW / data.length - bW) / 2;
-    const v = vals[i], bH = (v / maxV) * iH, y = pT + iH - bH;
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bW}" height="${bH.toFixed(1)}" fill="${color}" rx="2" opacity="0.85"/>
-      <text x="${(x+bW/2).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="8" fill="#64748b">${String(r[xk]||'').slice(-7)}</text>`;
+  const W=560, H=220, pL=48, pR=12, pT=20, pB=60;
+  const iW=W-pL-pR, iH=H-pT-pB;
+
+  const vals = data.map(r => parseFloat(r[yk]) || 0);
+  const maxV = Math.max(0, ...vals);
+  const minV = Math.min(0, ...vals);
+  const range = (maxV - minV) || 1;
+
+  // Posição Y para um valor v
+  const yP = v => pT + iH - ((v - minV) / range) * iH;
+  const y0 = yP(0);  // linha do zero
+
+  // Escape básico inline (sem deps de IIFE)
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Formatar valor para label
+  const fv = v => window._fmt ? window._fmt(v, yk) : v.toFixed(2);
+
+  // Gridlines Y (5 linhas)
+  const nG = 4;
+  const grids = Array.from({length:nG+1},(_,i)=>{
+    const v = minV + (range/nG)*i;
+    const y = yP(v).toFixed(1);
+    const lbl = fv(v);
+    return `<line x1="${pL}" x2="${W-pR}" y1="${y}" y2="${y}" stroke="#f1f5f9"/>
+            <text x="${pL-6}" y="${(+y+3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#94a3b8">${esc(lbl)}</text>`;
   }).join('');
 
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">
-    <line x1="${pL}" x2="${W-pR}" y1="${(pT+iH/2).toFixed(1)}" y2="${(pT+iH/2).toFixed(1)}" stroke="#eef2f7"/>
-    ${bars}
+  const N = data.length;
+  const step = iW / N;
+  const bW = Math.max(10, Math.min(step * 0.65, 60));
+
+  const bars = data.map((r,i) => {
+    const v = vals[i];
+    const cx = pL + i*step + step/2;
+    const x  = (cx - bW/2).toFixed(1);
+    const yTop = Math.min(yP(v), y0).toFixed(1);
+    const bH  = Math.max(1, Math.abs(yP(v) - y0)).toFixed(1);
+    const fill = v >= 0 ? color : negColor;
+    const lblY = v >= 0 ? (+yTop - 4).toFixed(1) : (+yTop + +bH + 12).toFixed(1);
+    const lbl  = fv(v);
+
+    // Rótulo do eixo X (rotacionado para caber)
+    const xLabel = esc(String(r[xk]||''));
+    const xRot = `rotate(-35,${cx.toFixed(1)},${(H-pB+14).toFixed(1)})`;
+
+    return `<rect x="${x}" y="${yTop}" width="${bW}" height="${bH}" fill="${fill}" rx="3" opacity="0.9"/>
+<text x="${cx.toFixed(1)}" y="${lblY}" text-anchor="middle" font-size="10" font-weight="700" fill="${fill}">${esc(lbl)}</text>
+<text x="${cx.toFixed(1)}" y="${(H-pB+14).toFixed(1)}" text-anchor="end" font-size="10" fill="#64748b" transform="${xRot}">${xLabel}</text>`;
+  }).join('');
+
+  // Eixos
+  const axes = `
+    <line x1="${pL}" x2="${pL}" y1="${pT}" y2="${H-pB}" stroke="#e2e8f0" stroke-width="1"/>
+    <line x1="${pL}" x2="${W-pR}" y1="${y0.toFixed(1)}" y2="${y0.toFixed(1)}" stroke="#94a3b8" stroke-width="1.5"/>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="xMidYMid meet">
+    ${grids}${axes}${bars}
   </svg>`;
 }
 
