@@ -47,16 +47,18 @@ O dashboard tem 15 abas:
 ```
 Zoho Analytics (workspace SUPRIMENTOS)
           ↓
-   pipeline/extract.py        → data/raw/        (CSVs brutos, um por fonte)
+   nlsql/refresh_elements.py  → nlsql/elements.json  (139 SQL queries → snapshots)
           ↓
-   pipeline/transform.py      → data/processed/  (métricas calculadas)
+   pipeline/generate_indexes.py → posicionamento no grid
           ↓
-   pipeline/generate_indexes.py → data/processed/ (índices de elementos por aba)
-          ↓
-   pipeline/build.py          → dist/index.html  (dashboard completo)
+   pipeline/build.py           → dist/index.html  (dashboard completo)
 ```
 
 O dashboard HTML final é **auto-contido**: todos os dados ficam embutidos dentro do arquivo. Pode ser aberto offline, enviado por e-mail ou copiado para outra máquina.
+
+> **Nota:** o pipeline antigo (`extract.py` + `transform.py`) foi aposentado em 2026-06-09.
+> O Zoho Analytics já calcula Curva ABC, PMP, Inflação e Impacto nas suas próprias views.
+> Recovery: `git checkout v-pre-migration -- pipeline/extract.py pipeline/transform.py`
 
 ### Aba Relatório (NL-SQL)
 
@@ -103,18 +105,17 @@ copy zoho\zoho.env.example zoho\zoho.env
 
 ## Como usar
 
-**Gerar o dashboard completo** (extrai do Zoho, transforma e constrói o HTML):
+**Atualizar e gerar o dashboard** (3 passos via BAT na área de trabalho):
 
-```powershell
-.\run.bat
+```
+Atualizar BI Suprimentos.lnk  ← duplo clique
 ```
 
-Ou passo a passo:
+Ou manualmente:
 
 ```powershell
-python pipeline/extract.py          # baixa dados do Zoho → data/raw/
-python pipeline/transform.py        # calcula métricas → data/processed/
-python pipeline/generate_indexes.py # gera índices de elementos (sempre após transform)
+python nlsql/refresh_elements.py    # executa 139 SQLs no Zoho → elements.json
+python pipeline/generate_indexes.py # gera posicionamento do grid
 python pipeline/build.py            # gera dashboard → dist/index.html
 ```
 
