@@ -8,7 +8,6 @@ set PYTHON=C:\ProgramData\anaconda3\python.exe
 set ENV=%ROOT%\zoho\zoho.env
 set LOG=%ROOT%\atualizar.log
 
-:: ── Verificações iniciais ──────────────────────
 if not exist "%ROOT%" (
     echo ERRO: pasta do projeto nao encontrada:
     echo   %ROOT%
@@ -30,64 +29,55 @@ echo   ATUALIZACAO BI SUPRIMENTOS
 echo ============================================
 echo.
 
-:: ── 1. Extração ──────────────────────────────
 echo [1/5] Extraindo dados do Zoho Analytics...
-"%PYTHON%" pipeline/extract.py --env-file "%ENV%" > "%LOG%" 2>&1
+"%PYTHON%" pipeline\extract.py --env-file "%ENV%" > "%LOG%" 2>&1
 if errorlevel 1 (
-    echo.
-    echo   ERRO na extracao. Detalhes em: atualizar.log
-    echo   Ultimas linhas:
-    echo   ----------------------------------------
-    "%PYTHON%" -c "import sys; lines=open(r'%LOG%',encoding='utf-8',errors='replace').readlines(); [print('  '+l,end='') for l in lines[-12:]]"
+    echo   ERRO na extracao. Veja: %LOG%
+    type "%LOG%"
     goto erro
 )
-"%PYTHON%" -c "import sys; [print('  '+l,end='') for l in open(r'%LOG%',encoding='utf-8',errors='replace') if 'Concluido' in l or 'Pulando' in l or 'Token' in l]"
+echo   OK
 
-:: ── 2. Transform ─────────────────────────────
 echo.
 echo [2/5] Calculando metricas...
-"%PYTHON%" pipeline/transform.py > "%LOG%" 2>&1
+"%PYTHON%" pipeline\transform.py > "%LOG%" 2>&1
 if errorlevel 1 (
-    echo   ERRO. Detalhes em: atualizar.log
+    echo   ERRO. Veja: %LOG%
     goto erro
 )
-"%PYTHON%" -c "import sys; [print('  '+l,end='') for l in open(r'%LOG%',encoding='utf-8',errors='replace') if 'Concluido' in l or 'Total' in l or 'arqs' in l or 'NFE:' in l]"
+echo   OK
 
-:: ── 3. Indexes ───────────────────────────────
 echo.
 echo [3/5] Gerando indexes...
-"%PYTHON%" pipeline/generate_indexes.py > "%LOG%" 2>&1
+"%PYTHON%" pipeline\generate_indexes.py > "%LOG%" 2>&1
 if errorlevel 1 (
-    echo   ERRO. Detalhes em: atualizar.log
+    echo   ERRO. Veja: %LOG%
     goto erro
 )
-"%PYTHON%" -c "import sys; [print('  '+l,end='') for l in open(r'%LOG%',encoding='utf-8',errors='replace') if 'Total:' in l or 'Indexes' in l]"
+echo   OK
 
-:: ── 4. Refresh NL-SQL elements ───────────────
 echo.
-echo [4/5] Atualizando elementos NL-SQL (Relatorio)...
-"%PYTHON%" nlsql/refresh_elements.py >> "%LOG%" 2>&1
+echo [4/5] Atualizando elementos NL-SQL...
+"%PYTHON%" nlsql\refresh_elements.py >> "%LOG%" 2>&1
 if errorlevel 1 (
-    echo   AVISO: alguns elementos nao foram atualizados ^(continua...^)
-    echo   Verifique atualizar.log para detalhes.
+    echo   AVISO: alguns elementos nao foram atualizados (continua...)
 ) else (
-    "%PYTHON%" -c "import sys; [print('  '+l,end='') for l in open(r'%LOG%',encoding='utf-8',errors='replace') if 'Concluido' in l]"
+    echo   OK
 )
 
-:: ── 5. Build ─────────────────────────────────
 echo.
 echo [5/5] Gerando dashboard HTML...
-"%PYTHON%" pipeline/build.py > "%LOG%" 2>&1
+"%PYTHON%" pipeline\build.py > "%LOG%" 2>&1
 if errorlevel 1 (
-    echo   ERRO. Detalhes em: atualizar.log
+    echo   ERRO. Veja: %LOG%
     goto erro
 )
-"%PYTHON%" -c "import sys; [print('  '+l,end='') for l in open(r'%LOG%',encoding='utf-8',errors='replace') if 'Gerado' in l or 'elementos' in l or 'Dimens' in l or 'NL-SQL' in l]"
+echo   OK
 
 echo.
 echo ============================================
 echo   CONCLUIDO! Abra: dist\index.html
-echo   Log completo:   atualizar.log
+echo   Log completo:   %LOG%
 echo ============================================
 echo.
 pause
@@ -96,7 +86,7 @@ exit /b 0
 :erro
 echo.
 echo ============================================
-echo   ERRO! Log completo em: atualizar.log
+echo   ERRO! Log completo em: %LOG%
 echo ============================================
 echo.
 pause
