@@ -3798,6 +3798,53 @@ def replace_mock_arrays(html, indexes):
     return html
 
 
+# ── Sinc pipeline → elements.json ────────────────────────────────────────────
+
+def sync_pipeline_snapshots(indexes: dict) -> None:
+    """Atualiza rows_snapshot em elements.json para entradas que já existem lá.
+
+    Não cria novas entradas — apenas mantém os dados frescos para elementos
+    já migrados para o caminho NL-SQL. Entradas com SQL definido também são
+    atualizadas (refresh_elements.py é o responsável por re-executar o SQL;
+    aqui apenas sobrescrevemos com o dado do pipeline como fallback).
+    """
+    nlsql_file = ROOT / "nlsql" / "elements.json"
+    if not nlsql_file.exists():
+        return
+    try:
+        existing = json.loads(nlsql_file.read_text(encoding="utf-8"))
+    except Exception:
+        return
+
+    # Construir mapa variavel_js → dado do pipeline
+    pipeline_data: dict[str, list] = {}
+    for folder, idx in indexes.items():
+        for elem in idx.get("elementos", []):
+            vjs   = elem.get("variavel_js", "")
+            dados = elem.get("dados", "")
+            if not vjs or not dados:
+                continue
+            data = load_elem_data(folder, dados, elem.get("tipo", "T"))
+            if data is None:
+                continue
+            pipeline_data[vjs] = data if isinstance(data, list) else [data]
+
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    n_updated = 0
+    for entry in existing:
+        vjs = entry.get("variavel_js", "")
+        if vjs in pipeline_data:
+            entry["rows_snapshot"] = pipeline_data[vjs][:200]
+            entry["updated_at"]    = now
+            n_updated += 1
+
+    if n_updated:
+        nlsql_file.write_text(
+            json.dumps(existing, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"  elements.json: {n_updated} entradas atualizadas com snapshot do pipeline")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -3844,6 +3891,8 @@ def main():
     size = out.stat().st_size // 1024
     print(f"\nGerado: {out}  ({size} KB)")
     print("Abrir: start dist\\index.html")
+
+    sync_pipeline_snapshots(indexes)
 
 
 if __name__ == "__main__":
