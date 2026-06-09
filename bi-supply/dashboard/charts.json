@@ -1,0 +1,676 @@
+{
+  "_defaults": {
+    "GB": {
+      "x": "",
+      "y": "",
+      "color": "#2563eb",
+      "neg_color": "#ef4444",
+      "height": 220,
+      "pad_left": 48,
+      "pad_right": 12,
+      "pad_top": 20,
+      "pad_bottom": 60,
+      "bar_width_ratio": 0.65,
+      "bar_radius": 3,
+      "bar_opacity": 0.9,
+      "label_size": 10,
+      "axis_size": 10,
+      "show_values": true,
+      "show_grid": true,
+      "grid_lines": 4,
+      "y_fmt": ""
+    },
+    "GL": {
+      "x": "",
+      "y": "",
+      "color": "#2563eb",
+      "height": 130,
+      "pad_left": 36,
+      "pad_right": 8,
+      "pad_top": 10,
+      "pad_bottom": 22,
+      "show_area": true,
+      "show_points": false,
+      "line_width": 2,
+      "label_size": 9,
+      "y_fmt": ""
+    },
+    "GE": {
+      "x": "",
+      "group": "",
+      "value": "",
+      "height": 110,
+      "colors": [
+        "#b91c1c",
+        "#f59e0b",
+        "#2563eb",
+        "#16a34a",
+        "#6366f1"
+      ],
+      "bar_opacity": 0.85,
+      "label_size": 8
+    },
+    "HL": {
+      "label": "",
+      "value": "",
+      "sub": "",
+      "color": "#2563eb",
+      "fmt": "",
+      "max_items": 10,
+      "show_bar": true
+    },
+    "MX": {
+      "row_key": "",
+      "col_key": "",
+      "val_key": "",
+      "cell_size": 9,
+      "row_label_width": 130,
+      "colors": [
+        "#eff6ff",
+        "#bfdbfe",
+        "#93c5fd",
+        "#3b82f6",
+        "#1d4ed8"
+      ]
+    },
+    "KPI": {
+      "chave": "",
+      "fmt": "brl",
+      "state": "",
+      "delta_chave": "",
+      "delta_ctx": "",
+      "delta_dir": ""
+    },
+    "FU": {
+      "label": "",
+      "value": "",
+      "color": "#2563eb",
+      "fmt": ""
+    }
+  },
+  "elements": {
+    "01_resumo_k01_total_comprado": {
+      "tipo": "KPI",
+      "chave": "total_comprado_operacional",
+      "fmt": "brl",
+      "delta_chave": "crescimento_yoy_pct",
+      "delta_ctx": "vs. 12m anteriores",
+      "delta_dir": "up"
+    },
+    "01_resumo_k02_fornecedores": {
+      "tipo": "KPI",
+      "chave": "fornecedores_ativos",
+      "fmt": "num",
+      "delta_chave": "ids_unicos",
+      "delta_ctx": "IDs analíticos"
+    },
+    "01_resumo_k03_produtos": {
+      "tipo": "KPI",
+      "chave": "produtos_unicos",
+      "fmt": "num",
+      "delta_chave": "ids_unicos",
+      "delta_ctx": "IDs analíticos"
+    },
+    "01_resumo_k04_impacto": {
+      "tipo": "KPI",
+      "chave": "imp_cot_total",
+      "fmt": "brl",
+      "state": "alert"
+    },
+    "01_resumo_k05_oportunidade": {
+      "tipo": "KPI",
+      "chave": "imp_cot_total",
+      "fmt": "brl",
+      "state": "ok"
+    },
+    "01_resumo_k06_cotacao": {
+      "tipo": "KPI",
+      "chave": "pct_com_cotacao",
+      "fmt": "pct",
+      "state": "warn",
+      "delta_ctx": "meta 80%",
+      "delta_dir": "warn"
+    },
+    "01_resumo_k07_ad": {
+      "tipo": "KPI",
+      "chave": "ad_pendente",
+      "fmt": "brl",
+      "state": "warn",
+      "delta_ctx": "aguardando conciliação"
+    },
+    "01_resumo_k08_cp": {
+      "tipo": "KPI",
+      "chave": "cp_aberto",
+      "fmt": "brl",
+      "state": "alert",
+      "delta_chave": "cp_vencido",
+      "delta_ctx": "vencido",
+      "delta_dir": "down"
+    },
+    "01_resumo_r01_por_mes": {
+      "tipo": "GL",
+      "x": "mesano",
+      "y": "spend",
+      "color": "#2563eb"
+    },
+    "01_resumo_r02_por_negocio": {
+      "tipo": "HL",
+      "label": "negocio",
+      "value": "spend",
+      "sub": ""
+    },
+    "01_resumo_r06_geo_nne": {
+      "tipo": "HL",
+      "label": "uf",
+      "value": "spend"
+    },
+    "01_resumo_r07_geo_sse": {
+      "tipo": "HL",
+      "label": "uf",
+      "value": "spend"
+    },
+    "01_resumo_r09_cat2_por_uf": {
+      "tipo": "MX",
+      "row_key": "cat2",
+      "col_key": "uf",
+      "val_key": "spend"
+    },
+    "02_oportunidade_k01_total": {
+      "tipo": "KPI",
+      "chave": "imp_cot_total",
+      "fmt": "brl",
+      "state": "warn"
+    },
+    "02_oportunidade_k02_sem_cot": {
+      "tipo": "KPI",
+      "chave": "ids_aaa_sem_cotacao",
+      "fmt": "num",
+      "state": "alert"
+    },
+    "02_oportunidade_k03_acima": {
+      "tipo": "KPI",
+      "chave": "ids_comprados_acima_minimo",
+      "fmt": "num"
+    },
+    "02_oportunidade_k04_pct": {
+      "tipo": "KPI",
+      "chave": "pct_linhas_acima_minimo",
+      "fmt": "pct",
+      "state": "warn"
+    },
+    "02_oportunidade_k05_mono": {
+      "tipo": "KPI",
+      "chave": "itens_mono_cotacao",
+      "fmt": "num",
+      "state": "warn"
+    },
+    "02_oportunidade_r04_matriz": {
+      "tipo": "matriz3x3"
+    },
+    "02_oportunidade_r05_por_tipo": {
+      "tipo": "HL",
+      "label": "tipo",
+      "value": "valor"
+    },
+    "02_oportunidade_r03_por_uf": {
+      "tipo": "HL",
+      "label": "uf",
+      "value": "imp_cot"
+    },
+    "02_oportunidade_r02_por_cat": {
+      "tipo": "GB",
+      "x": "cat2",
+      "y": "imp_cot"
+    },
+    "03_categoria_r02_cat2_por_mes": {
+      "tipo": "GL",
+      "x": "mesano",
+      "y": "spend",
+      "serie_key": "cat2",
+      "color": "#2563eb"
+    },
+    "03_categoria_r03_cat2_por_uf": {
+      "tipo": "MX",
+      "row_key": "cat2",
+      "col_key": "uf",
+      "val_key": "spend"
+    },
+    "04_filial_k01_total": {
+      "tipo": "KPI",
+      "chave": "total_comprado",
+      "fmt": "brl"
+    },
+    "04_filial_k02_media": {
+      "tipo": "KPI",
+      "chave": "compra_media_por_filial",
+      "fmt": "brl"
+    },
+    "04_filial_k03_maior": {
+      "tipo": "KPI",
+      "chave": "maior_filial",
+      "fmt": "str"
+    },
+    "04_filial_k04_maior_uf": {
+      "tipo": "KPI",
+      "chave": "maior_uf",
+      "fmt": "str"
+    },
+    "04_filial_k05_negocio": {
+      "tipo": "KPI",
+      "chave": "maior_negocio",
+      "fmt": "str"
+    },
+    "04_filial_r01_ranking": {
+      "tipo": "HL",
+      "label": "nome",
+      "value": "spend",
+      "sub": "negocio"
+    },
+    "04_filial_r02_neg": {
+      "tipo": "MX",
+      "row_key": "cdfilial",
+      "col_key": "negocio",
+      "val_key": "spend"
+    },
+    "04_filial_r03_mes": {
+      "tipo": "GL",
+      "x": "mesano",
+      "y": "spend",
+      "serie_key": "cdfilial"
+    },
+    "06_fornecedor_k01_ativos": {
+      "tipo": "KPI",
+      "chave": "fornecedores_ativos",
+      "fmt": "num"
+    },
+    "06_fornecedor_k02_curva": {
+      "tipo": "KPI",
+      "chave": "forn_curva_aaa_aa",
+      "fmt": "num",
+      "state": "ok"
+    },
+    "06_fornecedor_k03_spend": {
+      "tipo": "KPI",
+      "chave": "spend_curva_aaa_aa_a",
+      "fmt": "brl",
+      "state": "ok"
+    },
+    "06_fornecedor_k04_pct": {
+      "tipo": "KPI",
+      "chave": "pct_spend_top",
+      "fmt": "pct",
+      "state": "ok"
+    },
+    "06_fornecedor_k05_cp_n": {
+      "tipo": "KPI",
+      "chave": "forn_com_cp_aberto",
+      "fmt": "num",
+      "state": "warn"
+    },
+    "06_fornecedor_k06_cp_r": {
+      "tipo": "KPI",
+      "chave": "cp_aberto_total",
+      "fmt": "brl",
+      "state": "warn"
+    },
+    "06_fornecedor_k07_ad_n": {
+      "tipo": "KPI",
+      "chave": "forn_com_ad_pendente",
+      "fmt": "num",
+      "state": "warn"
+    },
+    "06_fornecedor_k08_ad_r": {
+      "tipo": "KPI",
+      "chave": "ad_pendente_total",
+      "fmt": "brl",
+      "state": "warn"
+    },
+    "07_produto_k01_total": {
+      "tipo": "KPI",
+      "chave": "total_ids",
+      "fmt": "num"
+    },
+    "07_produto_k02_pmp": {
+      "tipo": "KPI",
+      "chave": "pmp_medio_cesta",
+      "fmt": "brl2"
+    },
+    "07_produto_k03_var": {
+      "tipo": "KPI",
+      "chave": "ids_variacao_pmp_gt10pct",
+      "fmt": "num",
+      "state": "warn"
+    },
+    "07_produto_k04_sc": {
+      "tipo": "KPI",
+      "chave": "ids_sem_cotacao_12m",
+      "fmt": "num",
+      "state": "warn"
+    },
+    "07_produto_k05_inf": {
+      "tipo": "KPI",
+      "chave": "inflacao_media_cesta",
+      "fmt": "pct",
+      "state": "warn"
+    },
+    "07_produto_r03_top_inf": {
+      "tipo": "HL",
+      "label": "produto",
+      "value": "var_pmp_pct",
+      "fmt": "pct"
+    },
+    "07_produto_r04_top_def": {
+      "tipo": "HL",
+      "label": "produto",
+      "value": "var_pmp_pct",
+      "fmt": "pct",
+      "color": "#16a34a"
+    },
+    "08_cotacao_k01_cot": {
+      "tipo": "KPI",
+      "chave": "produtos_cotados",
+      "fmt": "num"
+    },
+    "08_cotacao_k02_pct": {
+      "tipo": "KPI",
+      "chave": "pct_cobertura",
+      "fmt": "pct",
+      "state": "warn"
+    },
+    "08_cotacao_k03_media": {
+      "tipo": "KPI",
+      "chave": "media_cotacoes_produto",
+      "fmt": "dec"
+    },
+    "08_cotacao_k04_zero": {
+      "tipo": "KPI",
+      "chave": "com_zero_cotacao",
+      "fmt": "num",
+      "state": "alert"
+    },
+    "08_cotacao_k05_uma": {
+      "tipo": "KPI",
+      "chave": "com_uma_cotacao",
+      "fmt": "num",
+      "state": "warn"
+    },
+    "08_cotacao_k06_le3": {
+      "tipo": "KPI",
+      "chave": "com_le3_cotacoes",
+      "fmt": "num"
+    },
+    "08_cotacao_k07_imp": {
+      "tipo": "KPI",
+      "chave": "potencial_imp_cot",
+      "fmt": "brl",
+      "state": "warn"
+    },
+    "08_cotacao_k08_menor": {
+      "tipo": "KPI",
+      "chave": "pct_comprado_no_menor",
+      "fmt": "pct"
+    },
+    "08_cotacao_r01_mes": {
+      "tipo": "GE",
+      "x": "mesano",
+      "stacks": [
+        "zero",
+        "uma",
+        "duas_tres",
+        "quatro_mais"
+      ]
+    },
+    "08_cotacao_r02_curva": {
+      "tipo": "MX",
+      "row_key": "curva_id",
+      "col_key": "faixa",
+      "val_key": "total"
+    },
+    "08_cotacao_r03_cat_mes": {
+      "tipo": "GL",
+      "x": "mesano",
+      "y": "pct_cobertura",
+      "serie_key": "cat2"
+    },
+    "09_impacto_k01_total": {
+      "tipo": "KPI",
+      "chave": "imp_cot_total",
+      "fmt": "brl",
+      "state": "warn"
+    },
+    "09_impacto_k02_ids": {
+      "tipo": "KPI",
+      "chave": "ids_com_impacto",
+      "fmt": "num"
+    },
+    "09_impacto_k03_pct": {
+      "tipo": "KPI",
+      "chave": "pct_linhas_acima_minimo",
+      "fmt": "pct",
+      "state": "warn"
+    },
+    "09_impacto_k04_uf": {
+      "tipo": "KPI",
+      "chave": "uf_lider",
+      "fmt": "str"
+    },
+    "09_impacto_k05_prod": {
+      "tipo": "KPI",
+      "chave": "top_produto_nome",
+      "fmt": "str"
+    },
+    "09_impacto_r01_mes": {
+      "tipo": "GB",
+      "x": "mesano",
+      "y": "imp_cot",
+      "color": "#b91c1c"
+    },
+    "09_impacto_r02_uf": {
+      "tipo": "HL",
+      "label": "uf",
+      "value": "imp_cot",
+      "color": "r"
+    },
+    "10_inflacao_k01_media": {
+      "tipo": "KPI",
+      "chave": "inflacao_media_pct",
+      "fmt": "pct",
+      "state": "warn"
+    },
+    "10_inflacao_k02_exp": {
+      "tipo": "KPI",
+      "chave": "exposicao_monetaria_12m",
+      "fmt": "brl"
+    },
+    "10_inflacao_k03_gt10": {
+      "tipo": "KPI",
+      "chave": "ids_com_inflacao_gt10pct",
+      "fmt": "num",
+      "state": "warn"
+    },
+    "10_inflacao_k04_cat": {
+      "tipo": "KPI",
+      "chave": "cat2_mais_inflada",
+      "fmt": "str"
+    },
+    "10_inflacao_r01_cat_mes": {
+      "tipo": "GL",
+      "x": "mesano",
+      "y": "inflacao_media_pct",
+      "serie_key": "cat2"
+    },
+    "10_inflacao_r02_mes_rs": {
+      "tipo": "GB",
+      "x": "mesano",
+      "y": "exposicao_rs",
+      "color": "#a16207"
+    },
+    "10_inflacao_r05_top_inf": {
+      "tipo": "HL",
+      "label": "produto",
+      "value": "var_pct",
+      "fmt": "pct"
+    },
+    "10_inflacao_r06_top_def": {
+      "tipo": "HL",
+      "label": "produto",
+      "value": "var_pct",
+      "fmt": "pct",
+      "color": "g"
+    },
+    "12_financeiro_k01_aberto": {
+      "tipo": "KPI",
+      "chave": "cp_aberto_total",
+      "fmt": "brl",
+      "state": "warn"
+    },
+    "12_financeiro_k02_tit": {
+      "tipo": "KPI",
+      "chave": "cp_titulos",
+      "fmt": "num"
+    },
+    "12_financeiro_k03_venc": {
+      "tipo": "KPI",
+      "chave": "cp_vencido",
+      "fmt": "brl",
+      "state": "alert"
+    },
+    "12_financeiro_k04_7d": {
+      "tipo": "KPI",
+      "chave": "cp_a_vencer_7d",
+      "fmt": "brl"
+    },
+    "12_financeiro_k05_120": {
+      "tipo": "KPI",
+      "chave": "cp_critico_120d",
+      "fmt": "brl",
+      "state": "alert"
+    },
+    "12_financeiro_r03_timeline": {
+      "tipo": "GB",
+      "x": "semana",
+      "stacks": [
+        "valor_pago",
+        "valor_vencimentos",
+        "valor_vencido"
+      ]
+    },
+    "13_adiantamento_k01_total": {
+      "tipo": "KPI",
+      "chave": "ad_total_12m",
+      "fmt": "brl"
+    },
+    "13_adiantamento_k02_conc": {
+      "tipo": "KPI",
+      "chave": "conciliado",
+      "fmt": "brl",
+      "state": "ok"
+    },
+    "13_adiantamento_k03_pend": {
+      "tipo": "KPI",
+      "chave": "pendente",
+      "fmt": "brl",
+      "state": "alert"
+    },
+    "13_adiantamento_k04_pct": {
+      "tipo": "KPI",
+      "chave": "pct_conciliado",
+      "fmt": "pct",
+      "state": "ok"
+    },
+    "13_adiantamento_k05_n": {
+      "tipo": "KPI",
+      "chave": "n_pendente",
+      "fmt": "num",
+      "state": "warn"
+    },
+    "13_adiantamento_r01_funil": {
+      "tipo": "FU",
+      "label": "status",
+      "value": "valor"
+    },
+    "13_adiantamento_r02_emp": {
+      "tipo": "HL",
+      "label": "empresa",
+      "value": "pendente",
+      "sub": "conciliado"
+    },
+    "13_adiantamento_r03_mes": {
+      "tipo": "GL",
+      "x": "mesano",
+      "stacks": [
+        "pendente",
+        "conciliado"
+      ]
+    },
+    "13_adiantamento_r04_uf": {
+      "tipo": "HL",
+      "label": "uf",
+      "value": "valor_total"
+    },
+    "14_servico_k01_total": {
+      "tipo": "KPI",
+      "chave": "total_servicos",
+      "fmt": "brl"
+    },
+    "14_servico_k02_forn": {
+      "tipo": "KPI",
+      "chave": "fornecedores_servicos",
+      "fmt": "num"
+    },
+    "14_servico_k03_ufs": {
+      "tipo": "KPI",
+      "chave": "ufs_atendidas",
+      "fmt": "num"
+    },
+    "14_servico_k04_var": {
+      "tipo": "KPI",
+      "chave": "variacao_mensal_pct",
+      "fmt": "pct"
+    },
+    "14_servico_k05_cat": {
+      "tipo": "KPI",
+      "chave": "maior_categoria",
+      "fmt": "str"
+    },
+    "14_servico_r01_uf": {
+      "tipo": "HL",
+      "label": "uf",
+      "value": "spend"
+    },
+    "14_servico_r02_mes": {
+      "tipo": "GB",
+      "x": "mesano",
+      "y": "spend",
+      "color": "#2563eb"
+    },
+    "15_dados_k01_linhas": {
+      "tipo": "KPI",
+      "chave": "linhas_total_nfe",
+      "fmt": "num"
+    },
+    "15_dados_k02_fontes": {
+      "tipo": "KPI",
+      "chave": "fontes_ok",
+      "fmt": "num",
+      "state": "ok"
+    },
+    "15_dados_k03_total": {
+      "tipo": "KPI",
+      "chave": "fontes_total",
+      "fmt": "num"
+    },
+    "15_dados_k04_sc": {
+      "tipo": "KPI",
+      "chave": "linhas_sem_cotacao",
+      "fmt": "num",
+      "state": "warn"
+    },
+    "15_dados_k05_pct": {
+      "tipo": "KPI",
+      "chave": "pct_sem_cotacao",
+      "fmt": "pct",
+      "state": "warn"
+    }
+  }
+}

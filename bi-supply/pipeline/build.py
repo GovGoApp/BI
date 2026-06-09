@@ -100,9 +100,10 @@ FIELD_FORMATS = {
     "vezes_menor_preco": "n0",   "ids_unicos": "n0",
     "n_meses_cotados": "n0",     "n_concorrentes": "n0",
 }
-DESIGN   = ROOT / "design" / "BI Suprimentos v4.html"
-DIST     = ROOT / "dist"
-TABS_DIR = ROOT / "dashboard" / "tabs"
+DESIGN     = ROOT / "design" / "BI Suprimentos v4.html"
+DIST       = ROOT / "dist"
+TABS_DIR   = ROOT / "dashboard" / "tabs"
+CHARTS_CFG = ROOT / "dashboard" / "charts.json"
 
 # ── Leitores ──────────────────────────────────────────────────────────────────
 
@@ -226,6 +227,32 @@ def load_all_indexes():
             idx = rj(idx_file)
             indexes[p.name] = idx
     return indexes
+
+
+def apply_chart_config(indexes):
+    """Lê dashboard/charts.json e aplica configs de visualização nos elementos."""
+    if not CHARTS_CFG.exists():
+        return
+    data = rj(CHARTS_CFG)
+    if not isinstance(data, dict):
+        return
+    defaults  = data.get("_defaults", {})
+    overrides = data.get("elements", {})
+    for _, idx in indexes.items():
+        for elem in idx.get("elementos", []):
+            eid  = elem.get("id", "")
+            tipo = elem.get("tipo", "")
+            if tipo not in defaults:
+                continue
+            # Merge: default do tipo + override específico do elemento
+            merged = {**defaults[tipo]}
+            if eid in overrides:
+                ov = dict(overrides[eid])
+                ov.pop("tipo", None)   # "tipo" é metadado, não config
+                merged.update(ov)
+            # Remove chaves vazias para não sobrescrever valores úteis
+            merged = {k: v for k, v in merged.items() if v != ""}
+            elem["config"] = merged
 
 
 def apply_layout_overrides(indexes):
@@ -469,16 +496,23 @@ function _renderKPI(elem, data) {
 function _renderHL(elem, data) {
   if (!data || !data.length) return '<div class="muted" style="padding:10px;font-size:12px">Sem dados</div>';
   const cfg = elem.config || {};
-  const lk = cfg.label, vk = cfg.value, sk = cfg.sub || '';
-  const maxV = Math.max(...data.map(r => parseFloat(r[vk]) || 0)) || 1;
-  const colorCls = cfg.color || '';
-  return '<div style="overflow:auto;height:100%">' + data.map(r => {
-    const v = parseFloat(r[vk]) || 0;
-    const pct = (v / maxV * 100).toFixed(1);
+  const lk       = cfg.label;
+  const vk       = cfg.value;
+  const sk       = cfg.sub    || '';
+  const color    = cfg.color  || '';
+  const fmt      = cfg.fmt    || 'brl';
+  const maxItems = cfg.max_items || 10;
+  const showBar  = cfg.show_bar  !== false;
+  const rows     = data.slice(0, maxItems);
+  const maxV     = Math.max(...rows.map(r => Math.abs(parseFloat(r[vk]) || 0))) || 1;
+  return '<div style="overflow:auto;height:100%">' + rows.map(r => {
+    const v   = parseFloat(r[vk]) || 0;
+    const pct = (Math.abs(v) / maxV * 100).toFixed(1);
+    const fmtV= window._fmt ? window._fmt(v, vk, fmt) : _fmtVal(v, fmt);
     return `<div class="hbar">
       <div class="lab">${r[lk] || ''}${sk && r[sk] ? `<div class="sub">${r[sk]}</div>` : ''}</div>
-      <div class="bar ${colorCls}"><span style="width:${pct}%"></span></div>
-      <div class="v">${_fmtVal(v, cfg.fmt || 'brl')}</div>
+      ${showBar ? `<div class="bar ${color}"><span style="width:${pct}%"></span></div>` : ''}
+      <div class="v">${fmtV}</div>
     </div>`;
   }).join('') + '</div>';
 }
@@ -550,8 +584,19 @@ window._T_EXPAND=function(vjs){
 function _renderGL(elem, data) {
   if (!data || !data.length) return '';
   const cfg = elem.config || {};
-  const xk = cfg.x, yk = cfg.y, color = cfg.color || '#2563eb';
-  const W=560, H=130, pL=36, pR=8, pT=10, pB=22;
+  const xk = cfg.x, yk = cfg.y;
+  const color     = cfg.color       || '#2563eb';
+  const W=560;
+  const H         = cfg.height      || 130;
+  const pL        = cfg.pad_left    || 36;
+  const pR        = cfg.pad_right   || 8;
+  const pT        = cfg.pad_top     || 10;
+  const pB        = cfg.pad_bottom  || 22;
+  const showArea  = cfg.show_area   !== false;
+  const showPts   = cfg.show_points || false;
+  const lineW     = cfg.line_width  || 2;
+  const lblSize   = cfg.label_size  || 9;
+
   const iW = W - pL - pR, iH = H - pT - pB;
   const vals = data.map(r => parseFloat(r[yk]) || 0);
   const maxV = Math.max(...vals) || 1;
@@ -572,8 +617,14 @@ function _renderGL(elem, data) {
   const xlabels = data.map((r, i) => {
     if (i % step !== 0 && i !== data.length - 1) return '';
     const x = pL + (i / (data.length - 1)) * iW;
-    return `<text x="${x.toFixed(1)}" y="${H-3}" text-anchor="middle" font-size="9" fill="#64748b" font-family="'Segoe UI',Arial,sans-serif">${String(r[xk] || '').slice(-7)}</text>`;
+    return `<text x="${x.toFixed(1)}" y="${H-3}" text-anchor="middle" font-size="${lblSize}" fill="#64748b">${String(r[xk] || '').slice(-7)}</text>`;
   }).join('');
+
+  const ptDots = showPts ? data.map((r,i) => {
+    const x = pL + (i/(data.length-1))*iW;
+    const y = pT + iH - (vals[i]/maxV)*iH;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${color}"/>`;
+  }).join('') : '';
 
   const ptArr = pts.split(' ');
   const lastPt = ptArr[ptArr.length - 1].split(',');
@@ -585,8 +636,9 @@ function _renderGL(elem, data) {
       <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
     </linearGradient></defs>
     ${lines}
-    <path d="${pathD}" fill="url(#${gid})"/>
-    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/>
+    ${showArea?`<path d="${pathD}" fill="url(#${gid})"/>`:''}
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="${lineW}" stroke-linejoin="round"/>
+    ${ptDots}
     ${xlabels}
   </svg>`;
 }
@@ -596,10 +648,15 @@ function _renderGB(elem, data) {
   if (!data || !data.length) return '';
   const cfg = elem.config || {};
   const xk = cfg.x, yk = cfg.y;
-  const color = cfg.color || '#2563eb';
+  const color    = cfg.color     || '#2563eb';
   const negColor = cfg.neg_color || '#ef4444';
 
-  const W=560, H=220, pL=48, pR=12, pT=20, pB=60;
+  const W=560;
+  const H   = cfg.height   || 220;
+  const pL  = cfg.pad_left  || 48;
+  const pR  = cfg.pad_right || 12;
+  const pT  = cfg.pad_top   || 20;
+  const pB  = cfg.pad_bottom|| 60;
   const iW=W-pL-pR, iH=H-pT-pB;
 
   const vals = data.map(r => parseFloat(r[yk]) || 0);
@@ -611,24 +668,29 @@ function _renderGB(elem, data) {
   const yP = v => pT + iH - ((v - minV) / range) * iH;
   const y0 = yP(0);  // linha do zero
 
-  // Escape básico inline (sem deps de IIFE)
-  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // Formatar valor para label
-  const fv = v => window._fmt ? window._fmt(v, yk) : v.toFixed(2);
+  const bwRatio   = cfg.bar_width_ratio || 0.65;
+  const bRadius   = cfg.bar_radius      ?? 3;
+  const bOpacity  = cfg.bar_opacity     ?? 0.9;
+  const lblSize   = cfg.label_size      || 10;
+  const axSize    = cfg.axis_size       || 10;
+  const showVals  = cfg.show_values     !== false;
+  const showGrid  = cfg.show_grid       !== false;
+  const nG        = cfg.grid_lines      || 4;
+  const yFmt      = cfg.y_fmt           || '';
 
-  // Gridlines Y (5 linhas)
-  const nG = 4;
-  const grids = Array.from({length:nG+1},(_,i)=>{
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const fv  = v => window._fmt ? window._fmt(v, yk, yFmt||undefined) : v.toFixed(2);
+
+  const grids = showGrid ? Array.from({length:nG+1},(_,i)=>{
     const v = minV + (range/nG)*i;
     const y = yP(v).toFixed(1);
-    const lbl = fv(v);
     return `<line x1="${pL}" x2="${W-pR}" y1="${y}" y2="${y}" stroke="#f1f5f9"/>
-            <text x="${pL-6}" y="${(+y+3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#94a3b8">${esc(lbl)}</text>`;
-  }).join('');
+            <text x="${pL-6}" y="${(+y+3.5).toFixed(1)}" text-anchor="end" font-size="${axSize}" fill="#94a3b8">${esc(fv(v))}</text>`;
+  }).join('') : '';
 
   const N = data.length;
   const step = iW / N;
-  const bW = Math.max(10, Math.min(step * 0.65, 60));
+  const bW = Math.max(10, Math.min(step * bwRatio, 60));
 
   const bars = data.map((r,i) => {
     const v = vals[i];
@@ -637,16 +699,11 @@ function _renderGB(elem, data) {
     const yTop = Math.min(yP(v), y0).toFixed(1);
     const bH  = Math.max(1, Math.abs(yP(v) - y0)).toFixed(1);
     const fill = v >= 0 ? color : negColor;
-    const lblY = v >= 0 ? (+yTop - 4).toFixed(1) : (+yTop + +bH + 12).toFixed(1);
-    const lbl  = fv(v);
-
-    // Rótulo do eixo X (rotacionado para caber)
-    const xLabel = esc(String(r[xk]||''));
-    const xRot = `rotate(-35,${cx.toFixed(1)},${(H-pB+14).toFixed(1)})`;
-
-    return `<rect x="${x}" y="${yTop}" width="${bW}" height="${bH}" fill="${fill}" rx="3" opacity="0.9"/>
-<text x="${cx.toFixed(1)}" y="${lblY}" text-anchor="middle" font-size="10" font-weight="700" fill="${fill}">${esc(lbl)}</text>
-<text x="${cx.toFixed(1)}" y="${(H-pB+14).toFixed(1)}" text-anchor="end" font-size="10" fill="#64748b" transform="${xRot}">${xLabel}</text>`;
+    const lblY = v >= 0 ? (+yTop - 4).toFixed(1) : (+yTop + +bH + lblSize + 2).toFixed(1);
+    const xRot = `rotate(-35,${cx.toFixed(1)},${(H-pB+lblSize+4).toFixed(1)})`;
+    return `<rect x="${x}" y="${yTop}" width="${bW}" height="${bH}" fill="${fill}" rx="${bRadius}" opacity="${bOpacity}"/>`+
+      (showVals?`<text x="${cx.toFixed(1)}" y="${lblY}" text-anchor="middle" font-size="${lblSize}" font-weight="700" fill="${fill}">${esc(fv(v))}</text>`:'')+
+      `<text x="${cx.toFixed(1)}" y="${(H-pB+lblSize+4).toFixed(1)}" text-anchor="end" font-size="${axSize}" fill="#64748b" transform="${xRot}">${esc(String(r[xk]||''))}</text>`;
   }).join('');
 
   // Eixos
@@ -713,17 +770,22 @@ function _renderMX(elem, data) {
 
   if (!rows.length||!cols.length) return '<div class="muted" style="padding:10px;font-size:12px">Configure row_key / col_key para Matriz.</div>';
 
+  const cellSz   = cfg.cell_size        || 9;
+  const rowLblW  = cfg.row_label_width  || 130;
+  const mxColors = cfg.colors || ['#eff6ff','#bfdbfe','#93c5fd','#3b82f6','#1d4ed8'];
+
   const allV = rows.flatMap(rv=>cols.map(cv=>cellVal(rv,cv)));
   const maxV = Math.max(...allV.filter(v=>v>0))||1;
-  const si = v=>{ const p=v/maxV; return p<=0?'s0':p<.2?'s1':p<.4?'s2':p<.6?'s3':p<.8?'s4':'s5'; };
+  const nC = mxColors.length;
+  const si = v=>{ if(v<=0) return 'background:#f8fafc'; const p=v/maxV; const i=Math.min(nC-1,Math.floor(p*nC)); return `background:${mxColors[i]}`; };
   const fv = v => v>0 ? (window._fmt?window._fmt(v,'','d2'):v.toFixed(2).replace('.',',')) : '—';
 
-  const head='<div class="cell head"></div>'+cols.map(c=>`<div class="cell head" style="font-size:9px;padding:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c}">${String(c).slice(0,6)}</div>`).join('');
+  const head='<div class="cell head"></div>'+cols.map(c=>`<div class="cell head" style="font-size:${cellSz}px;padding:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c}">${String(c).slice(0,6)}</div>`).join('');
   const body=rows.map(rv=>
-    `<div class="cell head" style="font-size:9px;text-align:left;justify-content:flex-start;padding:2px 4px;overflow:hidden;white-space:nowrap">${String(rv).slice(0,22)}</div>`+
-    cols.map(cv=>{const v=cellVal(rv,cv);return `<div class="cell ${si(v)}" style="font-size:9px" title="${fv(v)}">${fv(v)}</div>`;}).join('')
+    `<div class="cell head" style="font-size:${cellSz}px;text-align:left;justify-content:flex-start;padding:2px 4px;overflow:hidden;white-space:nowrap">${String(rv).slice(0,22)}</div>`+
+    cols.map(cv=>{const v=cellVal(rv,cv);return `<div class="cell" style="${si(v)};font-size:${cellSz}px" title="${fv(v)}">${fv(v)}</div>`;}).join('')
   ).join('');
-  const colW=`130px repeat(${cols.length},1fr)`;
+  const colW=`${rowLblW}px repeat(${cols.length},1fr)`;
   return `<div style="overflow:auto;height:100%"><div class="matrix" style="grid-template-columns:${colW}">${head}${body}</div></div>`;
 }
 
@@ -3708,6 +3770,8 @@ def main():
     n_vis   = sum(sum(1 for e in idx.get("elementos",[]) if e.get("layout",{}).get("visivel")) for idx in indexes.values())
     print(f"  {len(indexes)} abas · {n_total} elementos · {n_vis} visíveis")
 
+    print("Aplicando config de charts (dashboard/charts.json)...")
+    apply_chart_config(indexes)
     print("Aplicando overrides de layout...")
     indexes = apply_layout_overrides(indexes)
 
