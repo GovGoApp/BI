@@ -1585,3 +1585,18 @@ Timing: ELEMENTS_RUNTIME_JS roda após EDITOR_JS → `_BI_EDITOR.getOv` disponí
 
 ### Commits
 - `dec8fae` _injectNlData re-injeta NL-SQL no ABAS_INDEX após F5
+
+---
+
+## [2026-06-08] _fmt fallback d2 para aliases SQL dinâmicos
+
+### Problema
+Colunas de pivot dinâmico (`PE`, `MA`, `RN`, etc.) não estão no `FIELD_FORMATS` (são aliases SQL, não campos reais). `_fmt` não encontrava formato → retornava raw (`20.9900000000000002`).
+
+### Fix
+`_fmt`: quando `code=null` (campo não no registry) E valor é numérico → aplicar `d2` como padrão. Texto e NaN retornam raw.
+
+Campos no registry (`CURVA_PROD="text"`, `POS_PROD="n0"`) não são afetados — são resolvidos antes de chegar no fallback.
+
+### Commits
+- `063d615` _fmt fallback d2 para numericos sem registro
