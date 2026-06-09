@@ -2458,14 +2458,15 @@ function _renderModal(){
               <th style="padding:5px 8px;text-align:left;font-weight:600">Exemplo</th>
             </tr></thead>
             <tbody>${m.columns.map(c=>{
-              const fmtOpts=['(auto)','d2','d0','d4','r0','r2','rmi','n0','n2','p1','p2','p4','text','code'];
+              const _FL={'':'Automático','d2':'Número 2c — 1.234,56','d0':'Número inteiro — 1.234','d4':'Número 4c — 1.234,5678','r2':'R$ 2c — R$ 1.234,56','r0':'R$ inteiro — R$ 1.234','rmi':'R$ milhões — R$ 12,4 mi','n0':'Contagem/posição — 42','p1':'% variação +/− — +3,5%','p2':'% participação — 62,84%','p4':'% precisão — 3,5678%','text':'Texto','code':'Código/ID'};
+              const fmtOpts=Object.keys(_FL);
               const cur=m.col_fmts?.[c]||'';
               const sampleVal=m.rows?.length?String(m.rows[0][c]??'—'):'—';
               const preview=window._fmt?window._fmt(sampleVal,c,cur||undefined):sampleVal;
               return `<tr style="border-top:1px solid var(--line)">
                 <td style="padding:4px 8px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_esc(c)}">${_esc(c)}</td>
-                <td style="padding:4px 6px"><select style="font-size:11px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;background:#fff" onchange="window._RL.setColFmt('${_esc(c)}',this.value)">
-                  ${fmtOpts.map(o=>`<option value="${o==='(auto)'?'':o}"${cur===(o==='(auto)'?'':o)?' selected':''}>${o}</option>`).join('')}
+                <td style="padding:4px 6px"><select style="font-size:11px;padding:2px 4px;border:1px solid var(--line);border-radius:4px;background:#fff;max-width:200px" onchange="window._RL.setColFmt('${_esc(c)}',this.value)">
+                  ${fmtOpts.map(o=>`<option value="${o}"${cur===o?' selected':''}>${_FL[o]}</option>`).join('')}
                 </select></td>
                 <td style="padding:4px 8px;color:var(--muted);font-size:11px" id="cfp_${_esc(c).replace(/[^a-z0-9]/gi,'_')}">${_esc(String(preview).slice(0,20))}</td>
               </tr>`;
