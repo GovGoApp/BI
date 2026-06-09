@@ -100,10 +100,11 @@ FIELD_FORMATS = {
     "vezes_menor_preco": "n0",   "ids_unicos": "n0",
     "n_meses_cotados": "n0",     "n_concorrentes": "n0",
 }
-DESIGN     = ROOT / "design" / "BI Suprimentos v4.html"
-DIST       = ROOT / "dist"
-TABS_DIR   = ROOT / "dashboard" / "tabs"
-CHARTS_CFG = ROOT / "dashboard" / "charts.json"
+DESIGN        = ROOT / "design" / "BI Suprimentos v4.html"
+DIST          = ROOT / "dist"
+TABS_DIR      = ROOT / "dashboard" / "tabs"
+CHART_TYPES   = ROOT / "dashboard" / "chart_types.json"   # templates por tipo (GB/GL/...)
+CHARTS_CFG    = ROOT / "dashboard" / "charts.json"        # overrides por elemento
 
 # ── Leitores ──────────────────────────────────────────────────────────────────
 
@@ -230,27 +231,24 @@ def load_all_indexes():
 
 
 def apply_chart_config(indexes):
-    """Lê dashboard/charts.json e aplica configs de visualização nos elementos."""
-    if not CHARTS_CFG.exists():
-        return
-    data = rj(CHARTS_CFG)
-    if not isinstance(data, dict):
-        return
-    defaults  = data.get("_defaults", {})
-    overrides = data.get("elements", {})
+    """Lê chart_types.json (templates) + charts.json (overrides) e aplica nos elementos."""
+    defaults  = rj(CHART_TYPES) if CHART_TYPES.exists() else {}
+    overrides = rj(CHARTS_CFG)  if CHARTS_CFG.exists()  else {}
+    if not isinstance(defaults, dict):  defaults  = {}
+    if not isinstance(overrides, dict): overrides = {}
+
     for _, idx in indexes.items():
         for elem in idx.get("elementos", []):
             eid  = elem.get("id", "")
             tipo = elem.get("tipo", "")
             if tipo not in defaults:
                 continue
-            # Merge: default do tipo + override específico do elemento
+            # Merge: template do tipo → override do elemento
             merged = {**defaults[tipo]}
             if eid in overrides:
                 ov = dict(overrides[eid])
-                ov.pop("tipo", None)   # "tipo" é metadado, não config
+                ov.pop("tipo", None)
                 merged.update(ov)
-            # Remove chaves vazias para não sobrescrever valores úteis
             merged = {k: v for k, v in merged.items() if v != ""}
             elem["config"] = merged
 
