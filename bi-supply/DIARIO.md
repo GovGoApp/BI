@@ -1600,3 +1600,31 @@ Campos no registry (`CURVA_PROD="text"`, `POS_PROD="n0"`) não são afetados —
 
 ### Commits
 - `063d615` _fmt fallback d2 para numericos sem registro
+
+---
+
+## [2026-06-08] Inferência de formato por coluna (A + B)
+
+### Problema
+Colunas dinâmicas de SQL (aliases de pivot como PE, MA, RN) não têm entrada no FIELD_FORMATS. Sem formato explícito, mostravam valores brutos como `20.9900000000000002`.
+
+### Solução em duas camadas
+
+**A — adapter.py (`_infer_fmt`)**
+Inferência automática por nome + valores:
+- Nome: `pct/perc/infla` → `p4`; `pos/qtd` → `n0`; `cd/cnpj` → `code`; `status/curva/nm` → `text`
+- Valores: todos inteiros → `n0`; média > 10k → `d0`; decimais → `d2`
+- Incluído em cada coluna do result: `{"name":"PE","type":"numeric","fmt":"d2"}`
+- `server.py`: extrai `col_fmts = {colName: fmtCode}` e inclui no report
+
+**B — Modal "Adicionar ao BI"**
+Tabela editável com formato por coluna, preview ao vivo. `config.colunas` salvo com `fmt` explícito.
+
+### Hierarquia final
+1. FIELD_FORMATS (campos fixos do Zoho)
+2. `col_fmts` do report/elemento (inferido/editado)
+3. Fallback `d2` para qualquer numérico desconhecido
+
+### Commits
+- `063d615` fallback d2
+- `6904ac7` inferência A + B completa
