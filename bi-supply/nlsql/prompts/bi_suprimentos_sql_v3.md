@@ -675,24 +675,26 @@ ORDER BY n."IMP_COT" DESC LIMIT 20
 -- FILE PEITO FRANGO - KG | PORTO (SP) | PAGO=7.20 | MENOR=6.80 | IMP=284.00 | 2026/01
 -- CARNE MOIDA 1a - KG    | ALFA LTDA  | PAGO=32.50| MENOR=30.00| IMP=175.00 | 2026/02
 
-## NFE + FILIAIS_SUPPLY — spend com contexto de filial
-SELECT f."NMFILIAL", f."NEGOCIO", f."REGIAO" AS uf,
+## NFE — spend com contexto de filial (sem JOIN — NFE ja tem NMFILIAL, UF, FI.NEGOCIO)
+-- ATENCAO: FILIAIS_SUPPLY NAO tem NMFILIAL — tem NOME. Para nome da filial use NFE.NMFILIAL.
+-- Para filials/negocio/UF em queries de NFE: use as colunas do proprio NFE, sem JOIN.
+SELECT n."CDFILIAL", n."NMFILIAL", n."UF", n."FI.NEGOCIO" AS negocio,
        SUM(n."TOTAL") AS spend, COUNT(DISTINCT n."CDFORNECED_OFICIAL") AS fornecedores
 FROM "NFE" n
-LEFT JOIN "FILIAIS_SUPPLY" f ON n."CDFILIAL" = f."CDFILIAL"
-WHERE f."ATIVA" = 'Yes' AND f."NEGOCIO" <> 'MATRIZ'
-GROUP BY f."NMFILIAL", f."NEGOCIO", f."REGIAO"
+WHERE n."FI.NEGOCIO" <> '_MATRIZ'
+GROUP BY n."CDFILIAL", n."NMFILIAL", n."UF", n."FI.NEGOCIO"
 ORDER BY spend DESC LIMIT 10
 -- Resultado esperado (exemplos):
 -- RC NUTRY ALIMENTACAO | MERENDA | SP | spend=131.832.644 | forn=89
 -- MERENDA SAO LUIS     | MERENDA | MA | spend=20.194.150  | forn=42
 
-## CP + FILIAIS_SUPPLY — CP em aberto por filial
-SELECT f."NMFILIAL", f."NEGOCIO", SUM(cp."VRATUAPAG") AS cp_aberto, COUNT(*) AS titulos
+## CP + FILIAIS_SUPPLY — CP em aberto com contexto de filial
+-- FILIAIS_SUPPLY.NOME = nome da filial (NAO NMFILIAL). CP nao tem NMFILIAL.
+SELECT f."NOME" AS nmfilial, f."NEGOCIO", SUM(cp."VRATUAPAG") AS cp_aberto, COUNT(*) AS titulos
 FROM "CP" cp
 LEFT JOIN "FILIAIS_SUPPLY" f ON cp."CDFILIAL" = f."CDFILIAL"
 WHERE cp."STATUSPAG" = 'Em Aberto'
-GROUP BY f."NMFILIAL", f."NEGOCIO"
+GROUP BY f."NOME", f."NEGOCIO"
 ORDER BY cp_aberto DESC LIMIT 10
 -- Resultado esperado (exemplos):
 -- HOSP. OURO VERDE | HOSPITAL | SP | cp_aberto=2.450.000 | titulos=124
@@ -710,13 +712,14 @@ ORDER BY i."PERC_INF_PROD_PMP" DESC LIMIT 10
 -- MEL PURO - LT         | I1 - SECOS | inflacao=18.7% | rs=8320.00  | 2025/01
 
 ## AD_v3 + FILIAIS_SUPPLY — adiantamentos por filial
-SELECT f."NMFILIAL", f."NEGOCIO",
+-- FILIAIS_SUPPLY.NOME = nome da filial (NAO NMFILIAL). AD_v3 tem NMFILIAL diretamente.
+SELECT ad."NMFILIAL", f."NEGOCIO",
        SUM(ad."VALOR_FINAL") AS total_ad,
        SUM(CASE WHEN ad."STATUS_CONCILIACAO" = 'CONCILIADO' THEN ad."VALOR_FINAL" ELSE 0 END) AS conciliado,
        SUM(CASE WHEN ad."STATUS_CONCILIACAO" = 'ADIANTAMENTO ?' THEN ad."VALOR_FINAL" ELSE 0 END) AS pendente
 FROM "AD_v3" ad
 LEFT JOIN "FILIAIS_SUPPLY" f ON ad."CDFILIAL" = f."CDFILIAL"
-GROUP BY f."NMFILIAL", f."NEGOCIO"
+GROUP BY ad."NMFILIAL", f."NEGOCIO"
 ORDER BY pendente DESC LIMIT 10
 -- Resultado esperado (exemplos):
 -- HOSP. MARIO DEGNI | HOSPITAL | total=5404 | conciliado=344 | pendente=5060
@@ -861,6 +864,10 @@ ORDER BY "SALDO_DIVIDA_SEMANA" DESC LIMIT 20
 - IMP_COT, PRE_MIN_COT e campos de inflacao sao NULL quando sem dados — use IS NULL / IS NOT NULL.
 - Para spend real (operacional): filtrar NMPRODUTO_OFICIAL NOT LIKE '%MUTUO%'.
 - Para excluir servicos financeiros: WHERE "CAT1" NOT LIKE 'D%'.
+- FILIAIS_SUPPLY NAO tem NMFILIAL — a coluna de nome la e NOME. Para nome de filial em queries
+  de NFE ou AD_v3: use n."NMFILIAL" ou ad."NMFILIAL" diretamente (sem JOIN). Para CP use f."NOME".
+- NFE ja tem NMFILIAL, UF e FI.NEGOCIO — para filial/negocio/UF em queries NFE nao faca JOIN
+  com FILIAIS_SUPPLY; use as colunas do proprio NFE.
 
 # 14. Forma final
 
