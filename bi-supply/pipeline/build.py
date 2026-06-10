@@ -3064,22 +3064,40 @@ function _renderElementos(){
     el.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6">Nenhum elemento salvo.<br>Use <strong>+ Adicionar ao BI</strong><br>em qualquer resultado.</div>';
     return;
   }
+  if(!_S.elemCollapsed) _S.elemCollapsed={};
+
   // Agrupar por aba de destino
   const byTab={};
   items.forEach(e=>{ const t=e.destination_tab||'—'; (byTab[t]=byTab[t]||[]).push(e); });
   const abaLbl=t=>(typeof ABAS_INDEX!=='undefined'&&ABAS_INDEX[t]?.label)||t;
+
+  // Tags de origem
+  const _origemTag=origem=>{
+    if(origem==='pipeline')
+      return '<span style="font-size:9px;font-weight:700;color:#64748b;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:3px;padding:1px 5px;white-space:nowrap;flex-shrink:0">BI</span>';
+    return '<span style="font-size:9px;font-weight:700;color:#16a34a;background:#f0fdf4;border:1px solid #86efac;border-radius:3px;padding:1px 5px;white-space:nowrap;flex-shrink:0">SQL</span>';
+  };
+
   const html=Object.entries(byTab).map(([tab,els])=>{
-    const rows=els.map(e=>`
+    const collapsed=!!_S.elemCollapsed[tab];
+    const rows=collapsed?'':els.map(e=>`
       <div class="rel-elem-item" onclick="window._RL.openElement('${e.id}')" style="cursor:pointer">
         <span class="rel-elem-icon">${_VIZ_ICON[e.tipo]||''}</span>
         <div style="flex:1;min-width:0">
           <div class="rel-hi-title">${_esc(e.title)}</div>
-          <div class="rel-hi-sub">${_VIZ_NAME[e.tipo]||e.tipo} · ${_ts(e.created_at)}</div>
+          <div class="rel-hi-sub" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            ${_origemTag(e.origem)}
+            <span>${_VIZ_NAME[e.tipo]||e.tipo} · ${_ts(e.created_at)}</span>
+          </div>
         </div>
         <button class="rel-icn-btn" title="Remover" onclick="event.stopPropagation();window._RL.deleteElement('${e.id}')">${_SVG_TRASH}</button>
       </div>`).join('');
     return `<div class="rel-elem-group">
-      <div class="rel-elem-group-lbl">${_esc(abaLbl(tab))}<span class="rel-elem-count">${els.length}</span></div>
+      <div class="rel-elem-group-lbl" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between"
+           onclick="_S.elemCollapsed=_S.elemCollapsed||{};_S.elemCollapsed['${tab}']=!_S.elemCollapsed['${tab}'];_renderElementos()">
+        <span>${_esc(abaLbl(tab))}<span class="rel-elem-count">${els.length}</span></span>
+        <span style="font-size:10px;color:var(--muted);padding-right:4px">${collapsed?'▶':'▼'}</span>
+      </div>
       ${rows}
     </div>`;
   }).join('');
