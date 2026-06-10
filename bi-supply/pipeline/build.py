@@ -3094,8 +3094,8 @@ function _renderElementos(){
       </div>`).join('');
     return `<div class="rel-elem-group">
       <div class="rel-elem-group-lbl" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between"
-           onclick="_S.elemCollapsed=_S.elemCollapsed||{};_S.elemCollapsed['${tab}']=!_S.elemCollapsed['${tab}'];_renderElementos()">
-        <span>${_esc(abaLbl(tab))}<span class="rel-elem-count">${els.length}</span></span>
+           onclick="window._RL.toggleElemGroup('${tab}')">
+        <span>${_esc(abaLbl(tab))}<span class="rel-elem-count" style="margin-left:6px">${els.length}</span></span>
         <span style="font-size:10px;color:var(--muted);padding-right:4px">${collapsed?'▶':'▼'}</span>
       </div>
       ${rows}
@@ -3146,6 +3146,7 @@ window._RL = {
     _S.reports[tid]=r; _S.pages[tid]=0; _S.activeId=tid;
     _renderTabs(); _renderContent();
   },
+  toggleElemGroup: tab => { _S.elemCollapsed=_S.elemCollapsed||{}; _S.elemCollapsed[tab]=!_S.elemCollapsed[tab]; _renderElementos(); },
   newChat:    () => { _S.chatId=null; _S.msgs=[]; _renderMsgs(); },
 
   setVizType: (tid, tipo) => {
